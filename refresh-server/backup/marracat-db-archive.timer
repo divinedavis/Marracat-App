@@ -1,0 +1,10 @@
+[Unit]
+Description=File and check the Marracat storefront database copies from 167.71
+
+[Timer]
+# An hour after 167.71 sends its copy (07:15 UTC).
+OnCalendar=*-*-* 08:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

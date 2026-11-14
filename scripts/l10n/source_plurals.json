@@ -1,0 +1,14 @@
+{
+  "%lld results for “%@”": {
+    "one": "%lld result for “%@”",
+    "other": "%lld results for “%@”"
+  },
+  "%lld items · %@": {
+    "one": "%lld item · %@",
+    "other": "%lld items · %@"
+  },
+  "%lld items: Total": {
+    "one": "%lld item: Total",
+    "other": "%lld items: Total"
+  }
+}

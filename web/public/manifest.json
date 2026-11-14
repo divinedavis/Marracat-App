@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Marracat",
+  "short_name": "Marracat",
+  "description": "Your next favorite. All in one place.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Saved", "url": "/saved" },
+    { "name": "Bag", "url": "/cart" },
+    { "name": "All brands", "url": "/brands" }
+  ]
+}

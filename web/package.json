@@ -1,0 +1,41 @@
+{
+  "name": "marracat-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test:browser": "playwright test"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@auth/express": "0.12.3",
+    "better-sqlite3": "12.11.1",
+    "express": "5.2.1",
+    "express-rate-limit": "8.7.0",
+    "jose": "6.2.12",
+    "lucide-react": "1.45.0",
+    "mailauth": "7.1.1",
+    "mailparser": "3.9.32",
+    "nodemailer": "10.2.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "smtp-server": "3.19.16",
+    "tldts": "7.4.16"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite": "8.3.3"
+  },
+  "overrides": {
+    "nodemailer": "10.2.1",
+    "undici": "8.12.3",
+    "joi": "^18.3.1"
+  }
+}

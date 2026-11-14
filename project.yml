@@ -1,0 +1,169 @@
+name: Marracat
+options:
+  bundleIdPrefix: com.divinedavis
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 9.0.0
+  # In-app Shopify checkout (Apple Pay / Shop Pay) for each brand's cart permalink.
+  ShopifyCheckoutSheetKit:
+    url: https://github.com/Shopify/checkout-sheet-kit-swift
+    from: 3.8.2
+settings:
+  base:
+    DEVELOPMENT_TEAM: CG89RY4W6R
+    MARKETING_VERSION: "1.12"
+    CURRENT_PROJECT_VERSION: "185"
+    SWIFT_VERSION: "5.0"
+    ENABLE_DEBUG_DYLIB: NO
+    # Localization (2026-10-14): one String Catalog, Shared/Localizable.xcstrings,
+    # compiled into the app and the widget extension. The compiler extracts
+    # SwiftUI literals and String(localized:) into .stringsdata on every build;
+    # scripts/l10n/sync_catalog.sh merges them into the catalog and
+    # scripts/l10n/translate.swift fills the other languages on this Mac.
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+targets:
+  Marracat:
+    type: application
+    platform: iOS
+    # catalog.json lives under Resources/ inside sources: XcodeGen ignores
+    # a separate `resources:` key, so folders must sit under `sources:`.
+    sources:
+      - path: Marracat
+        # The full catalog is a build input for the scripts and the website,
+        # not something the app reads. The app bundles catalog.bin, made from
+        # catalog-compact.json (the same products without the descriptions and
+        # spare images a product page fetches for itself).
+        excludes:
+          - Resources/catalog.json
+          # The app reads catalog.bin (2026-10-18); the JSON stays for the
+          # scripts, the web tests and a checkout without the binary.
+          - Resources/catalog-compact.json
+      # The delivery Live Activity's types and its ‹ › intent, shared with
+      # the widget extension (which can't link the app).
+      - path: Shared
+    dependencies:
+      - target: MarracatWidgets
+        embed: true
+      - package: GoogleSignIn
+        product: GoogleSignIn
+      - package: ShopifyCheckoutSheetKit
+        product: ShopifyCheckoutSheetKit
+    entitlements:
+      path: Marracat/Marracat.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
+        # Opens shared product links (marracat.com/p/<id>) in the app. The
+        # matching file is served by web/nginx.conf.
+        com.apple.developer.associated-domains: ["applinks:marracat.com"]
+        # Restock notifications (Stores/RestockStore.swift). The App ID's
+        # PUSH_NOTIFICATIONS capability was enabled through the ASC API
+        # 2026-09-30; export turns this into production for TestFlight.
+        aps-environment: development
+        # The widgets' snapshot (Shared/WidgetSnapshot.swift). Capability on
+        # both App IDs via scripts/register_in_asc.py; the group itself was
+        # created with fastlane produce (see that script's header).
+        com.apple.security.application-groups: [group.com.divinedavis.marracat]
+    info:
+      path: Marracat/Info.plist
+      properties:
+        GIDClientID: 81643017085-88is0c92d821klsb0u8pdfrin2otg4im.apps.googleusercontent.com
+        GIDServerClientID: 81643017085-8gvbt4ipof1et69ns1jhqgl1qeg4dbmn.apps.googleusercontent.com
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [com.googleusercontent.apps.81643017085-88is0c92d821klsb0u8pdfrin2otg4im]
+          # marracat://order?… from the delivery Live Activity (LiveActivityStore.swift).
+          - CFBundleURLSchemes: [marracat]
+        # Today's deliveries in the Dynamic Island (owner, 2026-10-13). Must be
+        # in the APP's Info.plist, not the extension's, or Activity.request
+        # and push-to-start silently do nothing.
+        NSSupportsLiveActivities: true
+        CFBundleDisplayName: Marracat
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: { UIColorName: LaunchWhite }
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # iPad windows resize and rotate freely; the layouts follow the window's
+        # width (Theme.swift: Widths), not the device.
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        ITSAppUsesNonExemptEncryption: false
+        # ProMotion: without this, Core Animation (the launch splash, springs,
+        # the swipe back) is held to 60 Hz on 120 Hz iPhones (2026-10-02).
+        CADisableMinimumFrameDurationOnPhone: true
+        # Background catalog refresh (Stores/BackgroundRefresh.swift).
+        # processing: decoding a downloaded catalog waits for external power.
+        UIBackgroundModes: [fetch, processing]
+        BGTaskSchedulerPermittedIdentifiers: [com.divinedavis.marracat.catalog-refresh, com.divinedavis.marracat.catalog-process]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # The holiday icons (AppIcon-<id>, scripts/holiday_app_icons.py
+        # --xcassets) go in as alternates, listed in CFBundleAlternateIcons.
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+  # The delivery Live Activity: Lock Screen card + Dynamic Island
+  # (MarracatWidgets/DeliveryLiveActivity.swift), started and moved by the
+  # server's ActivityKit pushes (web/server/live-activity.js); and the Home
+  # Screen and Lock Screen widgets (MarracatWidgets/HomeWidgets.swift), which
+  # read the snapshot the app writes into the App Group.
+  MarracatWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: MarracatWidgets
+      - path: Shared
+    entitlements:
+      path: MarracatWidgets/MarracatWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.divinedavis.marracat]
+    info:
+      path: MarracatWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Marracat
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+  MarracatTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [MarracatTests]
+    dependencies:
+      - target: Marracat
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.tests
+        GENERATE_INFOPLIST_FILE: YES
+  MarracatUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [MarracatUITests]
+    dependencies:
+      - target: Marracat
+    settings:
+      base:
+        TEST_TARGET_NAME: Marracat
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Marracat:
+    build:
+      targets:
+        Marracat: all
+        MarracatUITests: [test]
+        MarracatTests: [test]
+    test:
+      targets: [MarracatTests, MarracatUITests]
+      # No screenshot after every XCUITest step: kept only for failures
+      # anyway, and taken ~1,000 times a ship run (2026-10-18). A failing
+      # test still reports the element and the step; snap() still works.
+      captureScreenshotsAutomatically: false

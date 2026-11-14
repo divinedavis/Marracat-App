@@ -1,0 +1,14 @@
+{
+  "bonnet": ["sleep cap", "satin cap", "hair wrap"],
+  "bundle": ["bundles", "hair bundles", "gift set"],
+  "du rag": ["durag", "wave cap"],
+  "durag": ["du rag", "doo rag", "wave cap", "satin cap"],
+  "edge control": ["edge gel", "edges", "laid edges"],
+  "lace front": ["lace wig", "frontal wig", "wig"],
+  "melanin poppin": ["melanin", "melanin popping"],
+  "nail clipper": ["nail clippers", "clipper", "nail care", "manicure set"],
+  "pocket kent": ["kent pocket comb", "pocket comb"],
+  "wave cap": ["durag", "du rag"],
+  "weave": ["hair bundles", "hair extensions", "virgin hair", "sew in"],
+  "wig": ["lace wig", "frontal wig", "human hair wig"]
+}

@@ -1,0 +1,56 @@
+#!/bin/bash
+# Runs ON 167.71 as marracat-pub: the forced command of the refresh droplet's
+# key (authorized_keys: restrict,from="<refresh private IP>",command=...).
+# Whatever the client asks for arrives in SSH_ORIGINAL_COMMAND; only these
+# are honoured:
+#
+#   put <name>                       stdin -> incoming/<name>; prints its md5
+#   catalog-swap                     sudo marracat-catalog-swap
+#   web-data-release <generated> <product id>
+#                                    sudo marracat-web-data-release release ...
+#   web-rollback <release id>        sudo marracat-web-data-release rollback ...
+#
+# <name> is one of the published catalog files, a catalog delta or manifest
+# (catalog-v3-delta-<fp>.json{,.gz,.sig}, catalog-v3-manifest-<fp>.json.gz),
+# or one of the two web data files;
+# nothing else can be written, and nothing can be read back.
+# Installed by refresh-server/receiver/install.sh as /usr/local/sbin/marracat-pub-ssh.
+set -euo pipefail
+INCOMING="${MARRACAT_PUB_INCOMING:-/var/lib/marracat-pub/incoming}"
+SUDO="${MARRACAT_PUB_SUDO:-sudo -n}"   # tests only; sshd passes no client env (AcceptEnv LANG LC_* at most)
+MAX_BYTES=1500000000
+deny() { echo "marracat-pub: refused: ${SSH_ORIGINAL_COMMAND:-<none>}" >&2; logger -t marracat-pub "refused: ${SSH_ORIGINAL_COMMAND:-<none>}" 2>/dev/null || true; exit 2; }
+cmdline="${SSH_ORIGINAL_COMMAND:-}"
+# Plain words only: no quoting, globbing or shell syntax gets anywhere.
+plain='^[A-Za-z0-9._:+ -]+$'
+[[ ${#cmdline} -le 300 && "$cmdline" =~ $plain ]] || deny
+read -r -a args <<<"$cmdline"
+case "${args[0]:-}" in
+put)
+    [[ ${#args[@]} -eq 2 ]] || deny
+    name="${args[1]}"
+    [[ "$name" =~ ^(catalog(-v[23])?\.json(\.gz|\.sig)?|catalog-slim\.json|product-details\.sqlite|catalog-v3-delta-[0-9a-f]{16}\.json(\.gz|\.sig)?|catalog-v3-manifest-[0-9a-f]{16}\.json\.gz)$ ]] || deny
+    part="$INCOMING/.$name.part"
+    head -c $((MAX_BYTES + 1)) > "$part"
+    if (( $(wc -c < "$part") > MAX_BYTES )); then rm -f "$part"; echo "marracat-pub: $name is too big" >&2; exit 2; fi
+    mv -f "$part" "$INCOMING/$name"
+    md5sum "$INCOMING/$name" | cut -d' ' -f1
+    ;;
+catalog-swap)
+    [[ ${#args[@]} -eq 1 ]] || deny
+    exec $SUDO /usr/local/sbin/marracat-catalog-swap
+    ;;
+web-data-release)
+    [[ ${#args[@]} -eq 3 ]] || deny
+    [[ "${args[1]}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.+Z-]{1,30}$ ]] || deny
+    [[ "${args[2]}" =~ ^[A-Za-z0-9._:-]{1,200}$ ]] || deny
+    exec $SUDO /usr/local/sbin/marracat-web-data-release release "${args[1]}" "${args[2]}"
+    ;;
+web-rollback)
+    [[ ${#args[@]} -eq 2 && "${args[1]}" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || deny
+    exec $SUDO /usr/local/sbin/marracat-web-data-release rollback "${args[1]}"
+    ;;
+*)
+    deny
+    ;;
+esac

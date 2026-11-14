@@ -1,0 +1,18 @@
+[Unit]
+Description=Nightly off-box backup of the Marracat storefront database
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=marracat
+Group=marracat
+ExecStart=/usr/local/sbin/marracat-db-backup
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/etc/marracat/backup
+# The live database's directory: sqlite needs its -shm/-wal to read in WAL mode.
+ReadWritePaths=/var/lib/marracat /var/tmp

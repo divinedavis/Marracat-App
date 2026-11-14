@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""The catalog signer on the refresh droplet: one connection, one signature.
+
+Every iPhone trusts the catalog's Ed25519 key (Marracat/Stores/
+CatalogSignature.swift). Until 2026-11-12 the refresh service itself could
+read it, and that service fetches and parses pages, feeds and photos from
+well over a thousand outside stores: one bug there and the key walks. Now
+the key belongs to its own user, marracat-signer, and the refresh can only
+ask for a signature over a local socket.
+
+systemd starts this per connection (marracat-signer.socket, Accept=yes) with
+the socket as stdin and stdout, as marracat-signer, with no network and a
+read-only filesystem. It is installed root-owned in /usr/local/sbin, never
+run from the checkout, which the refresh user can write.
+
+Request:  b"sign <name> <size>\\n" then <size> bytes
+Answer:   b"ok <base64 signature>\\n"  or  b"error <why>\\n"
+
+Only what a catalog publish makes is signed: catalog.json, catalog-v2.json,
+catalog-v3.json and delta-<16 hex>.json, each a JSON object, a catalog one
+dated and over a megabyte. This keeps the key from signing anything else;
+it doesn't judge what a catalog says (scripts/check_catalog.py and the
+tests do that before a publish asks).
+"""
+from __future__ import annotations
+
+import base64
+import os
+import re
+import sys
+from pathlib import Path
+
+KEY = Path(os.environ.get("MARRACAT_CATALOG_KEY", "/etc/marracat-signer/catalog-signing.key"))
+MAX_BYTES = 1 << 30
+REQUEST = re.compile(rb"sign ([A-Za-z0-9._-]{1,64}) (\d{1,10})\n")
+NAME = re.compile(r"^(catalog(-v[23])?\.json|delta-[0-9a-f]{16}\.json)$")
+DATED = re.compile(rb'^\{\s*"generated_?[aA]t"\s*:\s*"20\d\d-\d\d-\d\dT')
+
+
+class Refused(Exception):
+    """`unread`: body bytes the client is still sending. They are read and
+    dropped before the answer, so its send finishes and it hears the refusal
+    rather than a broken pipe."""
+    def __init__(self, why, unread=0):
+        super().__init__(why)
+        self.unread = unread
+
+
+def read_request(stream) -> tuple[str, bytes]:
+    m = REQUEST.fullmatch(stream.readline(96))
+    if not m:
+        raise Refused("bad request")
+    name, size = m.group(1).decode(), int(m.group(2))
+    if not 2 <= size <= MAX_BYTES:
+        raise Refused("bad size")
+    if not NAME.match(name):
+        raise Refused("not a catalog file name", unread=size)
+    data = stream.read(size)
+    if len(data) != size:
+        raise Refused("short body")
+    return name, data
+
+
+def drop(stream, count):
+    while count > 0:
+        chunk = stream.read(min(count, 1 << 20))
+        if not chunk:
+            return
+        count -= len(chunk)
+
+
+def plausible(name: str, data: bytes) -> bool:
+    if not data.startswith(b"{") or not data.rstrip().endswith(b"}"):
+        return False
+    if name.startswith("catalog"):
+        return len(data) > 1_000_000 and DATED.match(data[:96]) is not None
+    return True
+
+
+def sign(data: bytes) -> str:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    private = Ed25519PrivateKey.from_private_bytes(base64.b64decode(KEY.read_text().strip()))
+    return base64.b64encode(private.sign(data)).decode()
+
+
+def serve(stream, out, signer=sign) -> str:
+    try:
+        name, data = read_request(stream)
+        if not plausible(name, data):
+            raise Refused("not a catalog")
+        reply = "ok " + signer(data)
+    except Refused as e:
+        drop(stream, e.unread)
+        reply = f"error {e}"
+    except Exception as e:  # the key is missing or unreadable: say so, not why
+        reply = f"error signer failed ({type(e).__name__})"
+    out.write(reply.encode() + b"\n")
+    out.flush()
+    return reply
+
+
+if __name__ == "__main__":
+    answer = serve(sys.stdin.buffer, sys.stdout.buffer)
+    print("refused: " + answer if answer.startswith("error") else "signed one file", file=sys.stderr)

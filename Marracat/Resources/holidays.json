@@ -1,0 +1,1904 @@
+{
+ "_about": "Holidays, commemorations and standing App Store events (owner, 2026-10-20). One source for the app (HolidayTheme.swift: splash, tab bar, icons, collections) and the scripts (event art, App Store events, header swaps). date: month + day, or the nth ISO weekday (1 = Monday) of the month (nth -1 = last), plus offset days. theme: the days around it (from/to) the splash, tab bar and icon wear it; null = event only. On overlapping days the shortest theme wins. event from/to: its days around the date. rows: collection ids shown as Home rows while the holiday's event runs (owner, 2026-10-27: \"a row or two in the app that has products that match the event\"). A collection with match (title regex, case-insensitive) is filtered, not searched: tags (exact), exclude, only/notCategories, notBrands, booksNeed, minOff/maxOff (percent), maxPrice (USD), lead (ranked first), order \"off\" (biggest markdown first, else newest). banner: the two colours of the Home banner above those rows (white type on them).",
+ "holidays": [
+  {
+   "id": "halloween",
+   "name": "Halloween",
+   "kind": "Holiday",
+   "rule": "October 31",
+   "date": {
+    "month": 10,
+    "day": 31
+   },
+   "theme": {
+    "from": -6,
+    "to": 0
+   },
+   "line": "HAPPY HALLOWEEN",
+   "disc": "#0A0A0A",
+   "ring": [
+    "#F26B1D"
+   ],
+   "mark": "moon.stars.fill",
+   "rule_colors": [
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A",
+    "#F26B1D",
+    "#0A0A0A"
+   ],
+   "icon": "AppIcon-halloween",
+   "icon_bands": [
+    [
+     "#F26B1D",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#F26B1D",
+     1
+    ]
+   ],
+   "tab": [
+    "#F26B1D",
+    "#B84A0E"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Halloween Picks",
+    "short": "Costumes, candy and spooky-season finds",
+    "long": "Costume pieces, candy, candles and party finds from independent brands, all in one cart.",
+    "from": -10,
+    "to": 0,
+    "link": "marracat://collection/halloween"
+   },
+   "icon_text": "#F26B1D",
+   "rows": [
+    "halloween",
+    "halloween-reads"
+   ],
+   "banner": [
+    "#F26B1D",
+    "#0A0A0A"
+   ]
+  },
+  {
+   "id": "veterans",
+   "name": "Veterans Day",
+   "kind": "Federal holiday",
+   "rule": "November 11",
+   "date": {
+    "month": 11,
+    "day": 11
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "VETERANS DAY",
+   "disc": "#00205B",
+   "ring": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "mark": "star.fill",
+   "rule_colors": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "icon": "AppIcon-veterans",
+   "icon_bands": [
+    [
+     "#00205B",
+     1
+    ],
+    [
+     "#FFFFFF",
+     0.5
+    ],
+    [
+     "#BF0A30",
+     2
+    ],
+    [
+     "#FFFFFF",
+     0.5
+    ],
+    [
+     "#00205B",
+     1
+    ]
+   ],
+   "tab": [
+    "#BF0A30",
+    "#00205B"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Veterans Day Deals",
+    "short": "Markdowns from independent brands",
+    "long": "Brands across Marracat mark down for Veterans Day. Save in one cart, with sale alerts on what you follow.",
+    "from": -3,
+    "to": 0,
+    "link": "marracat://deals"
+   },
+   "rows": [
+    "veterans-deals"
+   ],
+   "banner": [
+    "#BF0A30",
+    "#00205B"
+   ]
+  },
+  {
+   "id": "thanksgiving",
+   "name": "Thanksgiving",
+   "kind": "Federal holiday",
+   "rule": "Fourth Thursday in November",
+   "date": {
+    "month": 11,
+    "weekday": 4,
+    "nth": 4
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "THANKSGIVING",
+   "disc": "#8A3B12",
+   "ring": [],
+   "mark": "leaf.fill",
+   "rule_colors": [
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E",
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E"
+   ],
+   "icon": "AppIcon-thanksgiving",
+   "icon_bands": [
+    [
+     "#E8B000",
+     1
+    ],
+    [
+     "#8A3B12",
+     2
+    ],
+    [
+     "#C8781E",
+     1
+    ]
+   ],
+   "tab": [
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "The Thanksgiving Table",
+    "short": "Candles, linens and gourmet for hosting",
+    "long": "Set the table with candles, serveware and gourmet from independent brands, all in one cart.",
+    "from": -10,
+    "to": 0,
+    "link": "marracat://collection/thanksgiving"
+   },
+   "rows": [
+    "thanksgiving",
+    "thanksgiving-cook"
+   ],
+   "banner": [
+    "#B5541C",
+    "#5B3A1E"
+   ]
+  },
+  {
+   "id": "black-friday",
+   "name": "Black Friday",
+   "kind": "Shopping day",
+   "rule": "Day after Thanksgiving",
+   "date": {
+    "month": 11,
+    "weekday": 4,
+    "nth": 4,
+    "offset": 1
+   },
+   "theme": {
+    "from": 0,
+    "to": 2
+   },
+   "line": "BLACK FRIDAY",
+   "disc": "#0A0A0A",
+   "ring": [],
+   "mark": "tag.fill",
+   "rule_colors": [
+    "#0A0A0A"
+   ],
+   "icon": "AppIcon-black-friday",
+   "icon_bands": [
+    [
+     "#0A0A0A",
+     1
+    ]
+   ],
+   "tab": [
+    "#F2F2F2",
+    "#8C8C8C",
+    "#F2F2F2",
+    "#5A5A5A"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Black Friday Deals",
+    "short": "Black Friday markdowns, all in one place",
+    "long": "Every brand's Black Friday markdown in one place. Follow a brand and Marracat tells you the moment it drops.",
+    "from": -7,
+    "to": 2,
+    "link": "marracat://deals"
+   },
+   "rows": [
+    "black-friday-deals",
+    "black-friday-under-25"
+   ],
+   "banner": [
+    "#D4AF37",
+    "#0A0A0A"
+   ]
+  },
+  {
+   "id": "cyber-monday",
+   "name": "Cyber Monday",
+   "kind": "Shopping day",
+   "rule": "Monday after Thanksgiving",
+   "date": {
+    "month": 11,
+    "weekday": 4,
+    "nth": 4,
+    "offset": 4
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "CYBER MONDAY",
+   "disc": "#1D4ED8",
+   "ring": [],
+   "mark": "tag.fill",
+   "rule_colors": [
+    "#1D4ED8"
+   ],
+   "icon": "AppIcon-cyber-monday",
+   "icon_bands": [
+    [
+     "#1D4ED8",
+     1
+    ]
+   ],
+   "tab": [
+    "#1D4ED8",
+    "#60A5FA",
+    "#22D3EE"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Cyber Monday Deals",
+    "short": "Last call on this year's biggest markdowns",
+    "long": "The last day of Black Friday pricing at many brands. Sale alerts and one cart for every store.",
+    "from": -2,
+    "to": 1,
+    "link": "marracat://deals"
+   },
+   "rows": [
+    "cyber-monday-deals"
+   ],
+   "banner": [
+    "#2E5BFF",
+    "#0A0A0A"
+   ]
+  },
+  {
+   "id": "gift-guide",
+   "name": "Holiday Gift Guide",
+   "kind": "Season (Thanksgiving theme)",
+   "rule": "Nov 20 – Dec 20",
+   "date": {
+    "month": 11,
+    "day": 20
+   },
+   "theme": {
+    "from": 0,
+    "to": 28
+   },
+   "line": "GIFT GUIDE",
+   "disc": "#8A3B12",
+   "ring": [],
+   "mark": "leaf.fill",
+   "rule_colors": [
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E",
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E"
+   ],
+   "icon": "AppIcon-gift-guide",
+   "icon_bands": [
+    [
+     "#E8B000",
+     1
+    ],
+    [
+     "#8A3B12",
+     2
+    ],
+    [
+     "#C8781E",
+     1
+    ]
+   ],
+   "tab": [
+    "#E8B000",
+    "#8A3B12",
+    "#C8781E"
+   ],
+   "note": "Thanksgiving's colours carry the whole gift season. Thanksgiving, Black Friday, Cyber Monday and Christmas take over on their own days.",
+   "event": {
+    "badge": "Special Event",
+    "name": "Holiday Gift Guide",
+    "short": "Gifts by price and by who they're for",
+    "long": "Gifts under $25, $50 and $100, for him, her, kids and hosts, from independent brands in one cart.",
+    "from": 0,
+    "to": 30,
+    "link": "marracat://category/party"
+   },
+   "rows": [
+    "gift-guide-sets",
+    "stocking-stuffers"
+   ],
+   "banner": [
+    "#B5541C",
+    "#2F5D3A"
+   ]
+  },
+  {
+   "id": "christmas",
+   "name": "Christmas",
+   "kind": "Federal holiday",
+   "rule": "December 25",
+   "date": {
+    "month": 12,
+    "day": 25
+   },
+   "theme": {
+    "from": -6,
+    "to": 0
+   },
+   "line": "HAPPY HOLIDAYS",
+   "disc": "#0F5132",
+   "ring": [
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132"
+   ],
+   "mark": "gift.fill",
+   "rule_colors": [
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132",
+    "#B3001B",
+    "#0F5132"
+   ],
+   "icon": "AppIcon-christmas",
+   "icon_bands": [
+    [
+     "#B3001B",
+     1
+    ],
+    [
+     "#0F5132",
+     2
+    ],
+    [
+     "#B3001B",
+     1
+    ]
+   ],
+   "tab": [
+    "#0F5132",
+    "#B3001B"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Last-Minute Gifts",
+    "short": "Gift sets and boxes, ready to give",
+    "long": "Gift sets, boxes and bundles from independent brands, ready to give, all in one cart.",
+    "from": -10,
+    "to": 0,
+    "link": "marracat://collection/gift-sets"
+   },
+   "icon_pattern": {
+    "stripes": [
+     "#B3001B",
+     "#FFFFFF"
+    ],
+    "middle": "#0F5132"
+   },
+   "rows": [
+    "christmas-picks",
+    "gift-sets"
+   ],
+   "banner": [
+    "#C8102E",
+    "#1E5631"
+   ]
+  },
+  {
+   "id": "kwanzaa",
+   "name": "Kwanzaa",
+   "kind": "Cultural holiday",
+   "rule": "December 26 – January 1",
+   "date": {
+    "month": 12,
+    "day": 26
+   },
+   "theme": {
+    "from": 0,
+    "to": 4
+   },
+   "line": "KWANZAA",
+   "disc": "#0A0A0A",
+   "ring": [],
+   "mark": "kinara",
+   "rule_colors": [
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D",
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D"
+   ],
+   "icon": "AppIcon-kwanzaa",
+   "icon_bands": [
+    [
+     "#C8102E",
+     1
+    ],
+    [
+     "#0A0A0A",
+     1
+    ],
+    [
+     "#007A3D",
+     1
+    ]
+   ],
+   "tab": [
+    "#C8102E",
+    "#3A3A3A",
+    "#007A3D"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Kwanzaa: Kuumba & Ujamaa",
+    "short": "Handmade gifts for the seven days",
+    "long": "Celebrate creativity and cooperative economics with handmade gifts, art and books from independent makers.",
+    "from": -7,
+    "to": 6,
+    "link": "marracat://collection/kwanzaa"
+   },
+   "rows": [
+    "kwanzaa",
+    "kwanzaa-kuumba"
+   ],
+   "banner": [
+    "#C8102E",
+    "#1E5631"
+   ]
+  },
+  {
+   "id": "watch-night",
+   "name": "Watch Night / Freedom's Eve",
+   "kind": "Observance",
+   "rule": "December 31",
+   "date": {
+    "month": 12,
+    "day": 31
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "FREEDOM'S EVE",
+   "disc": "#141B3C",
+   "ring": [],
+   "mark": "flame.fill",
+   "rule_colors": [
+    "#2A3570",
+    "#141B3C",
+    "#E8B000",
+    "#2A3570",
+    "#141B3C",
+    "#E8B000"
+   ],
+   "icon": "AppIcon-watch-night",
+   "icon_bands": [
+    [
+     "#2A3570",
+     1
+    ],
+    [
+     "#141B3C",
+     2
+    ],
+    [
+     "#E8B000",
+     1
+    ]
+   ],
+   "tab": [
+    "#2A3570",
+    "#141B3C",
+    "#E8B000"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Freedom's Eve",
+    "short": "Candles and keepsakes for Watch Night",
+    "long": "Mark Watch Night with candles, journals and keepsakes from independent makers, in one cart.",
+    "from": -5,
+    "to": 0,
+    "link": "marracat://collection/watch-night"
+   },
+   "rows": [
+    "watch-night",
+    "new-years-eve-looks"
+   ],
+   "banner": [
+    "#D4AF37",
+    "#0A0A0A"
+   ]
+  },
+  {
+   "id": "new-year",
+   "name": "New Year's Day",
+   "kind": "Federal holiday",
+   "rule": "January 1",
+   "date": {
+    "month": 1,
+    "day": 1
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "HAPPY NEW YEAR",
+   "disc": "#0A0A0A",
+   "ring": [],
+   "mark": "sparkle",
+   "rule_colors": [
+    "#C9A227",
+    "#0A0A0A",
+    "#C9A227",
+    "#0A0A0A",
+    "#C9A227",
+    "#0A0A0A",
+    "#C9A227",
+    "#0A0A0A"
+   ],
+   "icon": "AppIcon-new-year",
+   "icon_bands": [
+    [
+     "#C9A227",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#C9A227",
+     1
+    ]
+   ],
+   "tab": [
+    "#C9A227",
+    "#3A3A3A"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "New Year Reset",
+    "short": "Wellness, planners and fresh starts",
+    "long": "Start the year with wellness, planners and skincare from independent brands, in one cart.",
+    "from": -3,
+    "to": 10,
+    "link": "marracat://collection/new-year"
+   },
+   "effect": "fireworks"
+  },
+  {
+   "id": "mlk",
+   "name": "Martin Luther King Jr. Day",
+   "kind": "Federal holiday",
+   "rule": "Third Monday in January",
+   "date": {
+    "month": 1,
+    "weekday": 1,
+    "nth": 3
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "MLK DAY",
+   "disc": "#0A0A0A",
+   "ring": [],
+   "mark": "bird.fill",
+   "rule_colors": [
+    "#2B2B2B",
+    "#0A0A0A",
+    "#2B2B2B",
+    "#0A0A0A",
+    "#2B2B2B",
+    "#0A0A0A",
+    "#2B2B2B",
+    "#0A0A0A"
+   ],
+   "icon": "AppIcon-mlk",
+   "icon_bands": [
+    [
+     "#2B2B2B",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#2B2B2B",
+     1
+    ]
+   ],
+   "tab": [
+    "#FFFFFF",
+    "#9A9A9A",
+    "#5A5A5A"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Honoring Dr. King",
+    "short": "Books, art and prints to reflect on",
+    "long": "Reflect on Dr. King's legacy with books, art and prints from independent makers, all in one place.",
+    "from": -4,
+    "to": 0,
+    "link": "marracat://collection/mlk-day"
+   }
+  },
+  {
+   "id": "bhm",
+   "name": "Black History Month",
+   "kind": "Observance",
+   "rule": "February",
+   "date": {
+    "month": 2,
+    "day": 1
+   },
+   "theme": {
+    "from": 0,
+    "to": 27
+   },
+   "line": "BLACK HISTORY MONTH",
+   "disc": "#0A0A0A",
+   "ring": [
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D",
+    "#E8B000"
+   ],
+   "mark": null,
+   "rule_colors": [
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D",
+    "#E8B000",
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D",
+    "#E8B000"
+   ],
+   "icon": "AppIcon-bhm",
+   "icon_bands": [
+    [
+     "#C8102E",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#007A3D",
+     1
+    ],
+    [
+     "#E8B000",
+     1
+    ]
+   ],
+   "tab": [
+    "#C8102E",
+    "#3A3A3A",
+    "#007A3D",
+    "#E8B000"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Black History Month",
+    "short": "Founders and makers to shop all month",
+    "long": "Shop founders and makers all month: beauty, fashion, home, books and art, in one cart.",
+    "from": 0,
+    "to": 27,
+    "link": "marracat://collection/black-history-month"
+   }
+  },
+  {
+   "id": "presidents",
+   "name": "Washington's Birthday (Presidents' Day)",
+   "kind": "Federal holiday",
+   "rule": "Third Monday in February",
+   "date": {
+    "month": 2,
+    "weekday": 1,
+    "nth": 3
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "PRESIDENTS' DAY",
+   "disc": "#00205B",
+   "ring": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "mark": "star.fill",
+   "rule_colors": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "icon": "AppIcon-presidents",
+   "icon_bands": [
+    [
+     "#BF0A30",
+     1
+    ],
+    [
+     "#00205B",
+     2
+    ],
+    [
+     "#BF0A30",
+     1
+    ]
+   ],
+   "tab": [
+    "#BF0A30",
+    "#00205B"
+   ],
+   "note": "Falls inside Black History Month, which keeps the splash and icon; the deals event still runs.",
+   "event": {
+    "badge": "Special Event",
+    "name": "Presidents' Day Deals",
+    "short": "Long-weekend markdowns in one cart",
+    "long": "Presidents' Day weekend markdowns from independent brands, with sale alerts on the ones you follow.",
+    "from": -3,
+    "to": 0,
+    "link": "marracat://deals"
+   },
+   "icon_pattern": {
+    "stripes": [
+     "#BF0A30",
+     "#FFFFFF"
+    ],
+    "middle": "#00205B",
+    "angle": 180
+   }
+  },
+  {
+   "id": "emancipation",
+   "name": "Emancipation Day (DC)",
+   "kind": "Observance",
+   "rule": "April 16",
+   "date": {
+    "month": 4,
+    "day": 16
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "EMANCIPATION DAY",
+   "disc": "#0A0A0A",
+   "ring": [
+    "#C9A227"
+   ],
+   "mark": null,
+   "rule_colors": [
+    "#C8102E",
+    "#0A0A0A",
+    "#C9A227",
+    "#C8102E",
+    "#0A0A0A",
+    "#C9A227"
+   ],
+   "icon": "AppIcon-emancipation",
+   "icon_bands": [
+    [
+     "#C8102E",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#C9A227",
+     1
+    ]
+   ],
+   "tab": [
+    "#C8102E",
+    "#3A3A3A",
+    "#C9A227"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Emancipation Day",
+    "short": "History, books and art for April 16",
+    "long": "Learn the history behind April 16 in Washington, DC, with books, prints and art from independent makers.",
+    "from": -4,
+    "to": 0,
+    "link": "marracat://collection/emancipation-day"
+   }
+  },
+  {
+   "id": "malcolm-x",
+   "name": "Malcolm X Day",
+   "kind": "Observance",
+   "rule": "May 19",
+   "date": {
+    "month": 5,
+    "day": 19
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "MALCOLM X DAY",
+   "disc": "#0A0A0A",
+   "ring": [
+    "#C8102E"
+   ],
+   "mark": null,
+   "rule_colors": [
+    "#C8102E",
+    "#0A0A0A",
+    "#C8102E",
+    "#0A0A0A",
+    "#C8102E",
+    "#0A0A0A",
+    "#C8102E",
+    "#0A0A0A"
+   ],
+   "icon": "AppIcon-malcolm-x",
+   "icon_bands": [
+    [
+     "#C8102E",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#C8102E",
+     1
+    ]
+   ],
+   "tab": [
+    "#C8102E",
+    "#3A3A3A"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Malcolm X Day",
+    "short": "Read his words, shop the makers",
+    "long": "Celebrate the life of Malcolm X with books, prints and apparel from independent makers.",
+    "from": -4,
+    "to": 0,
+    "link": "marracat://collection/malcolm-x-day"
+   }
+  },
+  {
+   "id": "ald",
+   "name": "African Liberation Day",
+   "kind": "Observance",
+   "rule": "May 25",
+   "date": {
+    "month": 5,
+    "day": 25
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "AFRICA DAY",
+   "disc": "#0A0A0A",
+   "ring": [
+    "#C8102E",
+    "#0A0A0A",
+    "#007A3D",
+    "#E8B000"
+   ],
+   "mark": null,
+   "rule_colors": [
+    "#007A3D",
+    "#0A0A0A",
+    "#E8B000",
+    "#C8102E",
+    "#007A3D",
+    "#0A0A0A",
+    "#E8B000",
+    "#C8102E"
+   ],
+   "icon": "AppIcon-ald",
+   "icon_bands": [
+    [
+     "#007A3D",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#E8B000",
+     1
+    ],
+    [
+     "#C8102E",
+     1
+    ]
+   ],
+   "tab": [
+    "#007A3D",
+    "#3A3A3A",
+    "#E8B000",
+    "#C8102E"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "African Liberation Day",
+    "short": "Brands from across Africa, one cart",
+    "long": "Shop brands from Ghana, Nigeria, Kenya, South Africa and beyond, shipped to the US, all in one cart.",
+    "from": -6,
+    "to": 0,
+    "link": "marracat://collection/africa"
+   }
+  },
+  {
+   "id": "memorial",
+   "name": "Memorial Day",
+   "kind": "Federal holiday",
+   "rule": "Last Monday in May",
+   "date": {
+    "month": 5,
+    "weekday": 1,
+    "nth": -1
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "MEMORIAL DAY",
+   "disc": "#00205B",
+   "ring": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "mark": "star.fill",
+   "rule_colors": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "icon": "AppIcon-memorial",
+   "icon_bands": [
+    [
+     "#BF0A30",
+     0.4
+    ],
+    [
+     "#FFFFFF",
+     0.8
+    ],
+    [
+     "#00205B",
+     2
+    ],
+    [
+     "#FFFFFF",
+     0.8
+    ],
+    [
+     "#BF0A30",
+     0.4
+    ]
+   ],
+   "tab": [
+    "#BF0A30",
+    "#00205B"
+   ],
+   "note": "A day of remembrance: the splash stays quiet (navy, one star); the deals event covers the weekend before.",
+   "event": {
+    "badge": "Special Event",
+    "name": "Memorial Day Weekend",
+    "short": "Summer markdowns from independent brands",
+    "long": "Memorial Day weekend markdowns on summer clothes, home and outdoor, with sale alerts on brands you follow.",
+    "from": -4,
+    "to": 0,
+    "link": "marracat://deals"
+   }
+  },
+  {
+   "id": "juneteenth",
+   "name": "Juneteenth",
+   "kind": "Federal holiday",
+   "rule": "June 19",
+   "date": {
+    "month": 6,
+    "day": 19
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "JUNETEENTH",
+   "disc": "#3C3B6E",
+   "ring": [],
+   "mark": "sun.max.fill",
+   "rule_colors": [
+    "#3C3B6E",
+    "#B22234",
+    "#3C3B6E",
+    "#B22234",
+    "#3C3B6E",
+    "#B22234",
+    "#3C3B6E",
+    "#B22234"
+   ],
+   "icon": "AppIcon-juneteenth",
+   "icon_bands": [
+    [
+     "#3C3B6E",
+     1
+    ],
+    [
+     "#B22234",
+     2
+    ],
+    [
+     "#3C3B6E",
+     1
+    ]
+   ],
+   "tab": [
+    "#3C3B6E",
+    "#B22234"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Celebrate Juneteenth",
+    "short": "Freedom Day gifts, books and apparel",
+    "long": "Celebrate June 19 with apparel, books, art and cookout essentials from independent makers.",
+    "from": -7,
+    "to": 0,
+    "link": "marracat://collection/juneteenth"
+   }
+  },
+  {
+   "id": "july4",
+   "name": "Independence Day",
+   "kind": "Federal holiday",
+   "rule": "July 4",
+   "date": {
+    "month": 7,
+    "day": 4
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "FOURTH OF JULY",
+   "disc": "#00205B",
+   "ring": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "mark": "sparkle",
+   "rule_colors": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "icon": "AppIcon-july4",
+   "icon_bands": [
+    [
+     "#BF0A30",
+     1
+    ],
+    [
+     "#FFFFFF",
+     0.5
+    ],
+    [
+     "#00205B",
+     2
+    ],
+    [
+     "#FFFFFF",
+     0.5
+    ],
+    [
+     "#BF0A30",
+     1
+    ]
+   ],
+   "tab": [
+    "#BF0A30",
+    "#00205B"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Fourth of July Deals",
+    "short": "Cookout, summer and markdowns",
+    "long": "Summer markdowns and cookout essentials from independent brands, all in one cart, for the Fourth.",
+    "from": -6,
+    "to": 0,
+    "link": "marracat://deals"
+   }
+  },
+  {
+   "id": "labor",
+   "name": "Labor Day",
+   "kind": "Federal holiday",
+   "rule": "First Monday in September",
+   "date": {
+    "month": 9,
+    "weekday": 1,
+    "nth": 1
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "LABOR DAY",
+   "disc": "#00205B",
+   "ring": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "mark": null,
+   "rule_colors": [
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B",
+    "#BF0A30",
+    "#00205B"
+   ],
+   "icon": "AppIcon-labor",
+   "icon_bands": [
+    [
+     "#BF0A30",
+     1
+    ],
+    [
+     "#00205B",
+     2
+    ],
+    [
+     "#BF0A30",
+     1
+    ]
+   ],
+   "tab": [
+    "#BF0A30",
+    "#00205B"
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Labor Day Deals",
+    "short": "End-of-summer markdowns in one cart",
+    "long": "End-of-summer markdowns from independent brands, with sale alerts on the ones you follow.",
+    "from": -4,
+    "to": 0,
+    "link": "marracat://deals"
+   },
+   "icon_pattern": {
+    "stripes": [
+     "#BF0A30",
+     "#FFFFFF"
+    ],
+    "middle": "#00205B",
+    "angle": 135
+   }
+  },
+  {
+   "id": "indigenous",
+   "name": "Indigenous Peoples' Day",
+   "kind": "Federal holiday (Columbus Day)",
+   "rule": "Second Monday in October",
+   "date": {
+    "month": 10,
+    "weekday": 1,
+    "nth": 2
+   },
+   "theme": {
+    "from": 0,
+    "to": 0
+   },
+   "line": "INDIGENOUS PEOPLES' DAY",
+   "disc": "#0E7C7B",
+   "ring": [],
+   "mark": null,
+   "rule_colors": [
+    "#B5532F",
+    "#0E7C7B",
+    "#E8B000",
+    "#B5532F",
+    "#0E7C7B",
+    "#E8B000"
+   ],
+   "icon": "AppIcon-indigenous",
+   "icon_bands": [
+    [
+     "#B5532F",
+     1
+    ],
+    [
+     "#0E7C7B",
+     2
+    ],
+    [
+     "#E8B000",
+     1
+    ]
+   ],
+   "tab": [
+    "#B5532F",
+    "#0E7C7B",
+    "#E8B000"
+   ],
+   "note": "The federal calendar calls it Columbus Day. No brand in today's catalog says it is Indigenous-owned, so the event is a long-weekend sale and promises no Indigenous makers; adding some would let it feature them.",
+   "event": {
+    "badge": "Special Event",
+    "name": "Indigenous Peoples' Day",
+    "short": "Long-weekend markdowns in one cart",
+    "long": "Indigenous Peoples' Day weekend markdowns on clothes, home and beauty from independent brands, in one cart.",
+    "from": -3,
+    "to": 0,
+    "link": "marracat://deals"
+   }
+  }
+ ],
+ "standing": [
+  {
+   "id": "new-brands",
+   "name": "New brands from West Africa & Europe",
+   "once": {
+    "from": "2027-01-05",
+    "to": "2027-02-01"
+   },
+   "line": "NEW BRANDS",
+   "icon_bands": [
+    [
+     "#0E7C7B",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#C9A227",
+     1
+    ]
+   ],
+   "event": {
+    "badge": "Premiere",
+    "name": "New: Africa & Europe Brands",
+    "short": "Brands from Africa and Europe, shipped to US",
+    "long": "New on Marracat: fashion, beauty and home from Ghana, Nigeria, Kenya, the UK and Europe, in one cart.",
+    "link": "marracat://collection/new-brands"
+   }
+  },
+  {
+   "id": "spotlight",
+   "name": "Brand spotlight",
+   "monthly": {
+    "day": 1,
+    "days": 7
+   },
+   "line": "BRAND SPOTLIGHT",
+   "icon_bands": [
+    [
+     "#3A3A3A",
+     1
+    ],
+    [
+     "#0A0A0A",
+     2
+    ],
+    [
+     "#3A3A3A",
+     1
+    ]
+   ],
+   "event": {
+    "badge": "Special Event",
+    "name": "Brand Spotlight",
+    "short": "One featured brand: best-sellers and more",
+    "long": "Each month Marracat features one independent brand: its best-sellers and what's new, with follow for sale alerts.",
+    "link": "marracat://brand/{brand}"
+   },
+   "brands": [
+    "fear-of-god",
+    "fenty-beauty",
+    "cecred",
+    "sienna-naturals",
+    "telfar",
+    "curves",
+    "ripl-efek"
+   ]
+  }
+ ],
+ "collections": [
+  {
+   "id": "thanksgiving",
+   "title": "The Thanksgiving table",
+   "queries": [],
+   "categories": [],
+   "match": "thanksgiving|harvest|table runner|tablecloth|napkins?\\b|placemats?|serving (bowl|board|tray)|platter|charger plate|tea towel|gravy|centerpiece",
+   "only": [
+    "home",
+    "household",
+    "party"
+   ],
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "thanksgiving|harvest"
+  },
+  {
+   "id": "gift-sets",
+   "title": "Last-minute gifts",
+   "queries": [],
+   "categories": [],
+   "match": "gift (set|box|bundle|card|basket)",
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "gift"
+  },
+  {
+   "id": "kwanzaa",
+   "title": "Kwanzaa",
+   "queries": [],
+   "categories": [],
+   "match": "kwanzaa|kinara|kente|mudcloth|mud cloth|unity cup|adinkra|ankara|bogolan",
+   "exclude": "heat transfer|siser|by kwanzaa|dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "kwanzaa|kinara"
+  },
+  {
+   "id": "watch-night",
+   "title": "Freedom's Eve",
+   "queries": [],
+   "categories": [],
+   "match": "journal|candle|incense|planner|affirmation|prayer|gratitude",
+   "only": [
+    "home",
+    "office",
+    "books",
+    "wellness"
+   ],
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ]
+  },
+  {
+   "id": "new-year",
+   "title": "New Year Reset",
+   "queries": [
+    "planner",
+    "journal",
+    "yoga",
+    "water bottle",
+    "tea"
+   ],
+   "categories": [
+    "wellness",
+    "skincare"
+   ]
+  },
+  {
+   "id": "mlk-day",
+   "title": "Honoring Dr. King",
+   "queries": [
+    "art print",
+    "poster",
+    "journal"
+   ],
+   "categories": [
+    "books"
+   ]
+  },
+  {
+   "id": "black-history-month",
+   "title": "Black History Month",
+   "queries": [],
+   "categories": [
+    "books"
+   ],
+   "bestSellers": true
+  },
+  {
+   "id": "emancipation-day",
+   "title": "Emancipation Day",
+   "queries": [
+    "art print",
+    "poster"
+   ],
+   "categories": [
+    "books"
+   ]
+  },
+  {
+   "id": "malcolm-x-day",
+   "title": "Malcolm X Day",
+   "queries": [
+    "malcolm",
+    "art print"
+   ],
+   "categories": [
+    "books"
+   ]
+  },
+  {
+   "id": "africa",
+   "title": "Brands from Africa",
+   "queries": [],
+   "categories": [],
+   "shipsFrom": [
+    "africa"
+   ]
+  },
+  {
+   "id": "juneteenth",
+   "title": "Juneteenth",
+   "queries": [
+    "juneteenth",
+    "freedom",
+    "hot sauce",
+    "bbq",
+    "art print"
+   ],
+   "categories": [
+    "books"
+   ]
+  },
+  {
+   "id": "new-brands",
+   "title": "New from Africa & Europe",
+   "queries": [],
+   "categories": [],
+   "shipsFrom": [
+    "africa",
+    "europe"
+   ]
+  },
+  {
+   "id": "halloween",
+   "title": "Halloween picks",
+   "queries": [],
+   "categories": [],
+   "match": "\\bhalloween|\\bcostume|\\bspooky|\\bwitch(es|y)?\\b(?!\\s*hazel)|\\bghosts?\\b|\\bpumpkin|\\btrick[- ]or[- ]treat|\\bvampire|\\bjack[- ]o['’]?[- ]?lantern|\\bcauldron|\\bcandy corn|\\bskeleton|\\bhaunted|\\bcoven|\\bbats?\\b",
+   "tags": [
+    "halloween"
+   ],
+   "exclude": "hazel|kitchen witch|ghostface|skully|skull liner|bath (bomb|salt)|dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music",
+    "books"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "halloween|costume|spooky|witch|jack[- ]o|trick"
+  },
+  {
+   "id": "halloween-reads",
+   "title": "Spooky-season reads",
+   "queries": [],
+   "categories": [],
+   "match": "\\bhalloween|\\bcostume|\\bspooky|\\bwitch(es|y)?\\b(?!\\s*hazel)|\\bghosts?\\b|\\bpumpkin|\\btrick[- ]or[- ]treat|\\bvampire|\\bjack[- ]o['’]?[- ]?lantern|\\bcauldron|\\bcandy corn|\\bskeleton|\\bhaunted|\\bcoven|\\bbats?\\b|\\bmonsters?\\b|\\bzombie",
+   "only": [
+    "books"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "halloween|haunted|ghost|witch"
+  },
+  {
+   "id": "veterans-deals",
+   "title": "Veterans Day deals",
+   "queries": [],
+   "categories": [],
+   "only": [
+    "clothing",
+    "shoes",
+    "sports",
+    "tools",
+    "auto",
+    "accessories",
+    "bags",
+    "luggage",
+    "home"
+   ],
+   "minOff": 20,
+   "maxOff": 70,
+   "exclude": "discontinued|sample|consult|certificat|beratung|course|\\bclass\\b",
+   "order": "off"
+  },
+  {
+   "id": "thanksgiving-cook",
+   "title": "For the cook",
+   "queries": [],
+   "categories": [],
+   "match": "seasoning|spice|hot sauce|rub\\b|cookbook|apron|pie\\b|cornbread|cranberr|gravy|marinade|honey",
+   "only": [
+    "grocery",
+    "books",
+    "home"
+   ],
+   "exclude": "lip|body|candle|scrub|soap|wax|e-?book|eczema|dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "booksNeed": "cookbook",
+   "lead": "seasoning|cookbook|hot sauce"
+  },
+  {
+   "id": "black-friday-deals",
+   "title": "Black Friday: biggest deals",
+   "queries": [],
+   "categories": [],
+   "minOff": 30,
+   "maxOff": 70,
+   "exclude": "discontinued|sample|consult|certificat|beratung|course|\\bclass\\b",
+   "order": "off"
+  },
+  {
+   "id": "black-friday-under-25",
+   "title": "Deals under $25",
+   "queries": [],
+   "categories": [],
+   "minOff": 20,
+   "maxOff": 70,
+   "maxPrice": 25,
+   "exclude": "discontinued|sample|consult|certificat|beratung|course|\\bclass\\b",
+   "order": "off"
+  },
+  {
+   "id": "cyber-monday-deals",
+   "title": "Cyber Monday deals",
+   "queries": [],
+   "categories": [],
+   "only": [
+    "electronics",
+    "office",
+    "accessories",
+    "bags",
+    "jewelry",
+    "makeup",
+    "skincare",
+    "fragrance"
+   ],
+   "minOff": 20,
+   "maxOff": 70,
+   "exclude": "discontinued|sample|consult|certificat|beratung|course|\\bclass\\b",
+   "order": "off"
+  },
+  {
+   "id": "gift-guide-sets",
+   "title": "Gift sets",
+   "queries": [],
+   "categories": [],
+   "match": "gift (set|box|bundle|basket)|\\bbundle\\b|sampler|discovery set",
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "gift"
+  },
+  {
+   "id": "stocking-stuffers",
+   "title": "Stocking stuffers under $25",
+   "queries": [],
+   "categories": [],
+   "match": "mini|lip (gloss|balm|oil)|candle|keychain|socks|ornament|pin\\b|sticker|mug|hair clip|scrunchie|card holder",
+   "maxPrice": 25,
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ]
+  },
+  {
+   "id": "christmas-picks",
+   "title": "Christmas picks",
+   "queries": [],
+   "categories": [],
+   "match": "christmas|xmas|ornament|stocking|santa|advent|gingerbread|nutcracker|reindeer|mistletoe|\\bnoel\\b|holiday sweater|ugly sweater",
+   "tags": [
+    "christmas"
+   ],
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notCategories": [
+    "music"
+   ],
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ],
+   "lead": "christmas|santa|ornament|stocking"
+  },
+  {
+   "id": "kwanzaa-kuumba",
+   "title": "Kuumba: made by hand",
+   "queries": [],
+   "categories": [],
+   "match": "handmade|hand[- ]?made|hand[- ]?carved|hand[- ]?woven|hand[- ]?painted|hand[- ]?poured|hand[- ]?beaded",
+   "only": [
+    "home",
+    "crafts",
+    "jewelry",
+    "accessories"
+   ],
+   "exclude": "dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ]
+  },
+  {
+   "id": "new-years-eve-looks",
+   "title": "New Year's Eve looks",
+   "queries": [],
+   "categories": [],
+   "match": "sequin|glitter|sparkl|metallic|gold dress|champagne|rhinestone|satin",
+   "only": [
+    "clothing",
+    "shoes",
+    "accessories",
+    "jewelry",
+    "bags"
+   ],
+   "exclude": "bonnet|thong|kini|beanie|hoodie|scarf|dtf|\\btransfer|\\bsvg\\b|digital download|printable|template",
+   "notBrands": [
+    "home-rule-records",
+    "brittanys-record-shop",
+    "atlanta-vinyl",
+    "sook-vinyl-and-vintage"
+   ]
+  }
+ ]
+}

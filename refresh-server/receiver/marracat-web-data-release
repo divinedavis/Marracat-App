@@ -1,0 +1,109 @@
+#!/bin/bash
+# Runs ON 167.71 as root (sudo from marracat-pub only): new catalog data for
+# marracat.com, same code. The droplet half of scripts/publish_web_data.sh.
+#
+#   marracat-web-data-release release <generated_at> <first product id>
+#   marracat-web-data-release rollback <release id>
+#
+# release: a new /opt/marracat-web/releases/<id> = the current release
+# hard-linked (code, node_modules) with server/catalog-slim.json and
+# server/product-details.sqlite replaced by the uploads; then exactly what
+# web/deploy.sh does around a switch: snapshot to /var/backups/marracat-web/<id>,
+# switch `current`, restart marracat-web, check health, the signed-out
+# session, the homepage + its bundle, /api/home's generated_at and one product;
+# any failure restores the snapshot. Prints "released <id>" last.
+# rollback: restore-snapshot.sh on that snapshot (the caller's public check
+# failed). Installed by refresh-server/receiver/install.sh.
+set -euo pipefail
+IN=/var/lib/marracat-pub/incoming
+ROOT=/opt/marracat-web
+BACKUPS=/var/backups/marracat-web
+exec 9>/run/lock/marracat-publish.lock
+flock -w 1800 9 || { echo "another publish holds the lock" >&2; exit 1; }
+cur=$(readlink -e "$ROOT/current")
+[[ -d "$cur" && -f "$cur/restore-snapshot.sh" ]] || { echo "no current release" >&2; exit 1; }
+
+case "${1:-}" in
+rollback)
+    [[ $# -eq 2 && "$2" =~ ^[0-9]{8}T[0-9]{6}Z$ && -d "$BACKUPS/$2" ]] || { echo "usage: rollback <release id>" >&2; exit 2; }
+    bash "$cur/restore-snapshot.sh" "$BACKUPS/$2"
+    exit 0
+    ;;
+release)
+    [[ $# -eq 3 && "$2" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.+Z-]{1,30}$ && "$3" =~ ^[A-Za-z0-9._:-]{1,200}$ ]] \
+        || { echo "usage: release <generated_at> <product id>" >&2; exit 2; }
+    expect_generated="$2"; expect_product_id="$3"
+    ;;
+*) echo "usage: release|rollback" >&2; exit 2 ;;
+esac
+
+# Take the uploads out of marracat-pub's reach before looking at them: moved
+# (not followed) into a root-only directory, then they must be plain files
+# that marracat-pub owns (no symlink or hard link to anything of root's).
+take() {
+    STAGE=$(mktemp -d /var/lib/marracat-pub-stage.XXXXXX)
+    trap 'rm -rf "$STAGE"' EXIT
+    local f
+    for f in "$@"; do
+        [[ -e "$IN/$f" || -L "$IN/$f" ]] || { echo "missing upload: $f" >&2; exit 1; }
+        mv -f "$IN/$f" "$STAGE/$f"
+        [[ -f "$STAGE/$f" && ! -L "$STAGE/$f" && "$(stat -c %U:%h "$STAGE/$f")" == marracat-pub:1 ]] \
+            || { echo "upload $f is not a plain file of marracat-pub's" >&2; exit 1; }
+    done
+}
+take catalog-slim.json product-details.sqlite
+IN="$STAGE"
+for f in catalog-slim.json product-details.sqlite; do
+    (( $(stat -c %s "$IN/$f") > 1000000 )) || { echo "$f is implausibly small" >&2; exit 1; }
+done
+head -c 16 "$IN/product-details.sqlite" | grep -q '^SQLite format 3' || { echo "product-details.sqlite is not SQLite" >&2; exit 1; }
+[[ "$(head -c 1 "$IN/catalog-slim.json")" == "{" ]] || { echo "catalog-slim.json is not JSON" >&2; exit 1; }
+
+id=$(date -u +%Y%m%dT%H%M%SZ)
+new="$ROOT/releases/$id"
+[[ ! -e "$new" ]] || { echo "$new exists" >&2; exit 1; }
+cp -al "$cur" "$new"
+for f in catalog-slim.json product-details.sqlite; do
+    rm -f "$new/server/$f"
+    install -m 644 -o root -g root "$IN/$f" "$new/server/$f"
+done
+echo "release $new (code from $(basename "$cur"))"
+
+snap="$BACKUPS/$id"
+mkdir -p "$snap/www"
+find /var/www/marracat -maxdepth 1 -type f -exec cp -p {} "$snap/www/" \;
+cp -p /etc/nginx/sites-available/marracat "$snap/nginx.conf"
+cp -p /etc/systemd/system/marracat-web.service "$snap/marracat-web.service" 2>/dev/null || true
+echo "$cur" > "$snap/release"
+echo "snapshot $snap"
+rollback() {
+    echo 'Release verification failed; restoring the snapshot.' >&2
+    bash "$cur/restore-snapshot.sh" "$snap" || true
+}
+trap rollback ERR
+ln -sfn "$new" "$ROOT/current.new"
+mv -Tf "$ROOT/current.new" "$ROOT/current"
+systemctl restart marracat-web
+for _ in {1..30}; do
+    curl -fsS -H 'Host: marracat.com' http://127.0.0.1:3107/api/health >/dev/null 2>&1 && break
+    sleep 1
+done
+curl -fsS -H 'Host: marracat.com' http://127.0.0.1:3107/api/health >/dev/null
+[[ $(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/api/health) == '{"ok":true}' ]]
+[[ $(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/auth/session) == 'null' ]]
+page=$(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/)
+grep -q '<div id="root">' <<<"$page"
+bundle=$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' <<<"$page" | head -1)
+[[ -n "$bundle" ]]
+curl -fsS --resolve marracat.com:443:127.0.0.1 "https://marracat.com$bundle" -o /dev/null
+curl -fsS --compressed --resolve marracat.com:443:127.0.0.1 https://marracat.com/api/home | grep -qF "\"generated_at\":\"$expect_generated\""
+curl -fsS --compressed --resolve marracat.com:443:127.0.0.1 "https://marracat.com/api/products/$expect_product_id" | grep -qF "\"id\":\"$expect_product_id\""
+trap - ERR
+# Same retention as web/deploy.sh: 3 snapshots; the 3 newest releases plus
+# any a snapshot or `current` points at.
+ls -1d "$BACKUPS"/*/ | head -n -3 | xargs -r rm -rf
+keep=$( { ls -1d "$ROOT"/releases/*/ | sed 's#/$##' | tail -n 3; readlink -e "$ROOT/current"; cat "$BACKUPS"/*/release; } | sort -u)
+for d in "$ROOT"/releases/*; do
+    grep -qxF "$d" <<<"$keep" || rm -rf "$d"
+done
+echo "released $id"

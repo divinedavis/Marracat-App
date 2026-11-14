@@ -1,0 +1,8 @@
+{
+  "PerformanceTests/testHomeFlingAfterLaunch() :: Launch to interactive Home": {
+    "max": 2100,
+    "unit": "ms",
+    "reference": 1908,
+    "why": "Fixed ceiling set 2026-11-09: the oldest of the five passing ships then on record (1,908 ms) plus 10%. The rolling baseline had drifted to 2,017 ms with every ship passing. Raise it only on purpose, with the reason here."
+  }
+}

@@ -1,0 +1,23 @@
+[Unit]
+Description=Marracat owner-dashboard metrics (counts only)
+After=network.target
+
+[Service]
+Type=oneshot
+# Runs as marracat, not root (2026-11-05 security review): it needs the
+# storefront's SQLite (marracat's, read-only) and nginx's and sshd's logs
+# (group adm). adm is granted to this unit only, so the web server, also
+# marracat, still can't read the logs. The output is counts, readable by the
+# marracat group so the web server can hand it to the dashboard.
+User=marracat
+Group=marracat
+SupplementaryGroups=adm
+ExecStart=/usr/bin/python3 /opt/marracat-web/current/metrics/marracat_metrics.py
+EnvironmentFile=-/etc/marracat/metrics.env
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/marracat-metrics /var/lib/marracat

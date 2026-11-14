@@ -1,0 +1,52 @@
+# The catalog refresh (scripts/refresh_catalog.sh) on the marracat-refresh
+# droplet. Started by marracat-refresh.timer; by hand:
+#   systemctl start --no-block marracat-refresh   (log: /var/log/marracat-refresh/refresh.log)
+[Unit]
+Description=Marracat catalog refresh
+Wants=network-online.target
+After=network-online.target
+OnFailure=marracat-refresh-alert.service
+
+[Service]
+Type=oneshot
+User=marracat-refresh
+Group=marracat-refresh
+WorkingDirectory=/opt/marracat-refresh/Marracat
+Environment=MARRACAT_VENV=/opt/marracat-refresh/venv
+Environment=PATH=/opt/marracat-refresh/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CATALOG_TARGET=receiver
+Environment=PUBLISH_SSH=marracat-pub@10.108.0.3
+Environment=MARRACAT_EXCHANGE=/var/lib/marracat-refresh/exchange
+Environment=MARRACAT_ALERTS=email
+# The catalog key is not this service's to read (2026-11-12): it asks the
+# signer, its own user, for each signature (refresh-server/signer/).
+Environment=MARRACAT_SIGN_SOCKET=/run/marracat-signer.sock
+Environment=PYTHONDONTWRITEBYTECODE=1
+# TYPESAFE_API_KEY (Jev, brand fit) and nothing else.
+EnvironmentFile=/etc/marracat-refresh/refresh.env
+ExecStartPre=/opt/marracat-refresh/Marracat/refresh-server/update_checkout.sh
+ExecStart=/opt/marracat-refresh/Marracat/scripts/refresh_catalog.sh
+StandardOutput=append:/var/log/marracat-refresh/refresh.log
+StandardError=append:/var/log/marracat-refresh/refresh.log
+TimeoutStartSec=5h
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+# build_catalog.py holds every store's products at once (~5 GB peak on
+# 2026-10-12). Above MemoryHigh the kernel reclaims into swap instead of
+# OOM-killing the run (a hard 3600M cap did, the second run). 3000M was
+# too low: the build crawled, swapping in and out at ~18 MB/s each way.
+MemoryHigh=3700M
+MemorySwapMax=4G
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/opt/marracat-refresh/Marracat /var/lib/marracat-refresh /var/log/marracat-refresh
+UMask=0027

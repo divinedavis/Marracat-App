@@ -1,0 +1,141 @@
+import SwiftUI
+
+struct MenuView: View {
+    @Environment(CatalogStore.self) private var catalog
+    @State private var expanded: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Your shortcuts").font(.title3.bold())
+                HStack(spacing: 8) {
+                    shortcut(String(localized: "Checkouts", comment: "Menu shortcut"), .checkouts)
+                    shortcut(String(localized: "Your List", comment: "Menu shortcut"), .saved)
+                    shortcut(String(localized: "Deals", comment: "Menu shortcut"), .deals)
+                }
+
+                Text("Explore more for you").font(.title3.bold())
+                HStack(spacing: 10) {
+                    tile(String(localized: "New", comment: "Menu tile"), "sparkles", Theme.chipColors[1], .newArrivals)
+                    tile(String(localized: "Deals", comment: "Menu tile"), "tag.fill", Theme.chipColors[1], .deals)
+                    tile(String(localized: "Brands", comment: "Menu tile"), "storefront.fill", Theme.cocoa, .brands)
+                }
+
+                Text("Shop by category").font(.title3.bold())
+                VStack(spacing: 8) {
+                    ForEach(catalog.categories) { c in categoryRow(c) }
+                }
+
+                link(String(localized: "About Marracat", comment: "Menu link"), .about)
+            }
+            .padding(12)
+            .readableWidth()
+        }
+        .background(Theme.canvas)
+        // Store search floats above the tab bar here (owner, 2026-10-20).
+        .marracatChrome(storeSearch: true)
+    }
+
+    private func shortcut(_ title: String, _ route: Route) -> some View {
+        NavigationLink(value: route) {
+            Text(title).font(.subheadline)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Capsule().fill(Theme.field))
+                .overlay(Capsule().stroke(Theme.hairline))
+                .foregroundStyle(.primary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func tile(_ title: String, _ symbol: String, _ color: Color, _ route: Route) -> some View {
+        NavigationLink(value: route) {
+            VStack(spacing: 4) {
+                Image(systemName: symbol).font(.title2)
+                Text(title).font(.caption.bold())
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, minHeight: 64)
+            .background(RoundedRectangle(cornerRadius: 12).fill(color))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func categoryRow(_ c: Category) -> some View {
+        let isOpen = expanded == c.id
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.snappy) { expanded = isOpen ? nil : c.id }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: c.symbol).frame(width: 28).foregroundStyle(Theme.amber)
+                    Text(c.name).foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("categoryRow.\(c.id)")
+            if isOpen {
+                VStack(alignment: .leading, spacing: 0) {
+                    NavigationLink(value: Route.category(c.id)) {
+                        Text("See all in \(c.name)").font(.subheadline.bold()).padding(.vertical, 10)
+                    }
+                    // The aisles inside the category, biggest first — the
+                    // brands live behind Brands and each product.
+                    ForEach(catalog.subcategories(in: c.id)) { s in
+                        NavigationLink(value: Route.subcategory(s.id)) {
+                            Text(s.name).font(.subheadline).foregroundStyle(.primary).padding(.vertical, 10)
+                        }
+                        .accessibilityIdentifier("subcategory")
+                    }
+                }
+                .padding(.leading, 54)
+                .padding(.bottom, 8)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+    }
+
+    private func link(_ title: String, _ route: Route) -> some View {
+        NavigationLink(value: route) {
+            HStack {
+                Text(title).foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: "chevron.right").foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct AboutView: View {
+    @Environment(CatalogStore.self) private var catalog
+
+    var body: some View {
+        List {
+            Section {
+                Text("Discover brands, explore categories, and keep your favorite finds together with Marracat.")
+                Text("You check out on each brand's own website, so the brand keeps the sale, the customer relationship, and handles shipping and returns.")
+            }
+            Section("Where the products come from") {
+                Text("Listings come from each brand's own public store. Prices and stock can change; the brand's site is always the final word.")
+                if let date = ISO8601DateFormatter().date(from: catalog.catalog.generatedAt) {
+                    LabeledContent("Catalog updated", value: date.formatted(date: .abbreviated, time: .shortened))
+                }
+                LabeledContent("Brands", value: "\(catalog.catalog.brands.count)")
+                    .accessibilityIdentifier("aboutBrands")
+                LabeledContent("Products", value: "\(catalog.catalog.products.count)")
+                    .accessibilityIdentifier("aboutProducts")
+            }
+        }
+        .marracatChrome()
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Marracat",
+  "icon": "../../Marracat/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "style": "dark",
+  "size": [1398, 2034],
+  "status_bar": 0,
+  "raw_dir": "raw-duo",
+  "out_dir": "iphone-duo",
+  "masonry": ["home.png", "fragrance-detail.png", "hair-grid.png", "jewelry-results.png", "cart.png"],
+  "panels": [
+    ["home.png", "Independent brands, one app"],
+    ["hair-grid.png", "Shop every category"],
+    ["fragrance-detail.png", "Find your signature scent"],
+    ["cart.png", "Many brands, one cart"]
+  ]
+}

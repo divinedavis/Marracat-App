@@ -1,0 +1,15 @@
+# Emails the log tail when marracat-refresh.service fails (OnFailure).
+[Unit]
+Description=Email the owner that the Marracat catalog refresh failed
+
+[Service]
+Type=oneshot
+User=marracat-refresh
+Group=marracat-refresh
+Environment=PATH=/opt/marracat-refresh/venv/bin:/usr/bin:/bin
+ExecStart=/opt/marracat-refresh/venv/bin/python /opt/marracat-refresh/Marracat/refresh-server/notify.py --failed-unit marracat-refresh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/marracat-refresh

@@ -1,0 +1,92 @@
+{
+  "PerformanceTests/testHomeFlingAfterLaunch() :: Home fling hitch ratio": {
+    "history": [
+      89.9,
+      50.14,
+      52.54,
+      51.88,
+      45.23
+    ],
+    "unit": "ms/s"
+  },
+  "PerformanceTests/testHomeFlingAfterLaunch() :: Home longest main-thread stall": {
+    "history": [
+      180.1,
+      121,
+      126.7,
+      120.6,
+      114
+    ],
+    "unit": "ms"
+  },
+  "PerformanceTests/testHomeFlingAfterLaunch() :: Launch to interactive Home": {
+    "history": [
+      2017,
+      2016,
+      1998,
+      1994,
+      2031
+    ],
+    "unit": "ms"
+  },
+  "PerformanceTests/testHomeScroll() :: Absolute Memory Physical (marracat)": {
+    "history": [
+      510741.192,
+      458427.008,
+      461458.048,
+      462097.048,
+      449743.488
+    ],
+    "unit": "kB"
+  },
+  "PerformanceTests/testHomeScroll() :: Duration (Scroll_Deceleration)": {
+    "history": [
+      2.417,
+      2.4171,
+      2.417,
+      2.4172,
+      2.417
+    ],
+    "unit": "s"
+  },
+  "PerformanceTests/testHomeScroll() :: Memory Peak Physical (marracat)": {
+    "history": [
+      511199.944,
+      458689.152,
+      461720.192,
+      462359.192,
+      449972.864
+    ],
+    "unit": "kB"
+  },
+  "PerformanceTests/testHomeScroll() :: Memory Physical (marracat)": {
+    "history": [
+      0,
+      0,
+      0,
+      0,
+      16.384
+    ],
+    "unit": "kB"
+  },
+  "PerformanceTests/testLaunch() :: Duration (ApplicationFirstFramePresentationResponsive)": {
+    "history": [
+      1.4312,
+      1.434,
+      1.4023,
+      1.3711,
+      1.4102
+    ],
+    "unit": "s"
+  },
+  "PerformanceTests/testLaunchToHomeProducts() :: Clock Monotonic Time": {
+    "history": [
+      4.2273,
+      4.3045,
+      4.3156,
+      4.2445,
+      4.2136
+    ],
+    "unit": "s"
+  }
+}

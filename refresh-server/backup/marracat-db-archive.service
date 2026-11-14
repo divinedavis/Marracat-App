@@ -1,0 +1,10 @@
+[Unit]
+Description=File and check the Marracat storefront database copies from 167.71
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/marracat-db-archive
+Nice=10
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes

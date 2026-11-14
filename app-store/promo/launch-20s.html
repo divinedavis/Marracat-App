@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920">
+<title>Marracat launch film</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=block" rel="stylesheet">
+<!--
+  20-second 16:9 launch film (1920x1080), Ultramock-style: close camera glides
+  over 3D devices, UI cards lifting off the glass, shallow depth of field.
+  Every motion is a CSS animation with an absolute delay; render.py pauses
+  them and seeks document.getAnimations() per frame. ?play previews it live.
+  Screens are build 169 captures (raw/), via AppStoreTourUITests.
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+  body { font-family: "Jost", "Futura", sans-serif; }
+
+  .scene { position: absolute; inset: 0; opacity: 0; overflow: hidden; }
+  .dark { background: #000; }
+  .white { background: radial-gradient(90% 90% at 50% 40%, #ffffff 0%, #eef0f2 70%, #dfe2e6 100%); }
+  @keyframes on { from { opacity: 1 } to { opacity: 1 } }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes fadeOut { from { opacity: 1 } to { opacity: 0 } }
+
+  .world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; perspective: 1800px; }
+  .rig { position: absolute; transform-style: preserve-3d; }
+
+  /* ---------- phone ---------- */
+  .phone { position: absolute; width: 560px; height: 1217px; left: -280px; top: -608px; transform-style: preserve-3d; }
+  .phone .layer { position: absolute; inset: 0; border-radius: 96px; }
+  .phone.black .layer { background: linear-gradient(140deg, #3a3d42, #0c0d0f 35%, #1b1d21 65%, #4a4e55); }
+  .phone.silver .layer { background: linear-gradient(140deg, #f4f5f7, #b9bdc4 35%, #e3e5e9 60%, #8d929a); }
+  .phone .face { position: absolute; inset: 0; border-radius: 96px; padding: 15px; transform: translateZ(30px); }
+  .phone.black .face { background: linear-gradient(140deg, #6b7079, #15171a 30%, #0b0c0e 70%, #5d626b); box-shadow: inset 0 0 0 2px rgba(255,255,255,.12); }
+  .phone.silver .face { background: linear-gradient(140deg, #ffffff, #c4c8ce 30%, #a7acb4 70%, #f2f3f5); box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
+  .screen { width: 100%; height: 100%; border-radius: 82px; overflow: hidden; background: #000; position: relative; border: 6px solid #000; }
+  .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .island { position: absolute; top: 28px; left: 50%; width: 160px; height: 46px; margin-left: -80px; background: #000; border-radius: 26px; z-index: 3; }
+  .sheen { position: absolute; inset: 0; z-index: 2; border-radius: 82px;
+    background: linear-gradient(115deg, rgba(255,255,255,0) 35%, rgba(255,255,255,.22) 48%, rgba(255,255,255,0) 60%); background-size: 300% 100%; }
+  @keyframes sheen { from { background-position: 130% 0 } to { background-position: -30% 0 } }
+
+  /* ---------- laptop ---------- */
+  .laptop { position: absolute; width: 1600px; height: 1040px; left: -800px; top: -520px; transform-style: preserve-3d; }
+  .lid { position: absolute; inset: 0; border-radius: 34px; background: #0d0e10; padding: 26px; box-shadow: inset 0 0 0 3px #2b2e33; }
+  .lid .screen { border-radius: 12px; border: 0; }
+  .base { position: absolute; left: -80px; right: -80px; top: 1040px; height: 1100px; border-radius: 40px; transform-origin: top; transform: rotateX(90deg);
+    background: linear-gradient(180deg, #2a2d32, #121316); box-shadow: inset 0 0 0 3px #3a3e44; }
+
+  /* ---------- floating product cards ---------- */
+  .card { position: absolute; border-radius: 26px; overflow: hidden; background: #fff;
+    box-shadow: 0 50px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08); }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .tag { position: absolute; left: 18px; bottom: 16px; padding: 8px 16px; border-radius: 20px; background: rgba(0,0,0,.72);
+    color: #fff; font-size: 26px; font-weight: 500; backdrop-filter: blur(8px); }
+  @keyframes lift { from { transform: translateZ(0) scale(.9); opacity: 0 } 30% { opacity: 1 } to { transform: translateZ(var(--z)) scale(1); opacity: 1 } }
+
+  /* depth of field: blur the frame's edges, keep a sharp band */
+  .dof { position: absolute; inset: 0; pointer-events: none; z-index: 20; backdrop-filter: blur(var(--b, 10px)); }
+  .dof.v { -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 32%, transparent 62%, #000 100%); }
+  .dof.d { -webkit-mask-image: linear-gradient(135deg, #000 0%, transparent 35%, transparent 60%, #000 100%); }
+
+  /* colour bloom behind the laptop scene */
+  .bloom { position: absolute; width: 1500px; height: 1500px; border-radius: 50%; filter: blur(60px);
+    background: conic-gradient(from 200deg, #ff4fd8, #ff8a00, #ffd400, #ff3b6b, #a63bff, #ff4fd8); }
+  @keyframes spin { from { transform: rotate(0) scale(.9) } to { transform: rotate(80deg) scale(1.1) } }
+
+  /* camera moves */
+  @keyframes s1 { from { transform: translateZ(-300px) rotateY(86deg) rotateX(8deg) rotateZ(-6deg) }
+                  55% { transform: translateZ(80px) rotateY(18deg) rotateX(10deg) rotateZ(-10deg) }
+                  to   { transform: translateZ(240px) rotateY(-14deg) rotateX(14deg) rotateZ(-14deg) } }
+  @keyframes s2 { from { transform: translate3d(-120px, 520px, 300px) rotateX(58deg) rotateZ(-32deg) }
+                  to   { transform: translate3d(60px, -380px, 420px) rotateX(52deg) rotateZ(-24deg) } }
+  @keyframes s3 { from { transform: translate3d(520px, 160px, -260px) rotateX(18deg) rotateY(-42deg) rotateZ(4deg) }
+                  to   { transform: translate3d(-160px, 60px, 160px) rotateX(24deg) rotateY(-22deg) rotateZ(2deg) } }
+  @keyframes s4 { from { transform: translate3d(-680px, 360px, 380px) rotateX(48deg) rotateY(-8deg) rotateZ(-48deg) }
+                  to   { transform: translate3d(240px, -260px, 520px) rotateX(44deg) rotateY(-4deg) rotateZ(-40deg) } }
+  @keyframes s5 { from { transform: translate3d(0, 300px, -200px) rotateX(82deg) rotateZ(-18deg) }
+                  65% { transform: translate3d(0, -20px, 60px) rotateX(10deg) rotateZ(-6deg) }
+                  to   { transform: translate3d(0, -40px, 120px) rotateX(6deg) rotateY(-10deg) rotateZ(-4deg) } }
+  @keyframes fan { from { transform: translateX(0) rotateY(0) } to { transform: translateX(var(--x)) rotateY(var(--ry)) } }
+
+  /* end card */
+  .word { position: absolute; left: 0; right: 0; text-align: center; color: #fff; }
+  .mark { top: 400px; font-size: 150px; font-weight: 400; letter-spacing: 34px; padding-left: 34px; }
+  .tagline { top: 610px; font-size: 44px; font-weight: 300; letter-spacing: 1px; color: #c8c8cc; }
+  .avail { top: 700px; font-size: 30px; font-weight: 400; letter-spacing: 6px; color: #8e8e93; text-transform: uppercase; }
+  @keyframes track { from { letter-spacing: 90px; opacity: 0; filter: blur(14px) } to { letter-spacing: 34px; opacity: 1; filter: blur(0) } }
+  @keyframes up { from { transform: translateY(30px); opacity: 0 } to { transform: none; opacity: 1 } }
+</style>
+</head>
+<body>
+
+<!-- ============ 0.0 – 3.6  Edge-on black phone turns to reveal Home ============ -->
+<section class="scene dark" style="animation: on 3.6s linear 0s">
+  <div style="position:absolute;inset:0;background:radial-gradient(35% 45% at 60% 50%, rgba(255,140,60,.22), transparent 70%);animation: fadeIn 2s ease 0.6s both"></div>
+  <div class="world"><div class="rig" style="animation: s1 3.6s cubic-bezier(.45,0,.2,1) 0s both">
+    <div class="phone black">
+      <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div><div class="layer" style="transform:translateZ(20px)"></div>
+      <div class="face"><div class="screen"><div class="island"></div>
+        <div class="sheen" style="animation: sheen 1.8s ease-in-out 1.4s both"></div>
+        <img src="raw/home.png">
+      </div></div>
+    </div>
+  </div></div>
+  <div class="dof v" style="--b:6px"></div>
+</section>
+
+<!-- ============ 3.6 – 7.2  Glide across the screen; products lift off ============ -->
+<section class="scene dark" style="animation: on 3.6s linear 3.6s">
+  <div class="world"><div class="rig" style="animation: s2 3.6s cubic-bezier(.3,0,.3,1) 3.6s both">
+    <div class="phone black">
+      <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div><div class="layer" style="transform:translateZ(20px)"></div>
+      <div class="face"><div class="screen"><div class="island"></div><img src="raw/jewelry-results.png"></div></div>
+      <div class="card" style="--z:240px;left:-170px;top:140px;width:330px;height:300px;transform-style:preserve-3d;animation: lift .9s cubic-bezier(.2,.8,.2,1) 4.0s both">
+        <img src="img/fragrance.jpg"><span class="tag">$140</span></div>
+      <div class="card" style="--z:320px;left:380px;top:470px;width:330px;height:300px;animation: lift .9s cubic-bezier(.2,.8,.2,1) 4.5s both">
+        <img src="img/jewelry.jpg"><span class="tag">$25</span></div>
+      <div class="card" style="--z:200px;left:-150px;top:820px;width:330px;height:300px;animation: lift .9s cubic-bezier(.2,.8,.2,1) 5.0s both">
+        <img src="img/home.jpg"><span class="tag">$100</span></div>
+    </div>
+  </div></div>
+  <div class="dof d" style="--b:12px"></div>
+</section>
+
+<!-- ============ 7.2 – 10.8  Laptop at a steep angle, colour bloom, marracat.com ============ -->
+<section class="scene dark" style="animation: on 3.6s linear 7.2s">
+  <div class="bloom" style="left:300px;top:-300px;animation: spin 3.6s linear 7.2s both, fadeIn .8s ease 7.2s both"></div>
+  <div class="world"><div class="rig" style="animation: s3 3.6s cubic-bezier(.3,0,.25,1) 7.2s both">
+    <div class="laptop">
+      <div class="base"></div>
+      <div class="lid"><div class="screen"><img src="raw/web-home.png" style="object-position:top left"></div></div>
+      <div class="card" style="--z:260px;left:1180px;top:120px;width:300px;height:380px;animation: lift .9s cubic-bezier(.2,.8,.2,1) 7.9s both">
+        <img src="img/fog.jpg"></div>
+      <div class="card" style="--z:180px;left:1330px;top:560px;width:300px;height:380px;animation: lift .9s cubic-bezier(.2,.8,.2,1) 8.3s both">
+        <img src="img/fog2.jpg"></div>
+    </div>
+  </div></div>
+  <div class="dof v" style="--b:9px"></div>
+</section>
+
+<!-- ============ 10.8 – 14.0  White: silver phone on a steep diagonal, product page ============ -->
+<section class="scene white" style="animation: on 3.2s linear 10.8s">
+  <div class="world"><div class="rig" style="animation: s4 3.2s cubic-bezier(.3,0,.3,1) 10.8s both">
+    <div class="phone silver">
+      <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div><div class="layer" style="transform:translateZ(20px)"></div>
+      <div class="face"><div class="screen"><div class="island"></div>
+        <div class="sheen" style="animation: sheen 2s ease-in-out 11.2s both"></div>
+        <img src="raw/fragrance-detail.png">
+      </div></div>
+    </div>
+  </div></div>
+  <div class="dof d" style="--b:10px"></div>
+</section>
+
+<!-- ============ 14.0 – 17.0  Three phones stand up: browse, search, cart ============ -->
+<section class="scene white" style="animation: on 3.0s linear 14.0s">
+  <div class="world"><div class="rig" style="animation: s5 3.0s cubic-bezier(.3,0,.2,1) 14.0s both">
+    <div style="position:absolute;transform-style:preserve-3d;--x:-640px;--ry:14deg;animation: fan 1.2s cubic-bezier(.3,0,.2,1) 15.2s both">
+      <div class="phone silver" style="transform:scale(.72)">
+        <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div>
+        <div class="face"><div class="screen"><div class="island"></div><img src="raw/browse.png"></div></div>
+      </div>
+    </div>
+    <div style="position:absolute;transform-style:preserve-3d;--x:640px;--ry:-14deg;animation: fan 1.2s cubic-bezier(.3,0,.2,1) 15.2s both">
+      <div class="phone silver" style="transform:scale(.72)">
+        <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div>
+        <div class="face"><div class="screen"><div class="island"></div><img src="raw/cart.png"></div></div>
+      </div>
+    </div>
+    <div style="position:absolute;transform-style:preserve-3d;transform:translateZ(40px)">
+      <div class="phone silver" style="transform:scale(.72)">
+        <div class="layer"></div><div class="layer" style="transform:translateZ(10px)"></div><div class="layer" style="transform:translateZ(20px)"></div>
+        <div class="face"><div class="screen"><div class="island"></div><img src="raw/hair-grid.png"></div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 17.0 – 20.0  End card ============ -->
+<section class="scene dark" style="animation: on 3.0s linear 17.0s">
+  <div style="position:absolute;inset:0;background:radial-gradient(50% 45% at 50% 48%, rgba(255,255,255,.08), transparent 70%)"></div>
+  <div class="word mark" style="animation: track 1.1s cubic-bezier(.2,.8,.2,1) 17.15s both">MARRACAT</div>
+  <div class="word tagline" style="animation: up .6s ease 17.9s both">Your next favorite. All in one place.</div>
+  <div class="word avail" style="animation: up .6s ease 18.3s both">On iPhone and iPad · marracat.com</div>
+</section>
+
+<script>
+  const DURATION = 20;
+  window.seek = (t) => {
+    for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; }
+  };
+  window.ready = Promise.all([
+    document.fonts.ready,
+    ...[...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })),
+  ]);
+  if (location.search.includes('play')) {
+    const t0 = performance.now();
+    const tick = () => { seek(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(tick); };
+    ready.then(tick);
+  }
+</script>
+</body>
+</html>

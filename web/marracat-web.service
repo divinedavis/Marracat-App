@@ -1,0 +1,37 @@
+[Unit]
+Description=Marracat storefront authentication
+After=network.target
+[Service]
+Type=simple
+User=marracat
+Group=marracat
+WorkingDirectory=/opt/marracat-web/current
+EnvironmentFile=/etc/marracat/web.env
+EnvironmentFile=-/etc/marracat/shopify.env
+# Restock pushes (server/restock.js): the team APNs key, installed by hand.
+EnvironmentFile=-/etc/marracat/apns.env
+# The order email relay (server/relay.js): mailbox login, TLS paths, flag;
+# the tracker's key: TRACK17_API_KEY in tracking.env (17TRACK, which also
+# signs its webhook with it), or EasyPost's key + secret in easypost.env.
+EnvironmentFile=-/etc/marracat/relay.env
+EnvironmentFile=-/etc/marracat/tracking.env
+EnvironmentFile=-/etc/marracat/easypost.env
+# Browser notifications (server/web-push.js): the VAPID key pair. Changing it
+# cuts off every browser that turned notifications on.
+EnvironmentFile=-/etc/marracat/webpush.env
+# Boosts: Stripe secret key + webhook signing secret (server/boosts.js).
+EnvironmentFile=-/etc/marracat/stripe.env
+# Port 25 for the relay's inbound mail, without running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/marracat
+UMask=0077
+[Install]
+WantedBy=multi-user.target

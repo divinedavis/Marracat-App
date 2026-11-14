@@ -1,0 +1,30 @@
+# One signature per connection, as the only user that can read the key.
+# No network, nothing writable, nothing from the checkout.
+[Unit]
+Description=Marracat catalog signer
+
+[Service]
+User=marracat-signer
+Group=marracat-signer
+ExecStart=/opt/marracat-refresh/venv/bin/python -I /usr/local/sbin/marracat-sign
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+Environment=PYTHONDONTWRITEBYTECODE=1
+RuntimeMaxSec=600
+MemoryMax=2G
+NoNewPrivileges=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+InaccessiblePaths=/opt/marracat-refresh/Marracat /var/lib/marracat-refresh /etc/marracat-refresh
+UMask=0077

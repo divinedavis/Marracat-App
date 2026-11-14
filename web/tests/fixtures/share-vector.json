@@ -1,0 +1,15 @@
+{
+  "recipient_private": "1111111111111111111111111111111111111111111111111111111111111111",
+  "recipient_public": "BAIX5hfwtkQ5KCePlpmeaaI6TywVK99tbN9m5bgCgtTtGUp968uXcS0t2jyoWqh2Wlb0X8dYWZZS8ol8ZTBuV5Q=",
+  "ephemeral_private": "2222222222222222222222222222222222222222222222222222222222222222",
+  "message": {
+    "product_id": "koba-skincare-123",
+    "note": "Thought you would love this"
+  },
+  "plaintext": "{\"note\":\"Thought you would love this\",\"product_id\":\"koba-skincare-123\"}",
+  "envelope": {
+    "ephemeral_key": "BNZak5d8qj0bCBhS/1ennkZfFmBXcwS66tUF3TpIWJzzUBheiVNy32Ih6joTdVfkc/3bZ1XwW9UHw8Uz/OnJEoU=",
+    "nonce": "AAECAwQFBgcICQoL",
+    "ciphertext": "OhOl5fTUuyOall5bARfLvOtYhMzOHUXObgN0GsRHauSEExKZEWDmY+TS/FGaTwxWzRxC6aGj4eqJo1XdqhEwg8fyemAdkiTBkUQ4m9wCQESD7RwXjlbd"
+  }
+}

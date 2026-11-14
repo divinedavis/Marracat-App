@@ -1,0 +1,200 @@
+{
+ "about": "Networks that host servers, not shoppers. A browser from one is not counted as a visitor: web/server/visits.js and events.js refuse its beacons, and web/metrics/marracat_metrics.py leaves its log lines out. An entry with a slash is a CIDR network; any other is a string prefix of the address.",
+ "groups": [
+  {
+   "label": "OVH / SoYouStart",
+   "prefixes": [
+    "158.69.",
+    "167.114.",
+    "51.222.",
+    "51.79.",
+    "51.91.",
+    "57.128.",
+    "139.99.",
+    "141.94.",
+    "149.202.",
+    "51.68.",
+    "51.75.",
+    "51.83.",
+    "54.36.",
+    "54.37."
+   ]
+  },
+  {
+   "label": "Google Cloud",
+   "prefixes": [
+    "34.",
+    "35."
+   ]
+  },
+  {
+   "label": "AWS",
+   "prefixes": [
+    "54.",
+    "52.",
+    "18.",
+    "3.",
+    "44.",
+    "56.",
+    "98.87.",
+    "174.129.",
+    "100.24.",
+    "100.25.",
+    "100.26.",
+    "107.20.",
+    "184.72.",
+    "184.73."
+   ]
+  },
+  {
+   "label": "DigitalOcean",
+   "prefixes": [
+    "164.90.",
+    "167.172.",
+    "165.227.",
+    "104.236.",
+    "159.203.",
+    "165.22.",
+    "178.128.",
+    "134.209.",
+    "146.190.",
+    "144.126.",
+    "138.68.",
+    "142.93.",
+    "143.198.",
+    "157.245.",
+    "161.35.",
+    "159.65.",
+    "159.89.",
+    "68.183."
+   ]
+  },
+  {
+   "label": "Azure",
+   "prefixes": [
+    "20.",
+    "40.",
+    "13.",
+    "152.233."
+   ]
+  },
+  {
+   "label": "Tencent / Alibaba",
+   "prefixes": [
+    "43.",
+    "47."
+   ]
+  },
+  {
+   "label": "Hetzner",
+   "prefixes": [
+    "5.9.",
+    "95.216.",
+    "168.119.",
+    "116.202.",
+    "49.12.",
+    "78.46.",
+    "88.99."
+   ]
+  },
+  {
+   "label": "Scaleway / Online SAS",
+   "prefixes": [
+    "62.210.",
+    "51.15.",
+    "163.172.",
+    "212.83.",
+    "151.115."
+   ]
+  },
+  {
+   "label": "Linode / Akamai",
+   "prefixes": [
+    "172.236.",
+    "172.237.",
+    "45.79.",
+    "45.33.",
+    "139.144.",
+    "170.187."
+   ]
+  },
+  {
+   "label": "Fastly and other edge networks, which browse nothing",
+   "prefixes": [
+    "146.75.",
+    "151.101.",
+    "199.232."
+   ]
+  },
+  {
+   "label": "M247 / DataCamp / Datapacket and the consumer VPN exits that ride them",
+   "prefixes": [
+    "149.57.",
+    "146.70.",
+    "149.88.",
+    "185.254.",
+    "62.93.",
+    "89.187.",
+    "138.199.",
+    "143.244.",
+    "156.146.",
+    "185.156.",
+    "37.19."
+   ]
+  },
+  {
+   "label": "Zscaler and corporate proxy pools",
+   "prefixes": [
+    "165.225.",
+    "216.73.",
+    "104.129."
+   ]
+  },
+  {
+   "label": "Google's own crawl range. Nobody books a laundry pickup from it, and the UA is not always self-identifying \u2014 GoogleOther wears the same Nexus 5X string as Googlebot without the word that gets it filtered.",
+   "prefixes": [
+    "66.249."
+   ]
+  },
+  {
+   "label": "OVH Canada, which the earlier OVH block missed",
+   "prefixes": [
+    "149.56."
+   ]
+  },
+  {
+   "label": "rotating scraper and probe blocks seen on this site",
+   "prefixes": [
+    "103.196.",
+    "45.88.",
+    "136.0.74.",
+    "149.19.255.",
+    "205.169.39.",
+    "216.38.230.",
+    "194.36.25.",
+    "192.253.209.",
+    "204.101.161.",
+    "23.27.145.",
+    "89.248.",
+    "80.82.",
+    "198.44.138.",
+    "111.248.200.",
+    "104.164.218.",
+    "192.178.",
+    "17.",
+    "57.129.",
+    "51.195."
+   ]
+  },
+  {
+   "label": "Tencent Cloud and Huawei Cloud blocks a distributed headless crawler used on 2026-11-12 (eight addresses, one brand page each, in four minutes, read as the day's 8 web visitors)",
+   "prefixes": [
+    "119.28.0.0/16",
+    "49.233.0.0/16",
+    "159.138.0.0/16",
+    "116.204.0.0/17",
+    "46.250.160.0/19"
+   ]
+  }
+ ]
+}

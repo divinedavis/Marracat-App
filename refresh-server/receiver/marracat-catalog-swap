@@ -1,0 +1,88 @@
+#!/bin/bash
+# Runs ON 167.71 as root (sudo from marracat-pub only): put the uploaded
+# catalog files live. The droplet half of scripts/publish_catalog.sh's
+# droplet target, for CATALOG_TARGET=receiver:
+#   - all nine files present (catalog{,-v2,-v3}.json + .gz + .sig), each .gz
+#     intact and decompressing to exactly its plain file, each .sig the
+#     catalog key's signature over its file (marracat-verify-sig, 2026-11-12)
+#   - what is live is snapshotted (hard links) to /var/backups/marracat-catalog/<ts>,
+#     8 kept
+#   - files renamed into place; the bytes nginx serves must match, plain and
+#     gzipped; otherwise the snapshot goes back and this exits 1
+#   - then any catalog-v3-delta-*/catalog-v3-manifest-* uploads go live through
+#     marracat-catalog-deltas (optional; never fails the swap)
+# Takes no arguments. Installed by refresh-server/receiver/install.sh.
+set -euo pipefail
+IN=/var/lib/marracat-pub/incoming
+DOCROOT=/var/www/marracat-catalog
+BACKUPS=/var/backups/marracat-catalog
+KEEP=8
+exec 9>/run/lock/marracat-publish.lock
+flock -w 1800 9 || { echo "another publish holds the lock" >&2; exit 1; }
+# Take the uploads out of marracat-pub's reach before looking at them: moved
+# (not followed) into a root-only directory, then they must be plain files
+# that marracat-pub owns (no symlink or hard link to anything of root's).
+take() {
+    STAGE=$(mktemp -d /var/lib/marracat-pub-stage.XXXXXX)
+    trap 'rm -rf "$STAGE"' EXIT
+    local f
+    for f in "$@"; do
+        [[ -e "$IN/$f" || -L "$IN/$f" ]] || { echo "missing upload: $f" >&2; exit 1; }
+        mv -f "$IN/$f" "$STAGE/$f"
+        [[ -f "$STAGE/$f" && ! -L "$STAGE/$f" && "$(stat -c %U:%h "$STAGE/$f")" == marracat-pub:1 ]] \
+            || { echo "upload $f is not a plain file of marracat-pub's" >&2; exit 1; }
+    done
+}
+NAMES="catalog.json catalog-v2.json catalog-v3.json"
+# Deltas and the manifest (2026-10-18) are optional: a publish without them
+# still swaps, and a phone fetches the whole catalog.
+extra=()
+for f in "$IN"/catalog-v3-delta-*.json "$IN"/catalog-v3-delta-*.json.gz "$IN"/catalog-v3-delta-*.json.sig "$IN"/catalog-v3-manifest-*.json.gz; do
+    [[ -e "$f" || -L "$f" ]] && extra+=("$(basename "$f")")
+done
+take catalog.json catalog.json.gz catalog.json.sig catalog-v2.json catalog-v2.json.gz catalog-v2.json.sig \
+     catalog-v3.json catalog-v3.json.gz catalog-v3.json.sig "${extra[@]}"
+IN="$STAGE"
+for name in $NAMES; do
+    (( $(stat -c %s "$IN/$name") > 1000000 )) || { echo "$name is implausibly small" >&2; exit 1; }
+    [[ "$(gzip -dc "$IN/$name.gz" | md5sum | cut -d' ' -f1)" == "$(md5sum < "$IN/$name" | cut -d' ' -f1)" ]] \
+        || { echo "$name.gz does not decompress to $name" >&2; exit 1; }
+    (( $(stat -c %s "$IN/$name.sig") <= 100 )) || { echo "$name.sig is not a signature" >&2; exit 1; }
+    # The signature must be the catalog key's (marracat-verify-sig): an upload
+    # that isn't never goes live.
+    /usr/local/sbin/marracat-verify-sig "$IN/$name" || { echo "$name is not signed by the catalog key; nothing changed" >&2; exit 1; }
+done
+for name in $NAMES; do
+    for f in "$name" "$name.gz" "$name.sig"; do
+        install -m 644 -o root -g root "$IN/$f" "$DOCROOT/$f.tmp"
+    done
+done
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$BACKUPS/$ts"
+cd "$DOCROOT"
+for f in catalog*.json catalog*.json.gz catalog*.json.sig; do [ -f "$f" ] && ln "$f" "$BACKUPS/$ts/$f"; done
+ls -1d "$BACKUPS"/*/ | head -n -$KEEP | xargs -r rm -rf
+echo "catalog: snapshot $BACKUPS/$ts"
+for name in $NAMES; do mv "$name.tmp" "$name"; mv "$name.gz.tmp" "$name.gz"; mv "$name.sig.tmp" "$name.sig"; done
+bad=0
+for name in $NAMES; do
+    plain=$(md5sum < "$IN/$name" | cut -d' ' -f1); gz=$(md5sum < "$IN/$name.gz" | cut -d' ' -f1)
+    got=$(curl -fsS --resolve marracat.com:443:127.0.0.1 "https://marracat.com/$name" | md5sum | cut -d' ' -f1)
+    gotgz=$(curl -fsS -H 'Accept-Encoding: gzip' --resolve marracat.com:443:127.0.0.1 "https://marracat.com/$name" | md5sum | cut -d' ' -f1)
+    if [[ "$got" == "$plain" && "$gotgz" == "$gz" ]]; then echo "   served $name: ok"; else echo "!! served $name does not match the upload" >&2; bad=1; fi
+done
+if (( bad )); then
+    echo "!! rolling the catalog back to $ts" >&2
+    cd "$BACKUPS/$ts"
+    for f in catalog*.json catalog*.json.gz catalog*.json.sig; do
+        [[ -f "$f" ]] || continue
+        cp -p "$f" "$DOCROOT/.$f.restore"; mv -f "$DOCROOT/.$f.restore" "$DOCROOT/$f"
+    done
+    exit 1
+fi
+echo "catalog: live ($ts)"
+# Only now that the catalog itself is served: its deltas (marracat-catalog-deltas).
+DELTAS=$(mktemp -d /var/lib/marracat-pub-deltas.XXXXXX)
+for f in "${extra[@]}"; do cp -p "$IN/$f" "$DELTAS/${f#catalog-v3-}"; done
+/usr/local/sbin/marracat-catalog-deltas "$DELTAS" || true
+rm -rf "$DELTAS"

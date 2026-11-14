@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Weekly failed-search review, Mondays 8:00. NOT installed by default.
+     Install:   cp scripts/com.marracat.search-gaps.plist ~/Library/LaunchAgents/ &&
+                launchctl load ~/Library/LaunchAgents/com.marracat.search-gaps.plist
+     Run now:   launchctl start com.marracat.search-gaps
+     Remove:    launchctl unload ~/Library/LaunchAgents/com.marracat.search-gaps.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.marracat.search-gaps</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>/Users/divinedavis/projects/Marracat/scripts/search_gaps.sh &gt;&gt; /Users/divinedavis/projects/Marracat/build/search-gaps.log 2&gt;&amp;1</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+</dict>
+</plist>

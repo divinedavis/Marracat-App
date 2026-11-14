@@ -1,0 +1,47 @@
+# The nightly UI set (owner, 2026-10-25: "fast set nightly"): one test per
+# shopper journey, ~5 min against the full suite's ~26. The full suite runs
+# Sunday nights and on any ship started by hand (scripts/ship.sh SHIP_TIER).
+# One Class/testName per line; unit tests (MarracatTests) always run in full.
+# launch and catalog
+MarracatUITests3/testColdLaunchShowsSplash
+MarracatUITests/testPublishedCatalogLoads
+MarracatUITests3/testCorruptCachedCatalogFallsBackToTheBundledOne
+# tabs
+MarracatUITests/testFloatingTabBarSwitchesAndPopsToRoot
+TabBarMinimizeUITests/testTabBarShrinksOnScrollDownAndGrowsOnScrollUp
+# search
+MarracatUITests/testSearchResultsMixBrands
+# Owner 2026-11-08: the independent card, typing and results.
+MarracatUITests3/testIndependentCardShowsWhileTypingAndOnResults
+# Owner 2026-11-08: New since your last visit on Home.
+MarracatUITests/testHomeShowsWhatsNewSinceTheLastVisit
+MarracatUITests2/testVitaminDFindsVitaminDAndNotVitaminC
+MarracatUITests2/testUnmatchedWordFallsBackInsteadOfEmptyPage
+MarracatUITests2/testSearchNoticeBrandLeadGuessesAndPicks
+MarracatUITests/testTabBarStaysAtTheBottomAfterTypingASearch
+# browse
+MarracatUITests3/testCategoryOpensToSubcategories
+MarracatUITests/testFiltersNarrowResultsAndTheChipUndoesIt
+BrandSearchUITests/testClothingFiltersOfferTypes
+BrandSearchUITests/testCategoryFilterShowsPhotoTiles
+# product page
+MarracatUITests/testProductWithOptionsLoadsItsVariantsAndCanBeAdded
+MarracatUITests3/testProductPageHasCommentsAndSharing
+# bag and checkout
+MarracatUITests3/testAddToCartThenCheckoutAtBrand
+MarracatUITests3/testBagTotalIncludesStandardShippingThenPaysEachBrand
+MarracatUITests2/testSwipeRemovesCartItem
+MarracatUITests3/testCheckoutSavesTheFirstOrdersAddressThenPaysEachBrand
+# saved, orders, account
+MarracatUITests2/testSavedFoldersWithCovers
+MarracatUITests/testBuyNowOrderIsTrackedWithoutTheOrderEmail
+MarracatUITests2/testGuestAccountControlsAndPrivacy
+# holidays (themes and App Store event links)
+HolidayThemeUITests/testAnEventLinkOpensItsCollection
+HolidayThemeUITests/testHalloweenRowsLeadHome
+# accessibility, trimmed: light mode only (A11Y_LOOKS), three screens
+AccessibilityAuditTests/testEveryTab
+AccessibilityAuditTests/testProductDetail
+AccessibilityAuditTests/testBagTotalsAndContinueCard
+YourTasteUITests/testYourTasteStartsEmptyThenShowsTheSizeAddedToTheBag
+LaundryPicksUITests/testLikingADetergentBringsMoreForTheLaundryAndNothingUntouched

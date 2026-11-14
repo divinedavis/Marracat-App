@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-10-11T00:00:00Z",
+  "brands": [
+    { "id": "fixture-hair", "name": "Fixture Hair", "domain": "hair.example", "shopify": true },
+    { "id": "fixture-wear", "name": "Fixture Wear", "domain": "wear.example", "shopify": true },
+    { "id": "silver-riley", "name": "Silver Riley", "domain": "silverriley.example", "shopify": true }
+  ],
+  "categories": [
+    { "id": "hair", "name": "Hair" },
+    { "id": "clothing", "name": "Clothing" },
+    { "id": "bags", "name": "Bags" }
+  ],
+  "subcategories": [],
+  "products": [
+    { "id": "h-4c", "brand": "fixture-hair", "title": "Coil Cream For 4C Hair", "category": "hair", "price": 18, "currency": "USD",
+      "images": ["https://img.fixture.test/coil.png"], "available": true, "product_type": "Cream", "tags": [],
+      "attrs": { "hair": ["4c", "coils"], "free": ["fragrance"] } },
+    { "id": "h-curl", "brand": "fixture-hair", "title": "Curl Custard", "category": "hair", "price": 16, "currency": "USD",
+      "images": ["https://img.fixture.test/custard.png"], "available": true, "product_type": "Gel", "tags": [],
+      "attrs": { "hair": ["curls"] } },
+    { "id": "h-plain", "brand": "fixture-hair", "title": "Wide Tooth Comb", "category": "hair", "price": 9, "currency": "USD",
+      "images": ["https://img.fixture.test/comb.png"], "available": true, "product_type": "Tool", "tags": [] },
+    { "id": "w-black", "brand": "fixture-wear", "title": "Classic Hoodie", "category": "clothing", "price": 150, "currency": "USD",
+      "images": ["https://img.fixture.test/hoodie-black.png"], "available": true, "product_type": "Tops", "tags": [],
+      "group": "fixture-wear:0000aaaa", "color": "Vintage Black", "swatch": "#1b1b1b", "best_rank": 1 },
+    { "id": "w-sand", "brand": "fixture-wear", "title": "Classic Hoodie", "category": "clothing", "price": 150, "currency": "USD",
+      "images": ["https://img.fixture.test/hoodie-sand.png"], "available": true, "product_type": "Tops", "tags": [],
+      "group": "fixture-wear:0000aaaa", "color": "Sand", "swatch": "#d4c3a0", "best_rank": 2 },
+    { "id": "w-tee", "brand": "fixture-wear", "title": "Pocket Tee", "category": "clothing", "price": 60, "currency": "USD",
+      "images": ["https://img.fixture.test/tee.png"], "available": true, "product_type": "Tops", "tags": [], "best_rank": 3 },
+    { "id": "sr-bag", "brand": "silver-riley", "title": "Shoulder Bag", "category": "bags", "price": 300, "currency": "USD",
+      "images": ["https://img.fixture.test/bag-packshot.png"], "hero": "https://img.fixture.test/bag-worn.png",
+      "available": true, "product_type": "Bags", "tags": [], "best_rank": 1 }
+  ]
+}

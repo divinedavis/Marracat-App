@@ -1,0 +1,24 @@
+# Repo gitleaks config: the default rules, plus values that look like keys
+# but are published on purpose.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public storefront keys a brand's own site sends to every browser"
+# Swell storefront public key for Yeezy (yzy-prod), sent by yeezy.com itself;
+# Swell issues pk_ keys for browsers ("safe to use in any context").
+# A secret Swell key starts sk_ and is still caught.
+regexes = [
+  '''pk_UDtBUDIgX4j2StzcMPjwb7pfsmM1deoK''',
+  # Not secrets, but shaped like keys (each one checked by hand, 2026-11-13):
+  # a UserDefaults key name;
+  '''^buyer\.details\.v1$''',
+  # the ephemeral PUBLIC key of the fixed end-to-end sharing test vector
+  # (MarracatTests/ShareCryptoTests.swift, web/tests/fixtures/share-vector.json);
+  '''^BNZak5d8[A-Za-z0-9+/=_-]{60,}$''',
+  # made-up tokens in the order-email and order-tracking tests.
+  '''^a1b2c3d4e5f60718293a4b5c6d7e8f90$''',
+  '''^0f9e8d7c6b5a49382716f5e4d3c2b1a0$''',
+  '''00112233445566778899aabbccddeeff''',
+  '''fedcba9876543210fedcba9876543210''',
+]

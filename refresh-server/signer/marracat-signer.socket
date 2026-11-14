@@ -1,0 +1,15 @@
+# The catalog signer's socket (refresh-server/signer/marracat-sign). Only the
+# refresh service's group may connect.
+[Unit]
+Description=Marracat catalog signer socket
+
+[Socket]
+ListenStream=/run/marracat-signer.sock
+SocketUser=root
+SocketGroup=marracat-refresh
+SocketMode=0660
+Accept=yes
+MaxConnections=2
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,7 @@
+# The refresh droplet's Python (refresh-server/provision.sh), pinned to what
+# the Mac's venvs run the same scripts with. Python 3.14 (uv).
+cryptography==50.0.1
+numpy==2.5.3
+pillow==13.0.0
+requests==2.34.2
+typesafe-sdk==0.7.0

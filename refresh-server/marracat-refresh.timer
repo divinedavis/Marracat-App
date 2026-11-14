@@ -1,0 +1,17 @@
+# Every 3 hours, UTC (= 20:00, 23:00, 02:00 ... New York in EDT). Was every 6
+# until 2026-10-18 (owner: "check if items are in stock more frequently"):
+# phones now update by delta (~0.5 MB, catalog/catalog_delta.py), so a fresher
+# catalog costs them little. A run takes ~80 min (~45 fetching every store);
+# one still running when the next is due isn't started twice. The Mac's
+# nightly ML job (01:30 New York = 05:30 UTC) lands between the 03:00 and
+# 06:00 runs; its uploads replace whole files.
+[Unit]
+Description=Marracat catalog refresh, every 3 hours
+
+[Timer]
+OnCalendar=*-*-* 00/3:00:00 UTC
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

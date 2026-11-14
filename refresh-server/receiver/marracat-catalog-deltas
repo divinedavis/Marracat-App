@@ -1,0 +1,71 @@
+#!/bin/bash
+# Runs ON 167.71 as root: put a publish's catalog deltas live (2026-10-18,
+# catalog/catalog_delta.py). Called by marracat-catalog-swap after the catalog
+# itself is live and served correctly, and by scripts/publish_catalog.sh's
+# droplet target the same way.
+#
+#   marracat-catalog-deltas <dir>
+#
+# <dir> holds manifest-<fp>.json.gz for the version just published and any
+# delta-<from>.json (+ .gz, .sig) to it. Into /var/www/marracat-catalog/catalog-v3/:
+#   - every older delta goes (they lead to the version just replaced; a phone
+#     that fetched one only lands on a still-signed, older catalog);
+#   - the new deltas and manifest go in; each .gz must decompress to its
+#     file and each .sig be the catalog key's signature over it
+#     (marracat-verify-sig, 2026-11-12), or that delta is skipped;
+#   - manifests.txt: the KEEP newest manifests' fingerprints, newest first,
+#     and older manifests are removed.
+# A publish with no manifest clears the deltas and manifests.txt instead, so
+# no phone is told a replaced version is current.
+# Never fails the publish: the full catalog works without any of this.
+set -uo pipefail
+SRC="${1:?usage: marracat-catalog-deltas <dir>}"
+DIR="${MARRACAT_DELTA_DIR:-/var/www/marracat-catalog/catalog-v3}"
+KEEP=9
+VERIFY="${MARRACAT_VERIFY_SIG:-/usr/local/sbin/marracat-verify-sig}"
+fp='[0-9a-f]{16}'
+install -d -m 755 "$DIR"
+new=""
+for m in "$SRC"/manifest-*.json.gz; do
+    [[ -f "$m" && ! -L "$m" ]] || continue
+    name=$(basename "$m")
+    [[ "$name" =~ ^manifest-($fp)\.json\.gz$ ]] || continue
+    gzip -t "$m" 2>/dev/null || { echo "deltas: $name is not gzip; skipped" >&2; continue; }
+    new="${BASH_REMATCH[1]}"
+done
+cd "$DIR" || exit 0
+if [[ -z "$new" ]]; then
+    # A catalog published without deltas (an older publisher, or they failed):
+    # the list would name a replaced version as current and phones holding it
+    # would never update. Without it they fetch the whole catalog.
+    rm -f delta-*.json delta-*.json.gz delta-*.json.sig manifests.txt
+    echo "deltas: none in this publish; list cleared, phones take the full catalog"
+    exit 0
+fi
+rm -f delta-*.json delta-*.json.gz delta-*.json.sig
+install -m 644 "$SRC/manifest-$new.json.gz" "manifest-$new.json.gz.tmp" && mv -f "manifest-$new.json.gz.tmp" "manifest-$new.json.gz"
+made=0
+for d in "$SRC"/delta-*.json; do
+    [[ -f "$d" && ! -L "$d" ]] || continue
+    name=$(basename "$d")
+    [[ "$name" =~ ^delta-$fp\.json$ ]] || continue
+    [[ -f "$d.gz" && -f "$d.sig" && ! -L "$d.gz" && ! -L "$d.sig" ]] || { echo "deltas: $name without .gz/.sig; skipped" >&2; continue; }
+    [[ "$(gzip -dc "$d.gz" | md5sum | cut -d' ' -f1)" == "$(md5sum < "$d" | cut -d' ' -f1)" ]] || { echo "deltas: $name.gz differs; skipped" >&2; continue; }
+    (( $(stat -c %s "$d.sig") <= 100 )) || { echo "deltas: $name.sig is not a signature; skipped" >&2; continue; }
+    "$VERIFY" "$d" 2>/dev/null || { echo "deltas: $name is not signed by the catalog key; skipped" >&2; continue; }
+    for f in "$name" "$name.gz" "$name.sig"; do
+        install -m 644 "$SRC/$f" "$f.tmp" && mv -f "$f.tmp" "$f"
+    done
+    made=$((made + 1))
+done
+# Newest first by modification time; the one just published leads.
+ls -1t manifest-*.json.gz 2>/dev/null | sed -E 's/^manifest-([0-9a-f]{16})\.json\.gz$/\1/' | grep -Ex "$fp" \
+    | grep -vx "$new" | head -n $((KEEP - 1)) > manifests.txt.tmp
+{ echo "$new"; cat manifests.txt.tmp; } > manifests.txt.new && rm -f manifests.txt.tmp
+chmod 644 manifests.txt.new && mv -f manifests.txt.new manifests.txt
+for m in manifest-*.json.gz; do
+    f=${m#manifest-}; f=${f%.json.gz}
+    grep -qx "$f" manifests.txt || rm -f "$m"
+done
+echo "deltas: $made live to $new; $(wc -l < manifests.txt) version(s) listed"
+exit 0

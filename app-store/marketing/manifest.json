@@ -1,0 +1,51 @@
+[
+  {
+    "id": "01-discover",
+    "title": "FIND YOUR<br>NEXT FAVORITE.",
+    "sub": "Fashion. Beauty. Home. All in one place.",
+    "screen": "home",
+    "style": "hero"
+  },
+  {
+    "id": "02-search",
+    "title": "ONE SEARCH.<br>MORE POSSIBILITIES.",
+    "sub": "Discover products across the brands you love.",
+    "screen": "searchResultsMixed",
+    "style": "search"
+  },
+  {
+    "id": "03-explore",
+    "title": "YOUR STYLE.<br>YOUR WAY TO SHOP.",
+    "sub": "Explore categories made for every kind of find.",
+    "screen": "bagsSubcategories",
+    "style": "browse"
+  },
+  {
+    "id": "04-detail",
+    "title": "TAKE A<br>CLOSER LOOK.",
+    "sub": "Explore the details. Find the one.",
+    "screen": "detail",
+    "style": "detail"
+  },
+  {
+    "id": "05-brands",
+    "title": "GREAT BRANDS.<br>NEW DISCOVERIES.",
+    "sub": "Meet your next favorite brand.",
+    "screen": "brands",
+    "style": "brands"
+  },
+  {
+    "id": "06-checkout",
+    "title": "FOUND IT?<br>MAKE IT YOURS.",
+    "sub": "Shop directly with each brand.",
+    "screen": "cart",
+    "style": "cart"
+  },
+  {
+    "id": "07-personal",
+    "title": "MAKE MARRACAT<br>YOUR OWN.",
+    "sub": "Your likes. Your history. Your kind of finds.",
+    "screen": "apple-account",
+    "style": "account"
+  }
+]

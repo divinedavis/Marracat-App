@@ -1,0 +1,14 @@
+[Unit]
+Description=File hello@marracat.com mail into folders (DMARC reports, aliases)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=marracat
+ExecStart=/usr/bin/python3 /opt/marracat-web/current/mail/dmarc_sort.py
+EnvironmentFile=/etc/marracat/relay.env
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes

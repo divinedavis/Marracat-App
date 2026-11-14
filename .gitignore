@@ -1,0 +1,28 @@
+.DS_Store
+*.xcodeproj/
+build/
+DerivedData/
+*.xcresult
+catalog/.cache/
+__pycache__/
+* [0-9].*
+scripts/asc-config.env
+
+# Both catalogs are build output now. The full one passed GitHub's 100 MB file
+# limit the day it carried every product (197 MB), so it is rebuilt with
+# catalog/build_catalog.py rather than committed, and published to the droplet.
+Marracat/Resources/catalog-compact.json
+Marracat/Resources/catalog.json
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+scripts/appstore.json
+*.key
+# The binary catalog and Home's slice of it, written by catalog/make_compact.py.
+Marracat/Resources/catalog.bin
+Marracat/Resources/catalog-home.bin
+
+# Third-party security audit report kept locally for reference; never publish it.
+SECURITY_AUDIT_*.md
