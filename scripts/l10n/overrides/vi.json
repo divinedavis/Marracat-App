@@ -537,5 +537,9 @@
  "tracked at %@": "theo dõi từ giá %@",
  "was %@": "giá cũ %@",
  "you@%@": "ten@%@",
- "zoom %lld": "thu phóng %lld"
+ "zoom %lld": "thu phóng %lld",
+ "Track": "Theo dõi",
+ "Store": "Cửa hàng",
+ "Late": "Trễ",
+ "Notify me": "Báo cho tôi"
 }

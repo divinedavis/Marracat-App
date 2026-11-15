@@ -540,5 +540,9 @@
  "tracked at %@": "bevakat vid %@",
  "was %@": "tidigare %@",
  "you@%@": "namn@%@",
- "zoom %lld": "Zoom %lld"
+ "zoom %lld": "Zoom %lld",
+ "Track": "Spåra",
+ "Store": "Butik",
+ "Late": "Försenad",
+ "Notify me": "Meddela mig"
 }

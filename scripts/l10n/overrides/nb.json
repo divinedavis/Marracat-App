@@ -540,5 +540,9 @@
  "tracked at %@": "fulgt fra %@",
  "was %@": "før %@",
  "you@%@": "navn@%@",
- "zoom %lld": "Zoom %lld"
+ "zoom %lld": "Zoom %lld",
+ "Track": "Spor",
+ "Store": "Butikk",
+ "Late": "Forsinket",
+ "Notify me": "Varsle meg"
 }

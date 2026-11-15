@@ -537,5 +537,9 @@
  "tracked at %@": "開始追蹤時%@",
  "was %@": "原價%@",
  "you@%@": "name@%@",
- "zoom %lld": "縮放%lld"
+ "zoom %lld": "縮放%lld",
+ "Track": "追蹤",
+ "Store": "商店",
+ "Late": "延遲",
+ "Notify me": "通知我"
 }

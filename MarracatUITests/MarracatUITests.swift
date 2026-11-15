@@ -434,16 +434,11 @@ final class MarracatUITests: MarracatUITestCase {
         }
     }
 
-    /// Buy Now builds the store's checkout over UCP and opens it directly
-    /// (owner, 2026-10-05; through a review page from 10-01), so the paid
-    /// checkout is tracked whatever email the wallet gives the brand. The stub
-    /// stands in for the server reporting the brand shipped it.
-    /// A "Delivery problem" (owner, 2026-10-21): the order opens with the
-    /// explanation already open, the carrier's own words in it, and Track
-    /// package right under it.
-    func testADeliveryProblemOpensWithItsExplanation() {
+    /// Relaunches with the tracking stub's `arguments` and buys one product
+    /// with Buy Now, as far as "Order placed".
+    private func placeABuyNowOrder(_ arguments: [String]) {
         app.terminate()
-        app.launchArguments += ["-TRACKING_SHIPPED", "-TRACKING_PROBLEM"]
+        app.launchArguments += arguments
         app.launch()
         XCTAssertTrue(app.storeSearchField().appears(timeout: 10))
         app.storeSearchField().tap()
@@ -468,6 +463,63 @@ final class MarracatUITests: MarracatUITestCase {
         XCTAssertTrue(any("checkoutSheet").appears(timeout: 10), "Buy Now should open the brand's checkout")
         any("stubCompleteOrder").tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Order placed'")).firstMatch.appears(timeout: 5))
+    }
+
+    /// A second review screenshot with the page nudged up, so the actions'
+    /// words clear the Buy it again bar; put back after. Nothing happens
+    /// (no scroll, no time) unless screenshots are being taken.
+    private func snapActions(_ name: String) {
+        guard ProcessInfo.processInfo.environment["MARRACAT_SHOT_DIR"] != nil else { return }
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.60))
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.46))
+        from.press(forDuration: 0.1, thenDragTo: to)
+        snap(name, settle: 1)
+        to.press(forDuration: 0.1, thenDragTo: from)
+    }
+
+    /// Once it's delivered the actions are Track, Product and Store, still on
+    /// one line; Late shipment has moved down under Help (owner, 2026-11-13).
+    /// And Buy it again hides on the way down the page (owner, 2026-11-14).
+    func testADeliveredOrderKeepsThreeRoundActionsOnOneLine() {
+        placeABuyNowOrder(["-TRACKING_SHIPPED", "-TRACKING_DELIVERED"])
+        tapTab("You")
+        any("tileOrders").tap()
+        XCTAssertTrue(any("orderRow").appears(timeout: 5))
+        any("orderRow").tap()
+        XCTAssertTrue(any("orderTracker").appears(timeout: 5))
+        XCTAssertTrue(any("orderStatus").label.localizedCaseInsensitiveContains("delivered"), any("orderStatus").label)
+        let actions = ["orderTrackPackage", "orderViewProduct", "orderViewStore"].map { any($0) }
+        XCTAssertTrue(actions.allSatisfy(\.exists), "a delivered order offers Track, Product and Store")
+        for action in actions.dropFirst() {
+            XCTAssertEqual(action.frame.midY, actions[0].frame.midY, accuracy: 2, "the actions share one line")
+            XCTAssertEqual(action.frame.width, actions[0].frame.width, accuracy: 2, "each action takes an equal share")
+        }
+        XCTAssertFalse(any("orderEnableUpdates").exists, "nothing left to be notified about")
+        let late = any("orderLateShipment")
+        if late.exists { XCTAssertGreaterThan(late.frame.minY, actions[0].frame.maxY + 40, "Late shipment belongs under Help now") }
+        snap("order-delivered")
+        snapActions("order-delivered-actions")
+        // Buy it again steps aside on the way down the page and is back after
+        // a short scroll up (owner, 2026-11-14), like the Filters and Sort pill.
+        let buyAgain = any("orderBuyAgain")
+        XCTAssertTrue(buyAgain.appears(timeout: 3), "Buy it again shows at the top of the page")
+        app.swipeUp()
+        XCTAssertTrue(buyAgain.disappears(timeout: 3), "Buy it again should step aside while scrolling down")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.40))
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.52)))
+        XCTAssertTrue(buyAgain.appears(timeout: 3), "a short scroll up should bring Buy it again back")
+        snap("order-buy-again-back")
+    }
+
+    /// Buy Now builds the store's checkout over UCP and opens it directly
+    /// (owner, 2026-10-05; through a review page from 10-01), so the paid
+    /// checkout is tracked whatever email the wallet gives the brand. The stub
+    /// stands in for the server reporting the brand shipped it.
+    /// A "Delivery problem" (owner, 2026-10-21): the order opens with the
+    /// explanation already open, the carrier's own words in it, and Track
+    /// package right under it.
+    func testADeliveryProblemOpensWithItsExplanation() {
+        placeABuyNowOrder(["-TRACKING_SHIPPED", "-TRACKING_PROBLEM"])
         tapTab("You")
         any("tileOrders").tap()
         XCTAssertTrue(any("orderRow").appears(timeout: 5))
@@ -483,32 +535,7 @@ final class MarracatUITests: MarracatUITestCase {
     }
 
     func testBuyNowOrderIsTrackedWithoutTheOrderEmail() {
-        app.terminate()
-        app.launchArguments += ["-TRACKING_SHIPPED"]
-        app.launch()
-        XCTAssertTrue(app.storeSearchField().appears(timeout: 10))
-        app.storeSearchField().tap()
-        XCTAssertTrue(any("searchInput").appears(timeout: 5))
-        any("searchInput").typeText("cacao nectar eau de parfum\n")
-        // A Scent & Fire bottle: a brand with a UCP endpoint, so the order is
-        // built over UCP and tracked. The first "parfum" result moved to a
-        // cart-link brand when the meaning vectors were rebuilt (2026-10-05).
-        let result = any("resultTitle")
-        XCTAssertTrue(result.appears(timeout: 5), "no in-stock result")
-        result.tap()
-        let buy = any("buyNow")
-        XCTAssertTrue(buy.appears(timeout: 5))
-        for _ in 0..<3 where buy.frame.maxY > app.buttons["tab.home"].frame.minY - 4 {
-            app.scrollViews.firstMatch.swipeUp(velocity: .slow)
-        }
-        buy.tap()
-        // Straight to the store's checkout: no Marracat details form first
-        // (owner, 2026-11-02); the store asks for the address.
-        XCTAssertFalse(any("buyerForm").appears(timeout: 2), "Buy Now shouldn't ask for details")
-        // Then straight to the store's checkout for that item, no review page.
-        XCTAssertTrue(any("checkoutSheet").appears(timeout: 10), "Buy Now should open the brand's checkout")
-        any("stubCompleteOrder").tap()
-        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Order placed'")).firstMatch.appears(timeout: 5))
+        placeABuyNowOrder(["-TRACKING_SHIPPED"])
         tapTab("You")
         any("tileOrders").tap()
         XCTAssertTrue(any("orderRow").appears(timeout: 5))
@@ -527,7 +554,18 @@ final class MarracatUITests: MarracatUITestCase {
         XCTAssertTrue(any("orderStatus").label.localizedCaseInsensitiveContains("shipped"), any("orderStatus").label)
         XCTAssertTrue(any("orderTracking").exists, "the tracking number should show")
         XCTAssertTrue(any("orderTrackPackage").exists, "Track package should open the brand's status page")
+        // The actions are round buttons on one line (owner, 2026-11-13), not
+        // pills that wrap; VoiceOver still hears each one's full name.
+        let actions = ["orderTrackPackage", "orderViewProduct", "orderViewStore", "orderLateShipment"].map { any($0) }
+        XCTAssertTrue(actions.allSatisfy(\.exists), "an order on its way offers Track, Product, Store and Late")
+        for action in actions.dropFirst() {
+            XCTAssertEqual(action.frame.midY, actions[0].frame.midY, accuracy: 2, "the actions share one line")
+            XCTAssertEqual(action.frame.width, actions[0].frame.width, accuracy: 2, "each action takes an equal share")
+        }
+        XCTAssertEqual(actions[0].label, "Track package")
+        XCTAssertEqual(actions[3].label, "Late shipment")
         snap("order-tracked")
+        snapActions("order-tracked-actions")
         // "Late shipment" reports the brand; a second tap takes it back (owner, 2026-10-01).
         let late = any("orderLateShipment")
         XCTAssertTrue(late.appears(timeout: 5), "every order should offer Late shipment")

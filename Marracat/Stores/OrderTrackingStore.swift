@@ -45,11 +45,13 @@ final class OrderTrackingStore {
         guard let checkoutID = checkoutID ?? orderID else { return }
         if stubbed {
             // UI tests: what the server reports right after payment, or, with
-            // -TRACKING_SHIPPED, once the brand has shipped it.
+            // -TRACKING_SHIPPED, once the brand has shipped it (and with
+            // -TRACKING_DELIVERED too, once it has arrived).
             let shipped = ProcessInfo.processInfo.arguments.contains("-TRACKING_SHIPPED")
+            let delivered = ProcessInfo.processInfo.arguments.contains("-TRACKING_DELIVERED")
             let problem = ProcessInfo.processInfo.arguments.contains("-TRACKING_PROBLEM")
             orders.insert(TrackedOrder(brandID: brandID, checkoutID: checkoutID, orderID: orderID,
-                                       permalink: "https://marracat.com/#/stub-order-status", state: shipped ? "shipped" : "confirmed",
+                                       permalink: "https://marracat.com/#/stub-order-status", state: delivered ? "delivered" : shipped ? "shipped" : "confirmed",
                                        carrier: shipped ? "USPS" : nil,
                                        trackingNumber: shipped ? "9400111899223197428490" : nil, trackingURL: nil,
                                        created: Date().timeIntervalSince1970 * 1000, updated: Date().timeIntervalSince1970 * 1000,

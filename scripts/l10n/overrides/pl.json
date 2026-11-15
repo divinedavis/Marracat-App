@@ -546,5 +546,9 @@
  "tracked at %@": "śledzona od ceny %@",
  "was %@": "wcześniej %@",
  "you@%@": "nazwa@%@",
- "zoom %lld": "powiększenie %lld"
+ "zoom %lld": "powiększenie %lld",
+ "Track": "Śledź",
+ "Store": "Sklep",
+ "Late": "Opóźnienie",
+ "Notify me": "Powiadom mnie"
 }

@@ -537,5 +537,9 @@
  "tracked at %@": "추적 시작가 %@",
  "was %@": "기존가 %@",
  "you@%@": "name@%@",
- "zoom %lld": "확대 %lld"
+ "zoom %lld": "확대 %lld",
+ "Track": "조회",
+ "Store": "스토어",
+ "Late": "지연",
+ "Notify me": "알림 받기"
 }

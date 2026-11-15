@@ -540,5 +540,9 @@
  "tracked at %@": "gevolgd vanaf %@",
  "was %@": "was %@",
  "you@%@": "naam@%@",
- "zoom %lld": "zoom %lld"
+ "zoom %lld": "zoom %lld",
+ "Track": "Volgen",
+ "Store": "Winkel",
+ "Late": "Vertraagd",
+ "Notify me": "Meld het mij"
 }

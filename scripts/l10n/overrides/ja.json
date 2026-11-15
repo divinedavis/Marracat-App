@@ -537,5 +537,9 @@
  "tracked at %@": "追跡開始時 %@",
  "was %@": "元値 %@",
  "you@%@": "name@%@",
- "zoom %lld": "ズーム %lld"
+ "zoom %lld": "ズーム %lld",
+ "Track": "追跡",
+ "Store": "ショップ",
+ "Late": "遅延",
+ "Notify me": "通知する"
 }

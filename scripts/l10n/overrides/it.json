@@ -543,5 +543,9 @@
  "tracked at %@": "prezzo iniziale: %@",
  "was %@": "prima %@",
  "you@%@": "nome@%@",
- "zoom %lld": "zoom %lld"
+ "zoom %lld": "zoom %lld",
+ "Track": "Traccia",
+ "Store": "Negozio",
+ "Late": "In ritardo",
+ "Notify me": "Avvisami"
 }

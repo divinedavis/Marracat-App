@@ -306,6 +306,8 @@ struct OrderDetailView: View {
     @State private var added: String?
     @State private var pushAllowed = true
     @State private var receipt: OrderReceipt?
+    @State private var scroll = OrderScroll()
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     private var relay: RelayStore { RelayStore.shared }
 
     private var record: CheckoutRecord? { shopper.checkouts.first { $0.id.uuidString == recordID } }
@@ -316,6 +318,8 @@ struct OrderDetailView: View {
                 content(record)
                     .frame(maxWidth: Widths.readable)
                     .frame(maxWidth: .infinity)
+                    // Where the page's top is: 0 at rest, below 0 once scrolled.
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { scroll.top(at: $0) }
             } else {
                 ContentUnavailableView("Order not found", systemImage: "bag").padding(.top, 60)
             }
@@ -333,10 +337,18 @@ struct OrderDetailView: View {
                     .accessibilityIdentifier("orderAddedToast")
             }
         }
-        // Buy it again, kept at the bottom above the tab bar.
+        // Buy it again, at the bottom above the tab bar. Like the Filters and
+        // Sort pill (owner, 2026-11-14: "when i scroll down, the buy again
+        // button should hide and when i scroll up it should show again"): it
+        // steps aside on the way down, so it stops covering the rows being
+        // read, and is back after a short scroll up or at the top. VoiceOver
+        // keeps it, since a swipe through the page isn't a scroll to undo.
         .overlay(alignment: .bottom) {
             // The screen already ends above the tab bar: a small gap is all.
-            if let record { buyAgainBar(record).padding(.bottom, 10) }
+            if let record, scroll.buyAgainShown || voiceOver {
+                buyAgainBar(record).padding(.bottom, 10)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .sheet(item: $web) { SafariView(url: $0.url).ignoresSafeArea() }
         .sheet(isPresented: Binding(get: { receipt != nil }, set: { if !$0 { receipt = nil } })) {
@@ -420,40 +432,62 @@ struct OrderDetailView: View {
                 DeliveryProblemPanel(problem: problem).padding(.top, 12)
             }
 
-            // One row of actions; Buy it again is the bar at the bottom.
-            ChipFlow(spacing: 8) {
+            // The actions: a round icon button with a short word under it
+            // (owner, 2026-11-13, picked from ten previews: "i like this
+            // one"; the outlined pills before it wrapped onto a second line).
+            // They share the width equally, so all five fit before delivery;
+            // fewer than three keep a third each instead of spreading out.
+            // VoiceOver hears the full name. Buy it again is the bar at the bottom.
+            let trackPage = tracked?.trackPage
+            let onlyProduct = items.count == 1 ? lead?.product : nil
+            let offersPush = (viaRelay || tracked != nil) && !pushAllowed && step < 3
+            let shown = [trackPage != nil, onlyProduct != nil, brand != nil, step < 3, offersPush].filter { $0 }.count
+            HStack(alignment: .top, spacing: 0) {
                 // The brand's official tracking page, in the in-app browser.
-                if let page = tracked?.trackPage {
-                    Button { web = IdentifiedURL(url: page) } label: { Label("Track package", systemImage: "shippingbox") }
-                        .buttonStyle(OrderPill())
-                        .accessibilityIdentifier("orderTrackPackage")
+                if let trackPage {
+                    Button { web = IdentifiedURL(url: trackPage) } label: {
+                        Label { Text("Track", comment: "Order details round button, one short word: opens the package's tracking page") } icon: { Image(systemName: "shippingbox") }
+                    }
+                    .buttonStyle(OrderAction())
+                    .accessibilityLabel(Text("Track package"))
+                    .accessibilityIdentifier("orderTrackPackage")
                 }
-                if items.count == 1, let product = lead?.product {
-                    NavigationLink(value: Route.product(product.id)) { Text("View product") }
-                        .buttonStyle(OrderPill())
-                        .accessibilityIdentifier("orderViewProduct")
+                if let onlyProduct {
+                    NavigationLink(value: Route.product(onlyProduct.id)) {
+                        Label { Text("Product", comment: "Order details round button, one short word: opens the product that was bought") } icon: { Image(systemName: "tag") }
+                    }
+                    .buttonStyle(OrderAction())
+                    .accessibilityLabel(Text("View product"))
+                    .accessibilityIdentifier("orderViewProduct")
                 }
                 if let brand {
-                    NavigationLink(value: Route.brand(brand.id)) { Text("\(brand.name) store") }
-                        .buttonStyle(OrderPill())
-                        .accessibilityIdentifier("orderViewStore")
+                    NavigationLink(value: Route.brand(brand.id)) {
+                        Label { Text("Store", comment: "Order details round button, one short word: opens the brand's shop in the app") } icon: { Image(systemName: "storefront") }
+                    }
+                    .buttonStyle(OrderAction())
+                    .accessibilityLabel(Text("View \(brand.name) store"))
+                    .accessibilityIdentifier("orderViewStore")
                 }
                 // Before it arrives, Late shipment sits with the actions; once
                 // delivered it moves under Help.
                 if step < 3 { lateShipmentButton(record) }
-                if (viaRelay || tracked != nil) && !pushAllowed && step < 3 {
+                if offersPush {
                     Button {
                         Task {
                             pushAllowed = await RestockStore.shared.enableOrderUpdates()
                             if pushAllowed { await relay.linkDevice(RestockStore.installKey) }
                         }
-                    } label: { Label("Get delivery notifications", systemImage: "bell") }
-                        .buttonStyle(OrderPill())
-                        .accessibilityIdentifier("orderEnableUpdates")
+                    } label: {
+                        Label { Text("Notify me", comment: "Order details round button, short: turns on delivery notifications for this order") } icon: { Image(systemName: "bell") }
+                    }
+                    .buttonStyle(OrderAction())
+                    .accessibilityLabel(Text("Get delivery notifications"))
+                    .accessibilityIdentifier("orderEnableUpdates")
                 }
+                ForEach(0..<max(0, 3 - shown), id: \.self) { _ in Color.clear.frame(maxWidth: .infinity).frame(height: 1) }
             }
-            .padding(.top, 14)
-            lateShipmentNote(record).padding(.top, 6)
+            .padding(.top, 16)
+            lateShipmentNote(record).padding(.top, 8)
 
             // Several products: each with its own Buy it again and links.
             if items.count > 1 {
@@ -632,8 +666,8 @@ struct OrderDetailView: View {
     }
 
     /// Every order can be marked late; the dashboard counts which brands get
-    /// it most (LateShipmentStore). Tapping again takes it back. A pill with
-    /// the actions before delivery, a row under Help after.
+    /// it most (LateShipmentStore). Tapping again takes it back. A round
+    /// button with the actions before delivery, a row under Help after.
     @ViewBuilder
     private func lateShipmentButton(_ record: CheckoutRecord, asRow: Bool = false) -> some View {
         let late = LateShipmentStore.shared.isReported(record)
@@ -646,8 +680,14 @@ struct OrderDetailView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                Button { Task { await LateShipmentStore.shared.toggle(record, account: account) } } label: { label }
-                    .buttonStyle(OrderPill())
+                Button { Task { await LateShipmentStore.shared.toggle(record, account: account) } } label: {
+                    Label {
+                        if late { Text("Reported", comment: "Order details round button, one word: this order was reported as late; tapping undoes it") }
+                        else { Text("Late", comment: "Order details round button, one short word: report that the package is late") }
+                    } icon: { Image(systemName: late ? "checkmark.circle.fill" : "clock.badge.exclamationmark") }
+                }
+                .buttonStyle(OrderAction())
+                .accessibilityLabel(late ? Text("Late shipment reported") : Text("Late shipment"))
             }
         }
         .accessibilityIdentifier("orderLateShipment")
@@ -873,6 +913,50 @@ private struct OrderTracker: View {
 }
 
 /// Amazon's rounded action buttons: a filled primary, outlined others.
+/// Order details' scroll, kept out of the screen's own state (as BrandScroll
+/// is): only the Buy it again bar redraws, and only when it comes or goes.
+@Observable @MainActor
+private final class OrderScroll {
+    /// The Buy it again bar is up above the tab bar.
+    private(set) var buyAgainShown = true
+    @ObservationIgnored private var quick = QuickReturn()
+
+    /// `y`: where the page's top is (below 0: scrolled).
+    func top(at y: CGFloat) {
+        quick.update(offset: -y)
+        if quick.shown != buyAgainShown { withAnimation(.snappy(duration: 0.25)) { buyAgainShown = quick.shown } }
+    }
+}
+
+/// Order details' actions: the icon in a circle, a short word under it, each
+/// taking an equal share of the row (see the call site for the owner's pick).
+private struct OrderAction: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .labelStyle(Circled())
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+
+    private struct Circled: LabelStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            VStack(spacing: 7) {
+                configuration.icon
+                    .font(.system(size: 20, weight: .medium))
+                    .frame(width: 56, height: 56)
+                    .background(Theme.surface, in: Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.09), lineWidth: 1))
+                configuration.title
+                    .font(.caption.weight(.medium))
+                    .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(Color.primary)
+        }
+    }
+}
+
+/// The pills on each product of a several-product order.
 private struct OrderPill: ButtonStyle {
     var primary = false
     func makeBody(configuration: Configuration) -> some View {

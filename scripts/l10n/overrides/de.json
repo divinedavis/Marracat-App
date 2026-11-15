@@ -540,5 +540,9 @@
  "tracked at %@": "beobachtet bei %@",
  "was %@": "vorher %@",
  "you@%@": "name@%@",
- "zoom %lld": "Zoom %lld"
+ "zoom %lld": "Zoom %lld",
+ "Track": "Verfolgen",
+ "Store": "Shop",
+ "Late": "Verspätet",
+ "Notify me": "Mitteilungen"
 }

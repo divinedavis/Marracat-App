@@ -540,5 +540,9 @@
  "tracked at %@": "%@ fiyatından takipte",
  "was %@": "eski fiyat %@",
  "you@%@": "ad@%@",
- "zoom %lld": "yakınlaştırma %lld"
+ "zoom %lld": "yakınlaştırma %lld",
+ "Track": "Takip",
+ "Store": "Mağaza",
+ "Late": "Gecikme",
+ "Notify me": "Haber ver"
 }
