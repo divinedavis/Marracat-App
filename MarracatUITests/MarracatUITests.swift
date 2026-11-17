@@ -1870,17 +1870,26 @@ final class MarracatUITests2: MarracatUITestCase {
         }
         snap("productGallery")
         // Scrolling the column must not take the gallery down with it.
+        let top = photos.firstMatch.frame.minY
         app.scrollViews.firstMatch.swipeUp()
         sleep(1)
         XCTAssertTrue(any("productGallery").appears(timeout: 3),
                       "scrolling closed the gallery")
-        // Swiping back up the column from further down scrolls it; only a
-        // swipe that starts at the top closes the gallery (owner, 2026-10-11).
-        app.scrollViews.firstMatch.swipeDown(velocity: .fast)
-        sleep(1)
-        XCTAssertTrue(any("productGallery").appears(timeout: 3),
-                      "a swipe down from below the top closed the gallery")
-        any("closeGallery").tap()
+        if photos.firstMatch.frame.minY < top - 1 {
+            // Swiping back up the column from further down scrolls it; only a
+            // swipe that starts at the top closes the gallery (owner, 2026-10-11).
+            app.scrollViews.firstMatch.swipeDown(velocity: .fast)
+            sleep(1)
+            XCTAssertTrue(any("productGallery").appears(timeout: 3),
+                          "a swipe down from below the top closed the gallery")
+            any("closeGallery").tap()
+        } else {
+            // The photos fit on screen (the catalog's first corset had two on
+            // 2026-11-16), so the column is always at its top and a swipe
+            // down closes the gallery.
+            app.scrollViews.firstMatch.swipeDown(velocity: .fast)
+            XCTAssertTrue(any("productGallery").disappears(timeout: 3), "a swipe down at the top should close the gallery")
+        }
         XCTAssertTrue(any("addToCart").appears(timeout: 5), "closing the gallery should return to the product")
     }
 
@@ -2262,7 +2271,10 @@ final class MarracatUITests3: MarracatUITestCase {
 
         tapTab("You")
         let row = any("restockAlertsRow")
-        for _ in 0..<4 where !row.isHittable { app.swipeUp() }
+        // Clear of the floating tab bar too: a row behind it is "hittable"
+        // but the tap lands on the bar (the Share Marracat row moved it down).
+        let clear = app.windows.firstMatch.frame.maxY - 140
+        for _ in 0..<4 where !row.isHittable || row.frame.maxY > clear { app.swipeUp() }
         row.tap()
         let alert = any("restockAlert")
         XCTAssertTrue(alert.appears(timeout: 5))

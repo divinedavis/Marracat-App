@@ -176,8 +176,6 @@ export function queryRoutes(app, source) {
       typeCounts: hit.typeCounts,
       aisleCounts: hit.aisleCounts,
       brandCounts: hit.brandCounts,
-      deptBrands: hit.deptBrands.slice(0, 50),
-      deptBrandCount: hit.deptBrands.length,
       badges: hit.badges,
       colors: hit.colors,
     });

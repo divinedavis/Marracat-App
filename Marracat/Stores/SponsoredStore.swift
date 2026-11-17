@@ -82,6 +82,7 @@ struct SponsoredProductRow: View {
                                 .simultaneousGesture(TapGesture().onEnded { SponsoredStore.tap(it, placement: placement) })
                         }
                     }
+                    .modifier(TileRowHeight(products: shown.map(\.1), width: ProductRow.tileWidth))
                     .padding(.horizontal, 12)
                 }
             }

@@ -155,12 +155,18 @@ final class BrandScroll {
     private(set) var pull: CGFloat = 0
     /// The Filters / Sort pill is up above the tab bar.
     private(set) var filtersShown = true
+    /// How far the page has scrolled down: drives the hero's rail folding
+    /// into the ⋯ (RailFold).
+    private(set) var scrolled: CGFloat = 0
     @ObservationIgnored private var quick = QuickReturn()
 
     /// `y`: where the page's top is (above 0: pulled down; below: scrolled).
     func top(at y: CGFloat) {
         let p = max(0, y)
         if p != pull { pull = p }
+        // Whole points: no redraw of the rail for sub-point jitter.
+        let down = max(0, -y).rounded()
+        if down != scrolled { scrolled = down }
         quick.update(offset: -y)
         if quick.shown != filtersShown { withAnimation(.snappy(duration: 0.25)) { filtersShown = quick.shown } }
     }
@@ -209,4 +215,54 @@ struct BottomFilters: View {
             FilterSheet(products: products, filters: $filters)
         }
     }
+}
+
+
+/// The hero's four buttons glide up into the bar's ⋯ as the page scrolls
+/// (owner, 2026-11-15: "Brand header 1 - Converge"), one after another, each
+/// shrinking as it goes; the ⋯ bounces as the last lands, and its menu has
+/// the same four. Scrolling back up brings them back. Reduce Motion: they
+/// just fade.
+struct RailFold: ViewModifier {
+    let index: Int
+    let scroll: BrandScroll
+    let target: CGPoint
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let q = RailFoldMath.progress(scrolled: scroll.scrolled, index: index)
+        let still = reduceMotion
+        content
+            .visualEffect { view, proxy in
+                let frame = proxy.frame(in: .global)
+                let k = still ? 0 : q
+                return view
+                    .scaleEffect(1 - 0.65 * k)
+                    .offset(x: (target.x - frame.midX) * k, y: (target.y - frame.midY) * k)
+            }
+            .opacity(still ? 1 - q : 1 - RailFoldMath.fade(q))
+            .allowsHitTesting(q < 0.4)
+            .accessibilityHidden(q > 0.5)
+    }
+}
+
+enum RailFoldMath {
+    /// The fold starts after this much scroll and is done this much later.
+    static let start: CGFloat = 30, span: CGFloat = 300
+    /// Each button starts this much later than the one above it.
+    static let stagger = 0.12, length = 0.55
+
+    static func page(_ scrolled: CGFloat) -> Double { clamp(Double((scrolled - start) / span)) }
+
+    /// 0 = in the rail, 1 = inside the ⋯.
+    static func progress(scrolled: CGFloat, index: Int) -> Double {
+        let q = clamp((page(scrolled) - Double(index) * stagger) / length)
+        return q < 0.5 ? 4 * q * q * q : 1 - pow(-2 * q + 2, 3) / 2
+    }
+
+    /// Gone over the last quarter of the trip.
+    static func fade(_ q: Double) -> Double { clamp((q - 0.75) / 0.25) }
+
+
+    private static func clamp(_ x: Double) -> Double { min(1, max(0, x)) }
 }

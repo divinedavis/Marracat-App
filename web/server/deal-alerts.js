@@ -38,6 +38,7 @@ import { productRecord, brandRecord, allProducts } from "./catalog.js";
 import { mobileSessionUser } from "./mobile.js";
 import { watchable, fetchLive } from "./restock.js";
 import { viewerOf } from "./social.js";
+import { dropPush, salePush, pricePush, savedPush, lastSizePush, digestPush, digestRow, sizeState } from "./alert-cards.js";
 
 export const DROP = 0.05;
 export const SALE_ITEMS = 3;
@@ -65,28 +66,44 @@ export function installDealAlertSchema(db) {
     CREATE TABLE IF NOT EXISTS drop_watches (
       user_id TEXT NOT NULL, brand_id TEXT NOT NULL, categories TEXT NOT NULL DEFAULT '[]',
       created INTEGER NOT NULL, last_alert INTEGER, PRIMARY KEY(user_id, brand_id));
-    CREATE TABLE IF NOT EXISTS brand_drop_state (brand_id TEXT PRIMARY KEY, seen TEXT NOT NULL, updated INTEGER NOT NULL);`);
+    CREATE TABLE IF NOT EXISTS brand_drop_state (brand_id TEXT PRIMARY KEY, seen TEXT NOT NULL, updated INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS alert_prefs (user_id TEXT PRIMARY KEY, digest INTEGER NOT NULL DEFAULT 0, tz TEXT,
+      last_digest TEXT, updated INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS digest_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, row TEXT NOT NULL, created INTEGER NOT NULL);
+    CREATE INDEX IF NOT EXISTS digest_queue_user ON digest_queue(user_id);`);
   if (!db.prepare("SELECT 1 FROM pragma_table_info('price_watches') WHERE name='checked'").get())
     db.exec("ALTER TABLE price_watches ADD COLUMN checked INTEGER");
+  // How many sizes were left at the last look: one left is a "Last size" alert.
+  if (!db.prepare("SELECT 1 FROM pragma_table_info('price_watches') WHERE name='sizes_left'").get())
+    db.exec("ALTER TABLE price_watches ADD COLUMN sizes_left INTEGER");
 }
 
 /// The price a shopper would pay now: live from a Shopify store (product.js
 /// gives the lowest variant price in cents), else the catalog's. Null when
 /// it can't be bought.
 export async function currentPrice(product, { lookup, fetcher = fetch }) {
+  return (await liveCheck(product, { lookup, fetcher })).price;
+}
+
+/// The price to judge a drop by, and (Shopify) the live product for its sizes.
+export async function liveCheck(product, { lookup, fetcher = fetch }) {
   const target = watchable(product.id, lookup);
   if (target) {
     const live = await fetchLive(target.url, fetcher);
-    if (live && typeof live.price === "number") return live.available === false ? null : live.price / 100;
+    if (live && typeof live.price === "number") return { price: live.available === false ? null : live.price / 100, live };
   }
-  return product.available ? product.price : null;
+  return { price: product.available ? product.price : null, live: null };
 }
 
 export function deleteDealAlertData(db, userID) {
   db.prepare("DELETE FROM price_watches WHERE user_id=?").run(userID);
   db.prepare("DELETE FROM brand_watches WHERE user_id=?").run(userID);
   db.prepare("DELETE FROM drop_watches WHERE user_id=?").run(userID);
+  db.prepare("DELETE FROM alert_prefs WHERE user_id=?").run(userID);
+  db.prepare("DELETE FROM digest_queue WHERE user_id=?").run(userID);
 }
+
+export const digestOn = (db, userID) => !!db.prepare("SELECT 1 FROM alert_prefs WHERE user_id=? AND digest=1").get(userID);
 
 /// Whether a product's price fell enough to tell the shopper.
 export const droppedEnough = (base, now) => now > 0 && now <= base * (1 - DROP) + 1e-9;
@@ -164,9 +181,31 @@ export function withFooter(message, link) {
 export const emailOptedOut = (db, userID) => !!db.prepare("SELECT 1 FROM email_optouts WHERE user_id=?").get(userID);
 
 /// Push to every phone signed in to the account and every browser it turned
-/// notifications on in, and email. True if any landed.
+/// notifications on in, and email. True if any landed. `push` null: email only.
+/// With the daily digest on (owner, 2026-11-15), a carded push waits in the
+/// digest queue instead, and counts as delivered.
 /// No email without a secret to sign the unsubscribe link, or after an unsubscribe.
-async function notify(db, { apns, mail, webPush, log, secret }, userID, push, email) {
+async function notify(db, { apns, mail, webPush, log, secret, now = Date.now }, userID, push, email) {
+  let delivered = false;
+  if (push?.card && digestOn(db, userID)) {
+    const row = digestRow(push.card);
+    if (row) {
+      db.prepare("INSERT INTO digest_queue(user_id,row,created) VALUES(?,?,?)").run(userID, JSON.stringify(row), now());
+      delivered = true;
+      push = null;
+    }
+  }
+  if (push && await pushToUser(db, { apns, webPush, log }, userID, push)) delivered = true;
+  const user = db.prepare("SELECT email, name FROM users WHERE id=?").get(userID);
+  if (mail && email && secret && !emailOptedOut(db, userID) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(user?.email || "")) {
+    try { await mail(withFooter(email({ to: user.email, name: user.name }), unsubscribeURL(userID, secret))); delivered = true; }
+    catch (e) { log(`Deal email not delivered (${e.code || e.name})`); }
+  }
+  return delivered;
+}
+
+/// One push to the account's phones and browsers. True if any landed.
+async function pushToUser(db, { apns, webPush, log }, userID, push) {
   let delivered = false;
   if (webPush && (await webPush.sendToUser(db, userID, noteFromAPNs(push)).catch(() => false))) delivered = true;
   const devices = db.prepare(`SELECT d.hash, d.token, d.environment FROM restock_links l
@@ -179,37 +218,89 @@ async function notify(db, { apns, mail, webPush, log, secret }, userID, push, em
       db.prepare("DELETE FROM restock_devices WHERE hash=?").run(device.hash);
     } else log(`Deal push not delivered (${result.status} ${result.reason})`);
   }
-  const user = db.prepare("SELECT email, name FROM users WHERE id=?").get(userID);
-  if (mail && email && secret && !emailOptedOut(db, userID) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(user?.email || "")) {
-    try { await mail(withFooter(email({ to: user.email, name: user.name }), unsubscribeURL(userID, secret))); delivered = true; }
-    catch (e) { log(`Deal email not delivered (${e.code || e.name})`); }
-  }
   return delivered;
 }
 
+/// The local hour and date in a time zone (the phone's, sent with the digest setting).
+export function localTime(tz, at = Date.now()) {
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: tz || "America/New_York", year: "numeric", month: "2-digit",
+      day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(at)).map((p) => [p.type, p.value]));
+    return { hour: Number(parts.hour), date: `${parts.year}-${parts.month}-${parts.day}` };
+  } catch { return localTime("America/New_York", at); }
+}
+
+export const DIGEST_HOUR = 9;
+
+/// Each digest account's held-back alerts, once a day from 9 AM its time.
+/// `flush`: one account's, now (the digest was just turned off).
+export async function sendDigests(db, { apns, webPush = null, now = Date.now, log = console.log, flush = null } = {}) {
+  let sent = 0;
+  const users = flush
+    ? db.prepare("SELECT user_id, tz, last_digest FROM alert_prefs WHERE user_id=?").all(flush)
+    : db.prepare(`SELECT p.user_id, p.tz, p.last_digest FROM alert_prefs p
+        WHERE p.digest=1 AND EXISTS (SELECT 1 FROM digest_queue q WHERE q.user_id=p.user_id)`).all();
+  for (const u of users) {
+    const t = localTime(u.tz, now());
+    if (!flush && (t.hour < DIGEST_HOUR || u.last_digest === t.date)) continue;
+    const queued = db.prepare("SELECT id, row FROM digest_queue WHERE user_id=? ORDER BY created").all(u.user_id);
+    if (!queued.length) continue;
+    const rows = queued.map((q) => { try { return JSON.parse(q.row); } catch { return null; } }).filter(Boolean);
+    if (rows.length && await pushToUser(db, { apns, webPush, log }, u.user_id, digestPush(rows))) sent++;
+    db.prepare(`DELETE FROM digest_queue WHERE user_id=? AND id<=?`).run(u.user_id, queued.at(-1).id);
+    db.prepare("UPDATE alert_prefs SET last_digest=? WHERE user_id=?").run(t.date, u.user_id);
+  }
+  return sent;
+}
+
 export async function checkDeals(db, { apns, mail, webPush, secret, lookup = { productRecord, brandRecord, allProducts }, fetcher = fetch, now = Date.now, log = console.log } = {}) {
-  let drops = 0, sales = 0;
+  let drops = 0, sales = 0, sizes = 0;
+  const deps = { apns, mail, webPush, log, secret, now };
   // Price drops: each tracked product once, least recently checked first.
   const ids = db.prepare(`SELECT product_id, MIN(COALESCE(checked,0)) AS last FROM price_watches
     GROUP BY product_id ORDER BY last LIMIT ?`).all(PER_RUN).map((r) => r.product_id);
   const queue = [...ids];
+  // Collected first, so an account with several drops in one run gets one
+  // card for them all (owner, 2026-11-15, design D02).
+  const found = [];
   const worker = async () => {
     for (let id; (id = queue.shift()); ) {
       const p = lookup.productRecord(id);
-      const price = p ? await currentPrice(p, { lookup, fetcher }) : null;
+      const { price, live } = p ? await liveCheck(p, { lookup, fetcher }) : { price: null, live: null };
       db.prepare("UPDATE price_watches SET checked=? WHERE product_id=?").run(now(), id);
       if (price == null) continue;
       const brand = lookup.brandRecord(p.brand)?.name || "";
-      for (const w of db.prepare("SELECT user_id, base_price FROM price_watches WHERE product_id=?").all(id)) {
-        if (!droppedEnough(w.base_price, price)) continue;
-        const ok = await notify(db, { apns, mail, webPush, log, secret }, w.user_id,
-          { aps: { alert: { title: "Price drop", body: `${p.title} is now ${money(price, p.currency)} at ${brand}` }, sound: "default" }, productID: p.id },
-          (u) => priceDropEmail({ ...u, title: p.title, brand, productID: p.id, was: w.base_price, now: price, currency: p.currency || "USD" }));
-        if (ok) { drops++; db.prepare("UPDATE price_watches SET base_price=?, last_alert=? WHERE user_id=? AND product_id=?").run(price, now(), w.user_id, id); }
+      const state = sizeState(live);
+      for (const w of db.prepare("SELECT user_id, base_price, sizes_left FROM price_watches WHERE product_id=?").all(id)) {
+        if (droppedEnough(w.base_price, price)) found.push({ user: w.user_id, product: p, brand, was: w.base_price, now: price });
+        // Down to its last size since the last look (design D04).
+        if (state && state.left === 1 && w.sizes_left > 1) {
+          const ok = await notify(db, deps, w.user_id, lastSizePush({ ...p, price }, brand, state), null);
+          if (ok) sizes++;
+        }
+        if (state) db.prepare("UPDATE price_watches SET sizes_left=? WHERE user_id=? AND product_id=?").run(state.left, w.user_id, id);
       }
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  const byUser = new Map();
+  for (const d of found) byUser.set(d.user, [...(byUser.get(d.user) || []), d]);
+  for (const [user, list] of byUser) {
+    const email = (d) => (u) => priceDropEmail({ ...u, title: d.product.title, brand: d.brand, productID: d.product.id, was: d.was, now: d.now, currency: d.product.currency || "USD" });
+    let ok = false;
+    if (list.length === 1) {
+      const d = list[0];
+      ok = await notify(db, deps, user, pricePush(d.product, d.brand, d.was, d.now), email(d));
+    } else {
+      // One push for them all; each still gets its own email.
+      ok = await notify(db, deps, user, savedPush(list), null);
+      for (const d of list) if (await notify(db, deps, user, null, email(d))) ok = true;
+    }
+    if (ok) for (const d of list) {
+      drops++;
+      db.prepare("UPDATE price_watches SET base_price=?, last_alert=? WHERE user_id=? AND product_id=?").run(d.now, now(), user, d.product.id);
+    }
+  }
   // Brand sales: compare with the last count seen.
   const counts = saleCounts(lookup.allProducts());
   const followed = db.prepare("SELECT DISTINCT brand_id FROM brand_watches").all().map((r) => r.brand_id);
@@ -224,14 +315,14 @@ export async function checkDeals(db, { apns, mail, webPush, secret, lookup = { p
     const brand = lookup.brandRecord(brandID)?.name || "A brand you follow";
     for (const w of db.prepare("SELECT user_id, last_alert FROM brand_watches WHERE brand_id=?").all(brandID)) {
       if (w.last_alert && now() - w.last_alert < WEEK) continue;
-      const ok = await notify(db, { apns, mail, webPush, log, secret }, w.user_id,
-        { aps: { alert: { title: `${brand} is having a sale`, body: `${count} items marked down` }, sound: "default" }, brandID },
+      const ok = await notify(db, deps, w.user_id, salePush(brand, brandID, count, lookup.allProducts()),
         (u) => brandSaleEmail({ ...u, brand, brandID, count }));
       if (ok) { sales++; db.prepare("UPDATE brand_watches SET last_alert=? WHERE user_id=? AND brand_id=?").run(now(), w.user_id, brandID); }
     }
   }
   const fresh = await checkNewDrops(db, { apns, mail, webPush, secret, lookup, now, log });
-  return { drops, sales, fresh };
+  const digests = await sendDigests(db, { apns, webPush, now, log });
+  return { drops, sales, fresh, sizes, digests };
 }
 
 /// New drops from watched brands since the last look. The first look at a
@@ -262,11 +353,8 @@ export async function checkNewDrops(db, { apns, mail, webPush, secret, lookup = 
       try { cats = JSON.parse(w.categories); } catch { cats = []; }
       const mine = dropsFor(drops, cats);
       if (!mine.length) continue;
-      const body = mine.length === 1 ? mine[0].title : `${mine.length} new products, including ${mine[0].title}`;
-      const push = mine.length === 1
-        ? { aps: { alert: { title: `New from ${brand}`, body }, sound: "default" }, productID: mine[0].id }
-        : { aps: { alert: { title: `New from ${brand}`, body }, sound: "default" }, brandID };
-      const ok = await notify(db, { apns, mail, webPush, log, secret }, w.user_id, push, (u) => dropEmail({ ...u, brand, brandID, products: mine }));
+      const ok = await notify(db, { apns, mail, webPush, log, secret, now }, w.user_id, dropPush(brand, brandID, mine),
+        (u) => dropEmail({ ...u, brand, brandID, products: mine }));
       if (ok) { sent++; db.prepare("UPDATE drop_watches SET last_alert=? WHERE user_id=? AND brand_id=?").run(now(), w.user_id, brandID); }
     }
   }
@@ -315,7 +403,20 @@ export function dealAlertRoutes(app, db, { env = process.env, apns, mail, webPus
   });
   const count = (id) => db.prepare(`SELECT (SELECT COUNT(*) FROM price_watches WHERE user_id=?) + (SELECT COUNT(*) FROM brand_watches WHERE user_id=?)
     + (SELECT COUNT(*) FROM drop_watches WHERE user_id=?) AS n`).get(id, id, id).n;
-  router.get("/", (req, res) => res.json(mine(req.user.id)));
+  router.get("/", (req, res) => res.json({ ...mine(req.user.id), digest: digestOn(db, req.user.id) }));
+  // The daily digest (owner, 2026-11-15): on or off, and the phone's time zone.
+  router.post("/prefs", async (req, res) => {
+    if (typeof req.body?.digest !== "boolean") return res.status(400).json({ error: "digest must be true or false" });
+    const tz = String(req.body?.tz || "").slice(0, 64);
+    let zone = null;
+    try { if (tz) { new Intl.DateTimeFormat("en-US", { timeZone: tz }); zone = tz; } } catch { zone = null; }
+    db.prepare(`INSERT INTO alert_prefs(user_id,digest,tz,updated) VALUES(?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET digest=excluded.digest, tz=COALESCE(excluded.tz, alert_prefs.tz), updated=excluded.updated`)
+      .run(req.user.id, req.body.digest ? 1 : 0, zone, Date.now());
+    // Turned off: what was being held back goes out now, as one last digest.
+    if (!req.body.digest) await sendDigests(db, { apns, webPush, flush: req.user.id }).catch(() => 0);
+    res.json({ digest: req.body.digest });
+  });
   router.post("/price", (req, res) => {
     const p = lookup.productRecord(String(req.body?.productID || ""));
     if (!p) return res.status(404).json({ error: "That isn't on Marracat" });
@@ -365,7 +466,8 @@ export function dealAlertRoutes(app, db, { env = process.env, apns, mail, webPus
       running = true;
       try {
         const r = await checkDeals(db, { apns, mail, webPush, secret, lookup });
-        if (r.drops || r.sales || r.fresh) console.log(`Deal alerts: ${r.drops} price drops, ${r.sales} brand sales, ${r.fresh} new drops`);
+        if (r.drops || r.sales || r.fresh || r.sizes || r.digests)
+          console.log(`Deal alerts: ${r.drops} price drops, ${r.sales} brand sales, ${r.fresh} new drops, ${r.sizes} last sizes, ${r.digests} digests`);
       } catch (e) { console.error("Deal alert check failed:", e.name); } finally { running = false; }
     };
     setTimeout(run, 90_000).unref();

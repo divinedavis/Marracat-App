@@ -1076,7 +1076,10 @@ struct FilterBar: View {
         return out
     }
 
+    /// Every list's filter changes pass through here, so it also keeps a
+    /// price sort for the next list (SortPreference).
     static func track(from old: ProductFilters, to new: ProductFilters) {
+        if old.sort != new.sort { SortPreference.record(new.sort) }
         for c in changes(from: old, to: new).prefix(10) {
             Analytics.shared.track("filter_apply", ["filter": .string(c.filter), "value": .string(String(c.value.prefix(80)))])
         }

@@ -12,6 +12,12 @@ export const money = (value, currency = "USD") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
     value || 0,
   );
+// Sex toys and their gear (the catalog files them all under Sexual Wellness,
+// catalog/department_rules.py file_adult) stay in search, their department
+// and their brand's page, but off the home page's shared rows (owner,
+// 2026-11-16), as the app's Home does (Product.keptOffHome).
+export const keptOffHome = (p) => (p?.subs || []).includes("sexual-wellness");
+
 export function cartTotals(lines) {
   const totals = new Map();
   for (const line of lines) {

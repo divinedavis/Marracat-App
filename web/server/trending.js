@@ -191,7 +191,9 @@ export function computeTrending(db, { now = Date.now(), limit = 24, category = "
   const byID = new Map(products.map((p) => [p.id, p]));
   const eligible = (id) => {
     const p = byID.get(id);
-    return p && p.available && (!category || p.category === category);
+    // The home page's row: sex toys stay off it, as they do off the home
+    // feed (src/catalog.js keptOffHome); a department page's row keeps them.
+    return p && p.available && (category ? p.category === category : !(p.subs || []).includes("sexual-wellness"));
   };
   const profiles = appProfiles(db, env);
   const todayCounts = snapshotProfiles(db, profiles, now);

@@ -162,3 +162,13 @@ test("the app's own events don't count as website momentum", () => {
   for (let i = 0; i < 6; i++) for (let k = 0; k < 3; k++) ev(`p${i}`, k, "web");
   assert.equal(run(db).basis, "momentum");
 });
+
+test("sex toys stay off the home page's row but not their department's", () => {
+  const toys = Array.from({ length: 6 }, (_, i) => ({ id: `t${i}`, brand: "nytc", title: `T${i}`, category: "wellness", subs: ["sexual-wellness"], price: 30, available: true }));
+  const db = db0();
+  for (const p of toys) events(db, p.id, 3);
+  const home = run(db, { products: [...products, ...toys] });
+  assert.ok(home.products.every((p) => !p.id.startsWith("t")), "home row has none");
+  const wellness = run(db, { products: [...products, ...toys], category: "wellness" });
+  assert.equal(wellness.products.length, 6, "the Wellness department's row still lists them");
+});

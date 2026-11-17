@@ -20,12 +20,22 @@ final class TasteProfile {
         var weight: Float {
             switch self { case .view: 1; case .save: 3; case .cart: 4; case .purchase: 5 }
         }
+        var rhythmKind: ShoppingRhythm.Kind {
+            switch self { case .view: .view; case .save: .save; case .cart: .cart; case .purchase: .purchase }
+        }
     }
     private struct Event: Codable { let product: String; let weight: Float; let at: Date }
 
     /// Bumped on every signal, so views that follow the taste can update.
     private(set) var revision = 0
-    @ObservationIgnored var enabled = true { didSet { if !enabled { clear() } } }
+    @ObservationIgnored var enabled = true {
+        didSet {
+            if !enabled { clear() }
+            if isShared { ShoppingRhythm.shared.enabled = enabled }
+        }
+    }
+    /// Only the app's own profile feeds ShoppingRhythm (not a test's).
+    private var isShared: Bool { self === Self.shared }
     @ObservationIgnored private var events: [Event] = []
     @ObservationIgnored private let defaults: UserDefaults
     private static let key = "taste.events.v1"
@@ -45,9 +55,13 @@ final class TasteProfile {
     /// little, a long look up to three times a plain view.
     func viewed(_ productID: String, dwell: TimeInterval) {
         record(productID, weight: Signal.view.weight * Float(min(max(dwell / 10, 0.2), 3)))
+        if enabled, isShared { ShoppingRhythm.shared.record(product: productID, .view) }
     }
 
-    func record(_ productID: String, _ signal: Signal) { record(productID, weight: signal.weight) }
+    func record(_ productID: String, _ signal: Signal) {
+        record(productID, weight: signal.weight)
+        if enabled, isShared { ShoppingRhythm.shared.record(product: productID, signal.rhythmKind) }
+    }
 
     private func record(_ productID: String, weight: Float, at: Date = .now) {
         guard enabled else { return }
@@ -64,6 +78,7 @@ final class TasteProfile {
         for k in [Self.key, Self.mutedKey, Self.notMeKey] { defaults.removeObject(forKey: k) }
         SizeMemory.clear(defaults)
         GenderLean.clear(defaults)
+        if isShared { ShoppingRhythm.shared.clear() }
         revision += 1
     }
 

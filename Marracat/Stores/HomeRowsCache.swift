@@ -28,6 +28,9 @@ struct HomeRows: Codable, Equatable {
     var restock: [Product] = []
     var rows: [Row] = []
     var keepShopping: [Product] = []
+    /// The restock row leads Home (ShoppingRhythm). Optional so rows saved
+    /// before it existed still load.
+    var restockFirst: Bool? = nil
 
     var isEmpty: Bool { picked.isEmpty && restock.isEmpty && rows.isEmpty && keepShopping.isEmpty }
 

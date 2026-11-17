@@ -261,12 +261,17 @@ struct PriceView: View {
     var currency: String = "USD"
     var size: CGFloat = 20
     var color: Color = .primary
+    /// The brand's own amount beside the dollars rather than beneath them, so
+    /// a card in another currency is no taller than the rest (owner,
+    /// 2026-11-16: "too much space between the price and the bottom border").
+    var inline = false
 
-    init(_ value: Double, currency: String = "USD", size: CGFloat = 20, color: Color = .primary) {
+    init(_ value: Double, currency: String = "USD", size: CGFloat = 20, color: Color = .primary, inline: Bool = false) {
         self.value = value
         self.currency = currency
         self.size = size
         self.color = color
+        self.inline = inline
     }
 
     /// Scales `size` with the reader's text size (the audit failed the fixed
@@ -286,18 +291,22 @@ struct PriceView: View {
         let usd = Self.approxUSD(value, currency: currency)
         let p = Money.parts(usd ?? value)
         let s = size * scale
-        VStack(alignment: .leading, spacing: 1) {
+        let layout = inline ? AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 5))
+                            : AnyLayout(VStackLayout(alignment: .leading, spacing: 1))
+        layout {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text(FX.symbol(usd == nil ? currency : "USD")).font(.system(size: s * 0.5)).baselineOffset(s * 0.36)
                 Text(p.dollars).font(.system(size: s))
                 Text(p.cents).font(.system(size: s * 0.5)).baselineOffset(s * 0.36)
             }
             .foregroundStyle(color)
+            .layoutPriority(1)
             if usd != nil {
                 Text(Money.string(value, currency: currency))
                     .font(.system(size: max(12, s * 0.55)))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .accessibilityIdentifier("brandCurrencyPrice")
             }
         }
@@ -880,7 +889,12 @@ struct BadgeIconRow: View {
         let id: String, symbol: String, color: Color, ink: Color, name: String
     }
 
-    private var marks: [Mark] {
+    private var marks: [Mark] { Self.marks(for: product) }
+
+    /// Whether the product shows any badge icons (a row reserves their line).
+    static func hasMarks(_ product: Product) -> Bool { !marks(for: product).isEmpty }
+
+    private static func marks(for product: Product) -> [Mark] {
         var out: [Mark] = []
         if product.isCertifiedOrganic { out.append(.init(id: "organicBadge", symbol: "leaf.fill", color: Theme.organic, ink: .white, name: "Certified organic")) }
         if product.isMarracatClean { out.append(.init(id: "cleanBadge", symbol: "checkmark.shield.fill", color: Theme.clean, ink: .white, name: "Marracat Clean ingredients")) }
@@ -928,8 +942,19 @@ struct ProductTile: View {
         let product = FreshCatalog.shared.current(self.product)
         NavigationLink(value: Route.product(product.id)) {
             VStack(alignment: .leading, spacing: 4) {
+                // The sale tag and badge icons sit on the photo, as on the
+                // masonry tiles, and another currency sits beside the price:
+                // every card is then the same height under its photo, so a
+                // row reserves nothing for lines most of its cards don't have
+                // (owner, 2026-11-16: "too much space between the price and
+                // the bottom border of a row").
                 ProductImageWell(url: product.images.first)
                     .frame(width: imageSide, height: imageSide)
+                    .overlay(alignment: .topLeading) {
+                        if let off = product.percentOff, product.available { DealBadge(percent: off).padding(6) }
+                    }
+                    .overlay(alignment: .bottomLeading) { BadgeIconRow(product: product).padding(6) }
+                    .modifier(ProductZoomSource(id: product.id, cornerRadius: 6))
                 // No reserved second line: a one-line name sat a blank line
                 // above its brand. Rows stay level because the grids align
                 // tiles to the top, so the photos line up whatever the text.
@@ -939,10 +964,8 @@ struct ProductTile: View {
                     .multilineTextAlignment(.leading)
                 Text(catalog.brand(product.brand)?.name ?? "")
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                BadgeIconRow(product: product)
-                if let off = product.percentOff, product.available { DealBadge(percent: off) }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    PriceView(product.price, currency: product.currencyCode, size: 20)
+                    PriceView(product.price, currency: product.currencyCode, size: 20, inline: true)
                     if !product.available {
                         Text("Sold out").font(.caption).foregroundStyle(Theme.deal)
                     }
@@ -1025,6 +1048,45 @@ struct QuadCard: View {
     }
 }
 
+/// A row of cards scrolls sideways in a lazy stack, which takes its height
+/// from the cards first on screen; a taller one scrolled in later (a sale
+/// line, badge icons, a second line of name) was cut off at the bottom
+/// (owner, 2026-11-15, "More for your hair oils & serums"). The row reserves
+/// the tallest a card in it can be, measured in the current text size.
+struct TileRowHeight: ViewModifier {
+    let products: [Product]
+    let width: CGFloat
+    @State private var text: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .frame(minHeight: text > 0 ? width + 4 + text : nil, alignment: .top)
+            .background(alignment: .topLeading) {
+                TileTextProbe(products: products)
+                    .frame(width: width)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { text = $0 }
+            }
+    }
+}
+
+/// ProductTile's text at its tallest: two lines of name, the brand and the
+/// price. Nothing else varies under a card's photo, so this is every card's
+/// height but for a one-line name.
+private struct TileTextProbe: View {
+    let products: [Product]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: "M\nM").font(.subheadline).lineLimit(2)
+            Text(verbatim: "M").font(.caption)
+            PriceView(10, size: 20, inline: true)
+        }
+    }
+}
+
 struct ProductRow: View {
     /// Every card in every row is this wide, photo included.
     static let tileWidth: CGFloat = 150
@@ -1052,6 +1114,7 @@ struct ProductRow: View {
                             })
                     }
                 }
+                .modifier(TileRowHeight(products: products, width: Self.tileWidth))
                 .padding(.horizontal, 12)
             }
         }
@@ -1092,12 +1155,41 @@ struct FilterChips: View {
     }
 }
 
+/// A shopper who sorts by price keeps that sort (owner, 2026-11-16, after a
+/// new shopper's first move on "heels" was Price: low to high: "lets auto sort
+/// for users who do that because price seems to be an important feature").
+/// The last price sort picked opens every later search, department and brand
+/// page; picking Featured or Newest forgets it. Kept on this phone only.
+enum SortPreference {
+    static let key = "sortPreference"
+    static var defaults: UserDefaults = .standard
+
+    static var current: ProductSort {
+        guard let s = defaults.string(forKey: key).flatMap(ProductSort.init(rawValue:)), s.isPrice else { return .featured }
+        return s
+    }
+
+    static func record(_ sort: ProductSort) {
+        if sort.isPrice { defaults.set(sort.rawValue, forKey: key) } else { defaults.removeObject(forKey: key) }
+    }
+}
+
+extension ProductFilters {
+    /// A list's filters when it opens: none, in the shopper's kept sort.
+    static var starting: ProductFilters {
+        var f = ProductFilters()
+        f.sort = SortPreference.current
+        return f
+    }
+}
+
 enum ProductSort: String, CaseIterable, Identifiable {
     case featured = "Featured"
     case newest = "Newest arrivals"
     case priceLow = "Price: Low to High"
     case priceHigh = "Price: High to Low"
     var id: String { rawValue }
+    var isPrice: Bool { self == .priceLow || self == .priceHigh }
 
     /// The long names read well in a menu but not on a chip.
     var shortName: String {

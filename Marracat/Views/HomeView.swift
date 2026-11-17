@@ -67,6 +67,9 @@ struct HomeView: View {
                     // every width, so a fold re-places these rows rather than
                     // building new ones.
                     FeedColumnsLayout(columns: AdaptiveLayout.feedColumns(width: feedWidth)) {
+                        // An aisle this shopper usually shops about now
+                        // (ShoppingRhythm) puts "Time to restock?" first.
+                        if page.restockFirst { restockRow }
                         // $20+ boosts (BoostStore), labeled Sponsored.
                         if !boostedPicks.isEmpty {
                             ProductRow(title: String(localized: "Boosted picks · Sponsored", comment: "Home row title: paid placements"), products: boostedPicks, track: "boosted")
@@ -79,10 +82,7 @@ struct HomeView: View {
                                 .accessibilityElement(children: .contain)
                                 .accessibilityIdentifier("newSinceLastVisit")
                         }
-                        if !page.restock.isEmpty {
-                            ProductRow(title: String(localized: "Time to restock?", comment: "Home row title: products bought before that may need restocking"), products: page.restock, track: "restock")
-                                .accessibilityIdentifier("restockSoon")
-                        }
+                        if !page.restockFirst { restockRow }
                         // Shaped by this shopper's searches, views and saves.
                         ForEach(page.rows) { row in
                             ProductRow(title: row.title, products: row.products, track: row.track, reserved: row.reserved)
@@ -185,6 +185,13 @@ struct HomeView: View {
         // No bar and no search on Home (owner, 2026-10-20, after IMDb):
         // search lives on Browse, above the tab bar.
         .marracatChromeHidden()
+    }
+
+    @ViewBuilder private var restockRow: some View {
+        if !page.restock.isEmpty {
+            ProductRow(title: String(localized: "Time to restock?", comment: "Home row title: products bought before that may need restocking"), products: page.restock, track: "restock")
+                .accessibilityIdentifier("restockSoon")
+        }
     }
 
     @ViewBuilder private var pickedRow: some View {
@@ -349,7 +356,8 @@ struct HomeView: View {
         id = app.beginBackgroundTask(withName: "home-rows") { app.endBackgroundTask(id); id = .invalid }
         Task {
             let found = await tastePicks()
-            var rows = HomeRows(restock: fresh.restock, rows: fresh.rows.map(HomeRows.Row.init), keepShopping: fresh.keepShopping)
+            var rows = HomeRows(restock: fresh.restock, rows: fresh.rows.map(HomeRows.Row.init), keepShopping: fresh.keepShopping,
+                                restockFirst: fresh.restockFirst)
             let keepOld = found.products.count < 4 && TasteProfile.shared.hasHistory && shopper.personalizationEnabled
             rows.picked = keepOld ? picked : found.products
             rows.pickedReserved = (keepOld ? pickedReserved : found.reserved).sorted()
@@ -364,6 +372,9 @@ struct HomeView: View {
         var rows: [ForYouRow] = []
         var keepShopping: [Product] = []
         var restock: [Product] = []
+        /// An aisle is due by this shopper's rhythm (ShoppingRhythm): the
+        /// restock row leads Home.
+        var restockFirst = false
     }
 
     /// This shopper's rows from the whole catalog. Nothing on the feed that
@@ -376,22 +387,30 @@ struct HomeView: View {
                                   memory: SearchMemory.load()) : []
         let keepShopping = Array(shopper.recentlyViewed.compactMap(catalog.product)
             .filter { $0.available && !shopper.hidden.contains($0.id) }.distinctLooking().prefix(12))
-        let restock = Array(Replenishment.due(checkouts: shopper.checkouts, catalog: catalog).prefix(12))
-        return Personal(rows: rows, keepShopping: keepShopping, restock: restock)
+        // Aisles due by when this shopper usually shops them, then the
+        // products bought before that are running out.
+        let rhythmic = shopper.personalizationEnabled
+            ? ShoppingRhythm.shared.dueProducts(catalog: catalog, bought: shopper.checkouts.reversed().flatMap(\.productIDs),
+                                                touched: TasteProfile.shared.recentProducts, hidden: Set(shopper.hidden))
+            : []
+        var seen = Set<String>()
+        let restock = Array((rhythmic + Replenishment.due(checkouts: shopper.checkouts, catalog: catalog))
+            .filter { seen.insert($0.id).inserted }.prefix(12))
+        return Personal(rows: rows, keepShopping: keepShopping, restock: restock, restockFirst: !rhythmic.isEmpty)
     }
 
     /// What's on the page now, as saved.
     private var currentRows: HomeRows {
         HomeRows(picked: picked, pickedReserved: pickedReserved.sorted(), restock: page.restock,
                  rows: page.rows.map(HomeRows.Row.init),
-                 keepShopping: page.keepShopping)
+                 keepShopping: page.keepShopping, restockFirst: page.restockFirst)
     }
 
     /// Puts saved rows on the page in one assignment.
     private func show(_ rows: HomeRows, includingPicked: Bool) {
         var next = page
         next.setPersonal(Personal(rows: rows.rows.map { ForYouRow(id: $0.id, title: $0.title, products: $0.products, reserved: Set($0.reserved)) },
-                                  keepShopping: rows.keepShopping, restock: rows.restock))
+                                  keepShopping: rows.keepShopping, restock: rows.restock, restockFirst: rows.restockFirst ?? false))
         page = next
         if includingPicked {
             picked = rows.picked
@@ -460,7 +479,7 @@ struct HomeView: View {
         // filtered whole departments of the 120k-product catalog each time.
         let hidden = Set(shopper.hidden)
         func picks(_ c: Category, _ limit: Int) -> [Product] {
-            catalog.spread(catalog.products(in: c.id).filter { $0.available && !hidden.contains($0.id) }, limit: limit, mix: mix)
+            catalog.spread(catalog.homePicks(in: c.id).filter { !hidden.contains($0.id) }, limit: limit, mix: mix)
         }
         defer {
             LaunchTiming.log.notice("home: page built in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms [\(why, privacy: .public)] (\(complete ? "whole catalog" : "slice", privacy: .public)\(completing ? ", kept the shared rows" : "", privacy: .public)) at \(LaunchTiming.sinceStart(), privacy: .public) ms")
@@ -499,7 +518,7 @@ struct HomeView: View {
             next.setPersonal(personal)
         } else if page.personal {
             // A rebuild before the whole catalog is in keeps the rows shown.
-            next.setPersonal(Personal(rows: page.rows, keepShopping: page.keepShopping, restock: page.restock))
+            next.setPersonal(Personal(rows: page.rows, keepShopping: page.keepShopping, restock: page.restock, restockFirst: page.restockFirst))
         }
         page = next
         if let launchRows {
@@ -592,6 +611,7 @@ private struct HomePage {
     var newArrivals: [Product] = []
     var dealsQuad: [Product] = []
     var restock: [Product] = []
+    var restockFirst = false
     var shopQuads: [(category: Category, products: [Product])] = []
     /// The departments this shopper has shown interest in (empty: all).
     var touched: Set<String> = []
@@ -604,7 +624,7 @@ private struct HomePage {
     var personal = false
 
     fileprivate mutating func setPersonal(_ p: HomeView.Personal) {
-        rows = p.rows; keepShopping = p.keepShopping; restock = p.restock
+        rows = p.rows; keepShopping = p.keepShopping; restock = p.restock; restockFirst = p.restockFirst && !p.restock.isEmpty
         personal = true
     }
 }
@@ -824,7 +844,9 @@ struct BrandCircles: View {
 
     private var brandOrder: [Brand] {
         let premier = mix.premierOrder(catalog.premierBrands, id: \.id)
-        let rest = catalog.brands.filter { !catalog.isPremier($0.id) }
+        // A brand that leads with a sex toy (its first product, which is always
+        // in Home's slice) has no circle: the circle shows that product.
+        let rest = catalog.brands.filter { !catalog.isPremier($0.id) && catalog.products(for: $0.id).first?.keptOffHome != true }
         return premier + mix.arrange(rest, id: \.id, step: 8)
     }
 

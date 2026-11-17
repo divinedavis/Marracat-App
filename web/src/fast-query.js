@@ -28,7 +28,7 @@ export const FAST_READY = "marracat:fast-ready";
 export const fastReady = () => window.dispatchEvent(new Event(FAST_READY));
 
 /// { products, total, relaxedQuery, typeCounts (Map), aisleCounts, brandCounts,
-///   deptBrands, deptBrandCount, badges, more() } for `options` while
+///   badges, more() } for `options` while
 /// `active`, else null. `more()` appends the next page.
 export function useServerQuery(active, options) {
   const key = active ? queryString(options) : "";

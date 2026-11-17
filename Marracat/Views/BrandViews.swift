@@ -76,7 +76,7 @@ struct BrandStoreView: View {
     /// Filters and Sort, in the pill above the tab bar; the departments are
     /// Filters' Category (owner, 2026-11-10: "the top of the screen is too far
     /// from a user's thumb").
-    @State private var filters = ProductFilters()
+    @State private var filters = ProductFilters.starting
     @State private var browser: IdentifiedURL?
     /// The photo has scrolled up under the bar: the bar gets its background
     /// back and carries the brand's name.
@@ -90,6 +90,8 @@ struct BrandStoreView: View {
     @State private var scroll = BrandScroll()
     /// The hero photo's two colours, for the name in that space.
     @State private var palette = PhotoPalette.fallback
+    /// Where the bar's ⋯ is on screen: the rail folds into it (RailFold).
+    @State private var foldTarget = CGPoint(x: 364, y: 84)
 
     var body: some View {
         Group {
@@ -106,6 +108,11 @@ struct BrandStoreView: View {
         // No search bar on a brand page (owner, 2026-11-09: "remove the brand
         // search"); Filters and Sort narrow the page.
         .marracatChrome(barShown: heroGone || catalog.brand(brandID) == nil)
+    }
+
+    /// The status bar's height: the nav bar (and its ⋯) starts there.
+    static var barTop: CGFloat {
+        UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first?.safeAreaInsets.top ?? 59
     }
 
     /// The hero's photo: the brand's own, else its best-selling in-stock
@@ -127,7 +134,7 @@ struct BrandStoreView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                BrandHero(brand: brand, photo: photo, browser: $browser) { toast = $0 }
+                BrandHero(brand: brand, photo: photo, browser: $browser, scroll: scroll, foldTarget: foldTarget) { toast = $0 }
                     .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).maxY < 110 } action: { gone in
                         withAnimation(.easeInOut(duration: 0.2)) { heroGone = gone }
                     }
@@ -154,7 +161,7 @@ struct BrandStoreView: View {
                                 .font(.subheadline).foregroundStyle(.secondary).padding(12)
                         }
                     }
-                    ProductGrid(products: shown)
+                    MasonryProductGrid(products: shown)
                         // The last row clears the pill.
                         .padding(.bottom, 64)
                 }
@@ -162,6 +169,12 @@ struct BrandStoreView: View {
         }
         // The photo runs up under the status bar and the clear bar.
         .ignoresSafeArea(edges: .top)
+        // The ⋯ sits 38 pt in from the right, centred in the bar under the
+        // status bar. (Not the scroll view's top: its frame starts below the
+        // bar even though its content runs up under it.)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxX } action: { right in
+            foldTarget = CGPoint(x: right - 38, y: Self.barTop + 22)
+        }
         // Pulled down past the top: the brand's name, huge, in the photo's
         // colours, rides just above the photo (it used to be a flat grey).
         .background(alignment: .top) { BrandPullSpace(scroll: scroll, name: brand.name, colors: palette) }
@@ -180,7 +193,7 @@ struct BrandStoreView: View {
                         .accessibilityIdentifier("brandBarTitle")
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) { BrandMoreMenu(brand: brand) }
+            ToolbarItem(placement: .topBarTrailing) { BrandMoreMenu(brand: brand, browser: $browser, scroll: scroll) { toast = $0 } }
         }
     }
 }
@@ -194,6 +207,8 @@ private struct BrandHero: View {
     let brand: Brand
     let photo: String?
     @Binding var browser: IdentifiedURL?
+    let scroll: BrandScroll
+    let foldTarget: CGPoint
     var done: (ActionToastMessage) -> Void = { _ in }
     @Environment(\.openURL) private var openURL
 
@@ -248,8 +263,10 @@ private struct BrandHero: View {
                 }
             }
             Spacer(minLength: 0)
+            let ig = brand.instagramURL != nil ? 1 : 0
             VStack(spacing: 12) {
                 Button { browser = IdentifiedURL(url: brand.storeURL) } label: { RailIcon(symbol: "safari") }
+                    .modifier(RailFold(index: 0, scroll: scroll, target: foldTarget))
                     // "Website", not "Visit <domain>" (owner, 2026-10-05).
                     .accessibilityLabel("Website")
                     .accessibilityHint("Opens \(brand.domain)")
@@ -262,12 +279,15 @@ private struct BrandHero: View {
                         Analytics.shared.track("brand_instagram", ["brand": .string(brand.id)])
                         openURL(ig)
                     } label: { RailIcon(symbol: "camera") }
+                        .modifier(RailFold(index: 1, scroll: scroll, target: foldTarget))
                         .accessibilityLabel("Instagram")
                         .accessibilityHint("Opens @\(brand.instagram ?? "") on Instagram")
                         .accessibilityIdentifier("brandInstagram")
                 }
                 SaleAlertButton(brand: brand, done: done)
+                    .modifier(RailFold(index: 1 + ig, scroll: scroll, target: foldTarget))
                 DropWatchButton(brand: brand)
+                    .modifier(RailFold(index: 2 + ig, scroll: scroll, target: foldTarget))
             }
         }
         .padding(.horizontal, 16)
@@ -293,28 +313,65 @@ private struct RailIcon: View {
     }
 }
 
-/// Share and Boost, off the page (owner, 2026-10-31: "remove the button for
-/// share"), in the bar's ⋯ menu.
+/// The bar's ⋯ (owner, 2026-10-31: Share and Boost off the page). Since
+/// 2026-11-15 it also has the hero's four buttons, which fold into it as the
+/// page scrolls (RailFold), so they're still a tap away from far down a brand.
 private struct BrandMoreMenu: View {
     let brand: Brand
+    @Binding var browser: IdentifiedURL?
+    let scroll: BrandScroll
+    var done: (ActionToastMessage) -> Void = { _ in }
+    @Environment(AccountStore.self) private var account
+    @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var sharing = false
     @State private var boosting = false
+    @State private var choosingDrops = false
+    private var alerts: DealAlertStore { .shared }
 
     var body: some View {
         Menu {
-            Button {
-                Analytics.shared.track("share", ["kind": .string("brand"), "target": .string(brand.id)])
-                sharing = true
-            } label: { Label("Share", systemImage: "square.and.arrow.up") }
-            if BoostStore.shared.enabled {
-                Button { boosting = true } label: { Label("Boost", systemImage: "flame") }
+            Section {
+                Button { browser = IdentifiedURL(url: brand.storeURL) } label: { Label("Website", systemImage: "safari") }
+                    .accessibilityIdentifier("brandMenuWebsite")
+                if let ig = brand.instagramURL {
+                    Button {
+                        Analytics.shared.track("brand_instagram", ["brand": .string(brand.id)])
+                        openURL(ig)
+                    } label: { Label("Instagram", systemImage: "camera") }
+                        .accessibilityIdentifier("brandMenuInstagram")
+                }
+                // Toggles: the menu shows a checkmark when it's on.
+                Toggle(isOn: Binding(get: { alerts.brands.contains(brand.id) }, set: { _ in toggleSales() })) {
+                    Label("Sale alerts", systemImage: "bell")
+                }
+                .accessibilityIdentifier("brandMenuSaleAlerts")
+                Toggle(isOn: Binding(get: { alerts.drops[brand.id] != nil }, set: { _ in choosingDrops = true })) {
+                    Label("Watch drops", systemImage: "sparkle")
+                }
+                .accessibilityIdentifier("brandMenuWatchDrops")
+            }
+            Section {
+                Button {
+                    Analytics.shared.track("share", ["kind": .string("brand"), "target": .string(brand.id)])
+                    sharing = true
+                } label: { Label("Share", systemImage: "square.and.arrow.up") }
+                if BoostStore.shared.enabled {
+                    Button { boosting = true } label: { Label("Boost", systemImage: "flame") }
+                }
             }
         } label: {
+            // The bounce as the rail lands is the symbol's own, so the bar
+            // keeps styling it (a scale effect turned the dots white on the
+            // light glass).
+            let landed = RailFoldMath.page(scroll.scrolled) >= 0.95
             if #available(iOS 26, *) {
                 Image(systemName: "ellipsis")
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : landed)
             } else {
                 // Before the glass bar, a frosted disc keeps it readable on the photo.
                 Image(systemName: "ellipsis").font(.body.weight(.semibold)).foregroundStyle(.white)
+                    .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : landed)
                     .frame(width: 34, height: 34).background(.ultraThinMaterial, in: Circle())
             }
         }
@@ -326,6 +383,18 @@ private struct BrandMoreMenu: View {
                 .ignoresSafeArea()
         }
         .sheet(isPresented: $boosting) { BoostSheet(target: .brand(brand)) }
+        .sheet(isPresented: $choosingDrops) { DropWatchSheet(brand: brand) }
+    }
+
+    /// The same as the rail's bell (SaleAlertButton), toast included.
+    private func toggleSales() {
+        Task {
+            await alerts.toggleBrand(brand.id, account: account)
+            guard alerts.message == nil else { return }
+            done(alerts.brands.contains(brand.id)
+                 ? .init(text: String(localized: "Sale alerts on for \(brand.name)", comment: "Toast after turning on a brand's sale alerts; the argument is the brand"), symbol: "bell.fill")
+                 : .init(text: String(localized: "Sale alerts off", comment: "Toast after turning off a brand's sale alerts"), symbol: "bell.slash"))
+        }
     }
 }
 
@@ -354,6 +423,112 @@ struct ProductGrid: View {
     }
 }
 
+/// Products as a masonry grid, on brand pages and category, deals and picks
+/// screens (owner, 2026-11-15, "Marracat Brand Grid Alternatives" #3): tall rounded photos of a few heights, columns
+/// filled shortest-first so they stay level, then the name and the price,
+/// dollars first with the brand's own currency beside it. Two columns on a
+/// phone, more on an iPad.
+struct MasonryProductGrid: View {
+    let products: [Product]
+    /// Categories mix brands, so each tile names its brand there (owner,
+    /// 2026-11-15: "even when someone is looking through a category of
+    /// products it should look like masonry"); a brand's own page doesn't.
+    var showBrand = false
+    @State private var width: CGFloat = 0
+
+    /// Photo shapes (height ÷ width), picked by the product id so a tile keeps
+    /// its shape as filters come and go.
+    static let shapes: [CGFloat] = [1.25, 1.0, 1.15, 1.35, 0.95, 1.2]
+    static func shape(_ id: String) -> CGFloat {
+        shapes[Int(id.utf8.reduce(UInt32(5381)) { ($0 &* 33) &+ UInt32($1) } % UInt32(shapes.count))]
+    }
+    static func columnCount(for width: CGFloat) -> Int { max(2, Int((width + 12) / (Widths.gridTile + 12))) }
+
+    /// Each product's column, shortest column first, in list order.
+    static func layout(_ products: [Product], columns: Int) -> [[(index: Int, product: Product)]] {
+        var cols = Array(repeating: [(index: Int, product: Product)](), count: columns)
+        var heights = Array(repeating: CGFloat(0), count: columns)
+        for (i, p) in products.enumerated() {
+            let c = heights.indices.min { heights[$0] < heights[$1] || (heights[$0] == heights[$1] && $0 < $1) } ?? 0
+            cols[c].append((i, p))
+            heights[c] += shape(p.id) + 0.45      // the photo plus about two lines of text and the price
+        }
+        return cols
+    }
+
+    var body: some View {
+        let count = Self.columnCount(for: width)
+        let columnWidth = width > 0 ? (width - CGFloat(count - 1) * 12) / CGFloat(count) : Widths.gridTile
+        HStack(alignment: .top, spacing: 12) {
+            ForEach(Array(Self.layout(products, columns: count).enumerated()), id: \.offset) { _, column in
+                LazyVStack(spacing: 18) {
+                    ForEach(column, id: \.product.id) { item in
+                        MasonryTile(product: item.product, photoHeight: columnWidth * Self.shape(item.product.id), showBrand: showBrand)
+                            // VoiceOver reads them in list order, not a column at a time.
+                            .accessibilitySortPriority(Double(products.count - item.index))
+                            .onAppear { ImageLoader.shared.prefetch(after: item.index, in: products, width: 500) }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 20)
+        .accessibilityIdentifier("masonryGrid")
+    }
+}
+
+/// One masonry tile: the photo filling a rounded frame, then name and price.
+struct MasonryTile: View {
+    @Environment(CatalogStore.self) private var catalog
+    let product: Product
+    let photoHeight: CGFloat
+    var showBrand = false
+
+    var body: some View {
+        let product = FreshCatalog.shared.current(self.product)
+        NavigationLink(value: Route.product(product.id)) {
+            VStack(alignment: .leading, spacing: 5) {
+                Theme.tile
+                    .frame(height: photoHeight)
+                    .overlay { RemoteImage(url: product.images.first, width: 500, contentMode: .fill) }
+                    .overlay(alignment: .topLeading) {
+                        if let off = product.percentOff, product.available { DealBadge(percent: off).padding(8) }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .modifier(ProductZoomSource(id: product.id))
+                Text(product.title)
+                    .font(.subheadline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .padding(.top, 2)
+                if showBrand, let name = catalog.brand(product.brand)?.name {
+                    Text(name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if let usd = PriceView.approxUSD(product.price, currency: product.currencyCode) {
+                        Text(Money.string(usd.rounded(), currency: "USD").replacingOccurrences(of: ".00", with: ""))
+                            .font(.headline)
+                        Text(Money.string(product.price, currency: product.currencyCode))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text(Money.string(product.price, currency: product.currencyCode)).font(.headline)
+                    }
+                    if !product.available {
+                        Text("Sold out").font(.caption).foregroundStyle(Theme.deal)
+                    }
+                }
+            }
+            .foregroundStyle(.primary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("productTile")
+    }
+}
+
 /// Category, deals, new arrivals, saved list: a filterable, sortable grid.
 struct ProductGridScreen: View {
     let title: String
@@ -362,7 +537,7 @@ struct ProductGridScreen: View {
     /// A department's id: one sponsored product fitting it goes on top.
     var sponsoredCategory: String? = nil
     @Environment(CatalogStore.self) private var catalog
-    @State private var filters = ProductFilters()
+    @State private var filters = ProductFilters.starting
     @State private var sponsored: [SponsoredStore.Item] = []
     /// The big title has scrolled up under the bar, so the bar carries it
     /// (owner, 2026-10-31: "the category name should show in the header").
@@ -399,7 +574,7 @@ struct ProductGridScreen: View {
                 if !sponsored.isEmpty && filters.isEmpty {
                     SponsoredProductRow(items: sponsored, placement: "category")
                 }
-                ProductGrid(products: shown)
+                MasonryProductGrid(products: shown, showBrand: true)
                     // The last row clears the pill.
                     .padding(.bottom, products.isEmpty ? 0 : 64)
             }

@@ -144,6 +144,12 @@ struct MarracatApp: App {
         nav.show(destination.path, in: destination.tab)
     }
 
+    /// A shopping alert waiting (InAppAlerts), and whether the splash is up.
+    private struct AlertTrigger: Equatable {
+        let request: UUID?
+        let splash: Bool
+    }
+
     /// What Spotlight indexes (SpotlightIndexer): it re-indexes when any of it changes.
     private struct SpotlightState: Equatable {
         let saved: [String]
@@ -219,6 +225,39 @@ struct MarracatApp: App {
         if scenePhase == .active { _ = Self.markSplashShown() }
     }
 
+    /// A tapped shopping alert, or one of its buttons (owner, 2026-11-15):
+    /// add it to the bag, follow the brand, or open what it's about.
+    private func carryOutAlert() {
+        guard let request = InAppAlerts.shared.request, !showSplash, nav.routers[.home] != nil else { return }
+        InAppAlerts.shared.request = nil
+        let card = request.card
+        switch request.action {
+        case .add:
+            // Straight into the bag when there's no size to choose: the size the
+            // alert named, or the only one in stock. Otherwise the product page.
+            if let pid = card.pid ?? card.items?.first?.id, let product = catalog.product(pid) {
+                let inStock = product.variants.filter(\.available)
+                let named = card.vid.flatMap { vid in product.variants.first { String($0.id) == vid && $0.available } }
+                if let v = named ?? (inStock.count == 1 ? inStock.first : nil) {
+                    cart.add(productID: pid, variantID: v.id, option: product.variants.count > 1 ? v.title : nil,
+                             unitPrice: v.price, currency: product.currency)
+                    if nav.search != nil { nav.search = nil; nav.setTabBarHidden(false) }
+                    nav.tab = .cart
+                    return
+                }
+            }
+        case .follow:
+            if let bid = card.bid, !DealAlertStore.shared.brands.contains(bid) {
+                Task { await DealAlertStore.shared.toggleBrand(bid, account: account) }
+            }
+        case .open:
+            break
+        }
+        let fallback = card.pid.map { "marracat://product/\($0)" } ?? card.bid.map { "marracat://brand/\($0)" }
+        guard let raw = card.open ?? fallback, let url = URL(string: raw), let destination = AppDestination(url: url) else { return }
+        IntentRouter.shared.open(destination)
+    }
+
     /// A tapped brand-sale notification opens that brand.
     private func openSaleBrand() {
         guard let id = DealAlertStore.shared.openBrandRequest, !showSplash, nav.routers[.home] != nil else { return }
@@ -280,6 +319,8 @@ struct MarracatApp: App {
             .onChange(of: widgetState, initial: true) {
                 WidgetSync.shared.schedule(catalog: catalog, shopper: shopper, signedIn: account.signedIn)
             }
+            // A tapped shopping alert, once the splash is out of the way.
+            .onChange(of: AlertTrigger(request: InAppAlerts.shared.request?.id, splash: showSplash)) { carryOutAlert() }
     }
 
     private var stageContent: some View {
@@ -303,6 +344,13 @@ struct MarracatApp: App {
                 // A tap outside any text field closes the keyboard (not
                 // while search is open; it handles its own).
                 .background(KeyboardDismissInstaller(enabled: nav.search == nil))
+            // A shopping alert while the app is open (InAppAlertBanner).
+            if !showSplash {
+                InAppAlertBanner()
+                    .frame(maxWidth: 520)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .zIndex(2)
+            }
             if showCover {
                 LaunchSkeleton()
                     .zIndex(1)
@@ -400,6 +448,7 @@ struct MarracatApp: App {
             if catalog.isComplete {
                 HomeSettle.shared.opened("catalog")
                 UITestSeed.apply(catalog: catalog, cart: cart, buyer: buyer)
+                InAppAlerts.shared.uiTestDemo(catalog: catalog)
             }
         }
         // UI tests that skip the launch screens: Home counts as shown once settled.
@@ -426,6 +475,7 @@ struct MarracatApp: App {
             .task(id: account.user?.id) { await LiveActivityStore.shared.refresh(account: account) }
             // The on-device AI pieces (MeaningIndex): fetched once, then kept.
             .task {
+                ShoppingRhythm.shared.catalog = catalog
                 TasteProfile.shared.enabled = shopper.personalizationEnabled
                 try? await Task.sleep(for: .seconds(3))
                 await MeaningIndex.shared.prepare()
@@ -460,10 +510,12 @@ struct MarracatApp: App {
                 }
                 if scenePhase == .active {
                     Analytics.shared.appOpened(); checkCatalogAfterAWhile(); HolidayIcon.apply()
-                    // Brands this shopper keeps coming back to, and restock-alert stock.
+                    // Brands this shopper keeps coming back to, and restock-alert stock;
+                    // then Sunday picks and brand ideas, if turned on (WeeklyAlerts).
                     Task {
                         await FreshCatalog.shared.refreshDue(catalog: catalog)
                         await FreshCatalog.shared.refreshRestock(restock.alerts.map(\.productID), catalog: catalog)
+                        await WeeklyAlerts.refresh(catalog: catalog, shopper: shopper)
                     }
                 }
                 if scenePhase == .active { VisitPing.send(account: account); Task { await account.foreground(); await social.refresh(); await restock.refresh(); await RelayStore.shared.refresh(); await OrderTrackingStore.shared.refresh(); await syncOrderItemNames(); await BoostStore.shared.refresh(account: account); await DealAlertStore.shared.refresh(account: account) } }

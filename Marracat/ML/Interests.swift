@@ -71,18 +71,17 @@ enum InterestsStore {
         var updated = load()
         for interest in interests {
             if let last = interest.lastNotified, Date().timeIntervalSince(last) < 20 * 3600 { continue }
-            var best: (Product, Float)?
+            var matches: [(Product, Float)] = []
             for p in candidates {
-                guard let s = MeaningIndex.shared.score(interest.vector!, productID: p.id) else { continue }
-                if s >= matchThreshold, best == nil || s > best!.1 { best = (p, s) }
+                guard let s = MeaningIndex.shared.score(interest.vector!, productID: p.id), s >= matchThreshold else { continue }
+                matches.append((p, s))
             }
-            guard let (p, score) = best else { continue }
-            let content = UNMutableNotificationContent()
-            content.title = String(localized: "New for “\(interest.text)”", comment: "Notification title; the argument is an interest the shopper typed")
-            content.body = Self.matchBody(product: p.title, brand: brands[p.brand], restocked: before[p.id] == false)
-            content.sound = .default
-            content.userInfo = ["productID": p.id]
-            try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "interest-\(interest.id)-\(p.id)", content: content, trigger: nil))
+            matches.sort { $0.1 > $1.1 }
+            guard let (p, score) = matches.first else { continue }
+            let title = String(localized: "New for “\(interest.text)”", comment: "Notification title; the argument is an interest the shopper typed")
+            let body = Self.matchBody(product: p.title, brand: brands[p.brand], restocked: before[p.id] == false)
+            await LocalAlert.schedule(id: "interest-\(interest.id)-\(p.id)", title: title, body: body,
+                                      card: Self.card(interest: interest.text, matches: matches.map(\.0), brands: brands))
             log.info("interests: matched \(p.id, privacy: .public) at \(score)")
             if let i = updated.firstIndex(where: { $0.id == interest.id }) { updated[i].lastNotified = .now }
         }
@@ -91,6 +90,26 @@ enum InterestsStore {
 }
 
 extension InterestsStore {
+    /// The card for an interest's matches (owner, 2026-11-15, design C05):
+    /// the two best side by side; "Show matches" opens all of them.
+    static func card(interest: String, matches: [Product], brands: [String: String]) -> AlertCard {
+        var card = AlertCard(k: .interest, t: String(localized: "Matches “\(interest)”", comment: "Alert card title; the argument is an interest the shopper typed"))
+        let best = matches.first
+        let brand = best.flatMap { brands[$0.brand] }
+        let n = matches.count
+        card.s = [brand, n == 1 ? String(localized: "1 new today", comment: "Alert card line") : String(localized: "\(n) new today", comment: "Alert card line; the argument is a count")]
+            .compactMap { $0 }.joined(separator: " · ")
+        card.items = matches.prefix(2).map { p in
+            AlertCard.Item(id: p.id, t: p.title, p: Money.string(p.price, currency: p.currencyCode), img: AlertImage.small(p.images.first))
+        }
+        card.pid = best?.id
+        card.bid = best?.brand
+        card.open = n > 1
+            ? AppDestination.picks(String(localized: "“\(interest)”", comment: "Screen title: an interest's matches"), matches.prefix(AppDestination.maxPicks).map(\.id)).url.absoluteString
+            : best.map { AppDestination.product($0.id).url.absoluteString }
+        return card
+    }
+
     /// Whole sentences, so each language can order product, brand and
     /// restock its own way. Product and brand names stay as the brand wrote them.
     static func matchBody(product: String, brand: String?, restocked: Bool) -> String {

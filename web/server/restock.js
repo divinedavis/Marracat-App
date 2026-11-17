@@ -1,3 +1,4 @@
+import { restockPush } from "./alert-cards.js";
 import express from "express";
 import { createHash, createPrivateKey, sign } from "node:crypto";
 import { connect } from "node:http2";
@@ -221,10 +222,11 @@ export async function checkRestocks(db, { apns, mail = null, fetcher = fetch, lo
         // Every phone signed in to the account right now.
         const devices = db.prepare(`SELECT d.hash, d.token, d.environment FROM restock_links l
           JOIN restock_devices d ON d.hash=l.device WHERE l.user_id=? AND d.token IS NOT NULL`).all(watch.user_id);
-        const payload = {
-          aps: { alert: { title: "Back in stock", body: `${target.title} is back in stock at ${target.brand}` }, sound: "default" },
-          productID: id,
-        };
+        // The card (owner, 2026-11-15, design C04): the photo and Add to bag.
+        const product = lookup.productRecord(id);
+        const payload = product
+          ? restockPush({ ...product, title: target.title }, target.brand, watch.variant_id || null)
+          : { aps: { alert: { title: "Back in stock", body: `${target.title} is back in stock at ${target.brand}` }, sound: "default" }, productID: id };
         for (const device of devices) {
           const result = await apns.send({ token: device.token, environment: device.environment }, payload);
           if (result.status === 200) {

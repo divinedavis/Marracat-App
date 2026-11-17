@@ -221,10 +221,123 @@ test("a price drop reaches the account's browsers, and counts as delivered on it
   const webPush = { sendToUser: async (_db, userID, note) => (notes.push([userID, note]), true) };
   const apns = { send: async () => ({ status: 410 }) };
   assert.equal((await checkDeals(db, { apns, mail: null, webPush, lookup, log: () => {} })).drops, 1);
-  assert.deepEqual(notes, [["u1", { title: "Price drop", body: "Dress is now $40.00 at Brand", url: "/p/p1", tag: "p1" }]]);
+  assert.deepEqual(notes, [["u1", { title: "Price drop: $40.00 (was $50)", body: "Dress is now $40.00 at Brand", url: "/p/p1", tag: "p1" }]]);
   // A push service that is down is not an error for the alert run.
   db.prepare("UPDATE price_watches SET base_price=50").run();
   const broken = { sendToUser: async () => { throw Error("down"); } };
   assert.equal((await checkDeals(db, { apns, mail: null, webPush: broken, lookup, log: () => {} })).drops, 0);
 });
 
+
+// Cards (owner, 2026-11-15): the photo on the Lock Screen, the press-and-hold
+// card, one card for several drops, last sizes, and the daily digest.
+import { sendDigests, localTime } from "../server/deal-alerts.js";
+
+const shop = (id, price, extra = {}) => ({ id, brand: "b", title: `Item ${id}`, price, available: true, currency: "USD",
+  url: `https://x.bigcartel.com/product/${id}`, images: [`https://cdn.shopify.com/s/files/${id}.jpg`], ...extra });
+
+test("a price drop carries its card: category, photo and the new price", async () => {
+  const db = setup();
+  db.prepare("INSERT INTO price_watches(user_id,product_id,base_price,created) VALUES('u1','p1',189,0)").run();
+  const lookup = { productRecord: () => shop("p1", 160.65), brandRecord: () => ({ name: "Hanifa", platform: "bigcartel" }), allProducts: () => [] };
+  const pushes = [];
+  await checkDeals(db, { apns: { send: async (_d, p) => (pushes.push(p), { status: 200 }) }, mail: null, lookup, log: () => {} });
+  const p = pushes[0];
+  assert.equal(p.aps.category, "MC_PRICE");
+  assert.equal(p.aps["mutable-content"], 1);
+  assert.equal(p.productID, "p1", "older apps still open the product");
+  assert.deepEqual([p.card.price, p.card.was, p.card.pct], ["$160.65", "$189", "−15%"]);
+  assert.match(p.card.items[0].img, /width=400/);
+});
+
+test("several drops for one account are one push, and still one email each", async () => {
+  const db = setup();
+  for (const id of ["p1", "p2", "p3"]) db.prepare("INSERT INTO price_watches(user_id,product_id,base_price,created) VALUES('u1',?,100,0)").run(id);
+  const lookup = { productRecord: (id) => shop(id, 80), brandRecord: () => ({ name: "Brand", platform: "bigcartel" }), allProducts: () => [] };
+  const pushes = [], mails = [];
+  const r = await checkDeals(db, { apns: { send: async (_d, p) => (pushes.push(p), { status: 200 }) }, mail: async (m) => mails.push(m), secret: SECRET, lookup, log: () => {} });
+  assert.equal(r.drops, 3);
+  assert.equal(pushes.length, 1);
+  assert.equal(pushes[0].aps.category, "MC_SAVED");
+  assert.equal(pushes[0].card.save, "$60.00");
+  assert.match(pushes[0].card.open, /^marracat:\/\/picks\?title=Price%20drops&ids=p\d,p\d,p\d$/);
+  assert.equal(mails.length, 3);
+});
+
+test("down to its last size since the last look: one alert", async () => {
+  const db = setup();
+  db.prepare("INSERT INTO price_watches(user_id,product_id,base_price,created) VALUES('u1','p1',50,0)").run();
+  const lookup = { productRecord: () => shop("p1", 50, { url: "https://shop.example.com/products/set" }),
+    brandRecord: () => ({ name: "Hanifa", platform: "shopify" }), allProducts: () => [] };
+  let sizes = { S: true, M: true, L: false };
+  const live = () => ({ price: 5000, available: true, options: [{ name: "Size" }],
+    variants: Object.entries(sizes).map(([s, a], i) => ({ id: i + 1, option1: s, available: a })) });
+  const fetcher = async () => ({ ok: true, text: async () => JSON.stringify(live()) });
+  const pushes = [];
+  const apns = { send: async (_d, p) => (pushes.push(p), { status: 200 }) };
+  await checkDeals(db, { apns, mail: null, lookup, fetcher, log: () => {} });
+  assert.equal(pushes.length, 0, "two sizes left: nothing yet");
+  sizes = { S: false, M: true, L: false };
+  db.prepare("UPDATE price_watches SET checked=0").run();
+  const r = await checkDeals(db, { apns, mail: null, lookup, fetcher, log: () => {} });
+  assert.equal(r.sizes, 1);
+  assert.equal(pushes[0].aps.category, "MC_LASTSIZE");
+  assert.deepEqual(pushes[0].card.sizes, [{ l: "S", a: false }, { l: "M", a: true }, { l: "L", a: false }]);
+  assert.equal(pushes[0].card.vid, "2");
+  db.prepare("UPDATE price_watches SET checked=0").run();
+  assert.equal((await checkDeals(db, { apns, mail: null, lookup, fetcher, log: () => {} })).sizes, 0, "still one left is not news");
+});
+
+test("with the digest on, alerts wait and go out together once from 9 AM", async () => {
+  const db = setup();
+  db.prepare("INSERT INTO alert_prefs(user_id,digest,tz,updated) VALUES('u1',1,'America/New_York',0)").run();
+  for (const id of ["p1", "p2"]) db.prepare("INSERT INTO price_watches(user_id,product_id,base_price,created) VALUES('u1',?,100,0)").run(id);
+  const lookup = { productRecord: (id) => shop(id, 80), brandRecord: () => ({ name: "Brand", platform: "bigcartel" }), allProducts: () => [] };
+  const pushes = [];
+  const apns = { send: async (_d, p) => (pushes.push(p), { status: 200 }) };
+  const early = Date.parse("2026-11-16T12:00:00Z"); // 7 AM in New York
+  const r = await checkDeals(db, { apns, mail: null, lookup, now: () => early, log: () => {} });
+  assert.equal(r.drops, 2, "held back counts as delivered");
+  assert.equal(pushes.length, 0, "nothing before 9");
+  const nine = Date.parse("2026-11-16T14:05:00Z");
+  assert.equal(await sendDigests(db, { apns, now: () => nine, log: () => {} }), 1);
+  assert.equal(pushes[0].aps.category, "MC_DIGEST");
+  assert.equal(pushes[0].card.rows[0].tile, "tag");
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM digest_queue").get().n, 0);
+  assert.equal(await sendDigests(db, { apns, now: () => nine + 3600_000, log: () => {} }), 0, "once a day");
+});
+
+test("local time follows the time zone, and a bad zone falls back to New York", () => {
+  const at = Date.parse("2026-11-16T14:05:00Z");
+  assert.deepEqual(localTime("America/Los_Angeles", at), { hour: 6, date: "2026-11-16" });
+  assert.deepEqual(localTime("Nowhere/Fake", at), { hour: 9, date: "2026-11-16" });
+});
+
+test("the digest setting needs a boolean, keeps the zone, and turning it off sends what waited", async () => {
+  const db = setup();
+  const { createHash } = await import("node:crypto");
+  const token = "b".repeat(64);
+  db.exec(`CREATE TABLE mobile_sessions (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
+    CREATE TABLE mobile_accounts (user_id TEXT PRIMARY KEY, generation TEXT NOT NULL);
+    INSERT INTO mobile_accounts VALUES('u1','g');`);
+  db.prepare("INSERT INTO mobile_sessions VALUES(?,?,?)").run(createHash("sha256").update(token).digest("hex"), "u1", Date.now() + 60_000);
+  const express = (await import("express")).default;
+  const app = express();
+  const pushes = [];
+  const apns = { send: async (_d, p) => (pushes.push(p), { status: 200 }) };
+  dealAlertRoutes(app, db, { env: {}, apns, mail: null, lookup: { brandRecord: () => null, productRecord: () => null, allProducts: () => [] }, schedule: false });
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}/api/alerts`;
+  const call = (method, path, body) => fetch(base + path, { method, headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: body && JSON.stringify(body) });
+  try {
+    assert.equal((await call("POST", "/prefs", { digest: "yes" })).status, 400);
+    assert.equal((await call("POST", "/prefs", { digest: true, tz: "Europe/London" })).status, 200);
+    assert.equal((await (await call("GET", "")).json()).digest, true);
+    assert.equal(db.prepare("SELECT tz FROM alert_prefs").get().tz, "Europe/London");
+    db.prepare("INSERT INTO digest_queue(user_id,row,created) VALUES('u1',?,0)").run(JSON.stringify({ kind: "sale", tile: "sale", b: "Fenty", t: "42 items", st: "Sale", tint: "orange" }));
+    assert.equal((await call("POST", "/prefs", { digest: false, tz: "Bad/Zone" })).status, 200);
+    assert.equal(pushes.length, 1, "the waiting alert went out on turning it off");
+    assert.equal(db.prepare("SELECT tz FROM alert_prefs").get().tz, "Europe/London", "a bad zone keeps the last good one");
+    assert.equal((await (await call("GET", "")).json()).digest, false);
+  } finally { server.close(); }
+});

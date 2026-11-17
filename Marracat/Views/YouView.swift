@@ -14,6 +14,8 @@ struct YouView: View {
     /// rather than a form before checkout (owner, 2026-11-02): here they can
     /// be seen, changed or forgotten.
     @State private var shippingDetails = false
+    /// The App Store QR code (owner, 2026-11-16).
+    @State private var shareApp = false
     /// The floating bar's search: rows here and the settings behind them.
     @State private var query = ""
 
@@ -37,6 +39,7 @@ struct YouView: View {
         .background(Theme.canvas)
         .sheet(isPresented: $privacy) { AccountPrivacyView() }
         .sheet(isPresented: $shippingDetails) { BuyerDetailsForm() }
+        .sheet(isPresented: $shareApp) { ShareAppSheet() }
         .marracatChrome(localSearch: LocalSearch(text: $query,
                                                  prompt: String(localized: "Search settings and more", comment: "Search field placeholder on the You tab"),
                                                  identifier: "youSearch"), hidesBar: true)
@@ -82,6 +85,7 @@ struct YouView: View {
             case .privacy: Button { privacy = true } label: { label }
             case .help: Link(destination: URL(string: "https://marracat.com/#/support")!) { label }
             case .logOut: Button { Task { await account.signOut() } } label: { label }
+            case .shareApp: Button { shareApp = true } label: { label }
             }
         }
         .buttonStyle(.plain)
@@ -196,6 +200,9 @@ struct YouView: View {
 
     private var rows: some View {
         VStack(spacing: 0) {
+            Button { shareApp = true } label: { row(String(localized: "Share Marracat", comment: "Row in the You tab menu: opens a QR code for the App Store"), "qrcode") }
+                .buttonStyle(.plain).accessibilityIdentifier("shareAppRow")
+            Divider().padding(.leading, 52)
             NavigationLink(value: Route.accountSettings) { row(String(localized: "Account settings", comment: "Row in the You tab menu"), "gearshape") }
                 .buttonStyle(.plain).accessibilityIdentifier("accountSettings")
             Divider().padding(.leading, 52)
@@ -485,7 +492,7 @@ struct RestockAlertsView: View {
 /// settings, etc that is on the profile"): its rows and tiles, and the
 /// settings one screen in, each with the words people use for it.
 enum YouSearch {
-    enum Target: Hashable { case route(Route), privacy, help, logOut }
+    enum Target: Hashable { case route(Route), privacy, help, logOut, shareApp }
 
     struct Entry: Identifiable, Hashable {
         let title: String
@@ -507,6 +514,7 @@ enum YouSearch {
             Entry(title: String(localized: "Share usage analytics", comment: "Account setting"), place: settings, icon: "chart.bar", target: .route(.accountSettings), words: "analytics usage tracking data sharing"),
             Entry(title: String(localized: "Holiday app icons", comment: "Account setting"), place: settings, icon: "app.badge", target: .route(.accountSettings), words: "holiday app icon icons home screen theme"),
             Entry(title: String(localized: "Clear search and viewing history", comment: "Account setting"), place: settings, icon: "clock.arrow.circlepath", target: .route(.accountSettings), words: "clear history search viewing recent"),
+            Entry(title: String(localized: "Share Marracat", comment: "Row in the You tab menu: opens a QR code for the App Store"), place: nil, icon: "qrcode", target: .shareApp, words: "share qr code invite friends app store download link"),
             Entry(title: String(localized: "Get help", comment: "Row in the You tab menu"), place: nil, icon: "questionmark.circle", target: .help, words: "help support contact customer service returns"),
             Entry(title: String(localized: "Privacy", comment: "Row in the You tab menu"), place: nil, icon: "hand.raised", target: .privacy, words: "privacy data policy"),
             Entry(title: String(localized: "Restock alerts", comment: "Row in the You tab menu"), place: nil, icon: "bell", target: .route(.restockAlerts), words: "restock back in stock alerts notify sold out"),

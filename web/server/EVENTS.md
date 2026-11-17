@@ -96,9 +96,9 @@ Props marked * are required.
 |---|---|---|
 | `add_to_cart` / `remove_from_cart` | product*, brand, qty (1–99) | App and website: cart changes (website: Add to cart; Remove on the cart page) |
 | `buy_click` | brand*, via* (`cart`, `bigcartel`, `swell`, `checkout`, `brand_site`), product | Website: a Buy link leaving for a brand's checkout |
-| `checkout_start` | via* (the buy_click values plus `buy_now`, `review`, `ucp`), brand, item_count (1–99), subtotal (subtotal bucket) | App: Buy Now or a brand's checkout opened. Website: "Check out" / "Review all checkouts" (via `review`, brand when one, subtotal when one currency), and every Buy link that leaves for a checkout (the same via as its `buy_click`; not `brand_site`) |
-| `checkout_complete` | same as checkout_start, plus step, shipping (dollars, bucketed 0-1 = free … 25+) | App: the brand's checkout reported an order. Website: "Paid — remove from cart" on the review page (via `checkout`; the shopper's word, not the store's) |
-| `checkout_abandon` | same as checkout_start, plus step (opened · started · contact · address · shipping · payment: the furthest of Checkout Kit's standard pixel events), shipping | App: a checkout sheet closed without an order; step says how far it got (owner, 2026-11-08) |
+| `checkout_start` | via* (the buy_click values plus `buy_now`, `review`, `ucp`, `checkout_kit`), brand, item_count (1–99), subtotal (subtotal bucket) | App: Buy Now or a brand's checkout opened. Website: "Check out" / "Review all checkouts" (via `review`, brand when one, subtotal when one currency), and every Buy link that leaves for a checkout (the same via as its `buy_click`; not `brand_site`) |
+| `checkout_complete` | same as checkout_start, plus step, shipping (dollars, bucketed 0-1 = free … 25+) | App: the brand's checkout reported an order. Website: Shopify's Checkout Kit window reported the order (via `checkout_kit`, the store's word, 2026-11-15), or "Paid — remove from cart" on the review page (via `checkout`, the shopper's word) |
+| `checkout_abandon` | same as checkout_start, plus step (opened · started · contact · address · shipping · payment: the furthest of Checkout Kit's standard pixel events), shipping | App: a checkout sheet closed without an order; step says how far it got (owner, 2026-11-08). Website: a Checkout Kit window closed without an order (via `checkout_kit`, step `opened` or `started`) |
 
 ### Social and sharing
 

@@ -86,7 +86,7 @@ enum HomeSlice {
         // Each department's in-stock products, in catalog order ("Top picks"
         // rows and the "Shop <department>" cards).
         var byCategory: [String: [Int32]] = [:]
-        for (i, p) in products.enumerated() where p.available { byCategory[p.category, default: []].append(Int32(i)) }
+        for (i, p) in products.enumerated() where p.available && !p.keptOffHome { byCategory[p.category, default: []].append(Int32(i)) }
         for list in byCategory.values { keepHeads(list, limit: rowLimit) }
 
         return keep.indices.filter { keep[$0] }
@@ -143,6 +143,16 @@ enum HomeSlice {
     }
 }
 
+extension Product {
+    /// Sex toys and their gear (the catalog files them all under Wellness >
+    /// Sexual Wellness, catalog/department_rules.py `file_adult`). They stay
+    /// in search, their department and their brand's page, but not on Home's
+    /// shared rows, deals or new arrivals (owner, 2026-11-16): someone who
+    /// never looked for them shouldn't meet them. Rows built from the
+    /// shopper's own searches and views still show them.
+    var keptOffHome: Bool { subs.contains("sexual-wellness") }
+}
+
 /// The catalog-wide orders Home and the grids read, as positions into the
 /// products array (4 bytes each, instead of a 320-byte copy of every product).
 /// Shared by CatalogStore and HomeSlice so the slice ranks exactly as the
@@ -152,7 +162,7 @@ enum CatalogOrder {
     /// In-stock markdowns, deepest first.
     static func deals(_ products: [Product]) -> [Int32] {
         var out: [(Int32, Int)] = []
-        for (i, p) in products.enumerated() where p.available {
+        for (i, p) in products.enumerated() where p.available && !p.keptOffHome {
             if let off = p.percentOff { out.append((Int32(i), off)) }
         }
         return out.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }.map(\.0)
@@ -169,7 +179,7 @@ enum CatalogOrder {
     static func newArrivals(_ products: [Product], asOf generatedAt: String) -> [Int32] {
         let since = newArrivalCutoff(generatedAt)
         var out: [(Int32, String)] = []
-        for (i, p) in products.enumerated() where p.available {
+        for (i, p) in products.enumerated() where p.available && !p.keptOffHome {
             // ISO 8601 dates compare as text; the day is enough.
             guard let at = p.publishedAt, at.prefix(10) >= since else { continue }
             out.append((Int32(i), at))

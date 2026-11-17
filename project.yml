@@ -15,8 +15,8 @@ packages:
 settings:
   base:
     DEVELOPMENT_TEAM: CG89RY4W6R
-    MARKETING_VERSION: "1.13"
-    CURRENT_PROJECT_VERSION: "187"
+    MARKETING_VERSION: "1.14"
+    CURRENT_PROJECT_VERSION: "191"
     SWIFT_VERSION: "5.0"
     ENABLE_DEBUG_DYLIB: NO
     # Localization (2026-10-14): one String Catalog, Shared/Localizable.xcstrings,
@@ -46,8 +46,15 @@ targets:
       # The delivery Live Activity's types and its ‹ › intent, shared with
       # the widget extension (which can't link the app).
       - path: Shared
+      # The shopping alerts' card (owner, 2026-11-15): the in-app banner and
+      # the press-and-hold card (MarracatNotificationContent) draw the same view.
+      - path: AlertCards
     dependencies:
       - target: MarracatWidgets
+        embed: true
+      - target: MarracatNotificationService
+        embed: true
+      - target: MarracatNotificationContent
         embed: true
       - package: GoogleSignIn
         product: GoogleSignIn
@@ -81,6 +88,8 @@ targets:
         # in the APP's Info.plist, not the extension's, or Activity.request
         # and push-to-start silently do nothing.
         NSSupportsLiveActivities: true
+        # Share Marracat › Save puts the App Store QR code in Photos (add-only, 2026-11-16).
+        NSPhotoLibraryAddUsageDescription: Marracat saves the QR code for the app to your photos.
         CFBundleDisplayName: Marracat
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -131,6 +140,59 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+  # The product photo on a shopping alert's Lock Screen banner: downloads the
+  # card's image and attaches it (pushes marked mutable-content by
+  # web/server/alert-cards.js). No App Group, no capabilities: a new App ID
+  # that signing registers on its own.
+  MarracatNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: MarracatNotificationService
+    info:
+      path: MarracatNotificationService/Info.plist
+      properties:
+        CFBundleDisplayName: Marracat
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.notification-service
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+  # Press and hold a shopping alert: the full card (AlertCards/AlertCard.swift)
+  # for the categories the app registers (AlertCategories). iOS draws the
+  # action buttons under it.
+  MarracatNotificationContent:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: MarracatNotificationContent
+      - path: AlertCards
+      - path: Shared/Localizable.xcstrings
+    dependencies:
+      - sdk: UserNotificationsUI.framework
+    info:
+      path: MarracatNotificationContent/Info.plist
+      properties:
+        CFBundleDisplayName: Marracat
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.content-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationViewController
+          NSExtensionAttributes:
+            UNNotificationExtensionCategory: [MC_DROP, MC_SALE, MC_RESTOCK, MC_INTEREST, MC_DIGEST, MC_PRICE, MC_SAVED, MC_BRAND, MC_LASTSIZE, MC_PICKS]
+            UNNotificationExtensionDefaultContentHidden: true
+            UNNotificationExtensionInitialContentSizeRatio: 0.5
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.divinedavis.marracat.notification-content
         TARGETED_DEVICE_FAMILY: "1,2"
         SKIP_INSTALL: YES
   MarracatTests:

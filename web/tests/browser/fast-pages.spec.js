@@ -29,10 +29,11 @@ test("scrolling keeps loading pages from the server", async ({ page }) => {
   expect(await page.locator(".product-card").count()).toBeGreaterThan(first + 36);
 });
 
-test("a department's chips, intro and type-free filters work before the catalog", async ({ page }) => {
+test("a department's chips and type-free filters work before the catalog", async ({ page }) => {
   await page.goto("/c/skincare");
   await expect(page.locator(".product-card").first()).toBeVisible({ timeout: 10000 });
-  await expect(page.locator(".dept-intro")).toContainText(/Shop [\d,]+ products from [\d,]+ independent brands/);
+  // No intro line under the breadcrumb (owner, 2026-11-15: removed).
+  await expect(page.locator(".dept-intro")).toHaveCount(0);
 });
 
 test("a product page opens from its own record", async ({ page, request }) => {

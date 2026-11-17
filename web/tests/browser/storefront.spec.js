@@ -127,7 +127,6 @@ test("mobile: responsive navigation and accessible authentication dialog", async
   await expect(
     page.getByRole("heading", { name: "Bags from independent brands", exact: true }),
   ).toBeAttached();
-  await expect(page.locator(".dept-intro")).toContainText("independent brands");
   await page.getByRole("button", { name: "Sign in Account" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(

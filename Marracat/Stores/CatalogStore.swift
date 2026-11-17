@@ -258,7 +258,7 @@ final class CatalogStore {
     private static func makeDiscover(_ products: [Product], day: Int) -> [Int32] {
         var keyed: [(UInt64, Int32)] = []
         keyed.reserveCapacity(products.count)
-        for (i, p) in products.enumerated() where p.available { keyed.append((hash(p.id, seed: day), Int32(i))) }
+        for (i, p) in products.enumerated() where p.available && !p.keptOffHome { keyed.append((hash(p.id, seed: day), Int32(i))) }
         return keyed.sorted { $0.0 < $1.0 }.map(\.1)
     }
 
@@ -785,6 +785,12 @@ final class CatalogStore {
         let row = spread(mix.shuffle(pool).filter { !hidden.contains($0.id) }, limit: limit)
         discoverRowMemo = (key, row)
         return row
+    }
+
+    /// What a department's top picks on Home draw on: in stock, and none of
+    /// the products kept off Home (`Product.keptOffHome`).
+    func homePicks(in category: String) -> [Product] {
+        products(in: category).filter { $0.available && !$0.keptOffHome }
     }
 
     /// A stable-per-day shuffle so "Discover more" changes daily, not per scroll.

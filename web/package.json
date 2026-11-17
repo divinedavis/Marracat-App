@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@auth/express": "0.12.3",
+    "@shopify/checkout-kit": "4.0.0",
     "better-sqlite3": "12.11.1",
     "express": "5.2.1",
     "express-rate-limit": "8.7.0",

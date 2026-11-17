@@ -426,7 +426,7 @@ struct SearchResultsView: View {
 
     /// `filters`: what Advanced search picked (department, price, offers,
     /// sort), applied from the start and changeable here as usual.
-    init(query: String, filters: ProductFilters = ProductFilters()) {
+    init(query: String, filters: ProductFilters = .starting) {
         self.query = query
         _filters = State(initialValue: filters)
     }
@@ -524,7 +524,7 @@ struct SearchResultsView: View {
                         .onAppear { ImageLoader.shared.prefetch(after: i, in: shown, width: 300) }
                     Divider()
                 }
-                if !meaning.isEmpty && filters == ProductFilters() {
+                if !meaning.isEmpty && filters.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(shown.isEmpty ? "Nothing uses those words. These match what you mean:" : "Matches what you mean")
                             .font(.headline)
@@ -563,6 +563,8 @@ struct SearchResultsView: View {
             let source = Analytics.shared.searchSource
             Analytics.shared.searchSource = "typed"
             Analytics.shared.search(query, results: exact.count, source: source)
+            // Which aisle this search was for, and when (ShoppingRhythm).
+            ShoppingRhythm.shared.searched(exact)
         }
         .task(id: query) {
             let words = Set(catalog.search(query).prefix(400).map(\.id))

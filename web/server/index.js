@@ -48,6 +48,9 @@ import { trackingPoller, POLL_EVERY_MS } from "./tracking-poll.js";
 import { syncRelayOrders } from "./relay-sync.js";
 import { liveActivityRoutes } from "./live-activity.js";
 import { sameSiteWrites } from "./same-site.js";
+import { batcher, monitorMiddleware, monitorRoutes, openMonitor } from "./monitor.js";
+import { isDatacenter } from "./datacenter.js";
+import { ownerIPToday } from "./visits.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT || 3107);
@@ -66,6 +69,18 @@ app.use((req, res, next) => {
   res.set("X-Content-Type-Options", "nosniff");
   next();
 });
+// Every request's route, status and time to answer, for the owner dashboard's
+// Monitor page (monitor.js). The owner's own address is flagged, cached a minute.
+const monitorDb = openMonitor(dataDir);
+const monitorWrite = batcher(monitorDb);
+const ownerIPs = new Map(); let ownerIPMinute = 0;
+const ownerIP = (ip) => {
+  const m = Math.floor(Date.now() / 60_000);
+  if (m !== ownerIPMinute) { ownerIPs.clear(); ownerIPMinute = m; }
+  if (!ownerIPs.has(ip)) ownerIPs.set(ip, ownerIPToday(db, ip));
+  return ownerIPs.get(ip);
+};
+app.use(monitorMiddleware(monitorWrite, { ownerIP }));
 // A signed-in browser's writes come from our own pages or not at all (same-site.js).
 app.use(sameSiteWrites());
 catalogRoutes(app);
@@ -127,6 +142,7 @@ const isFarm = farmWatch(db);
 visitRoutes(app, db, { viewer: (req) => viewerOf(req, db, process.env), isFarm });
 eventRoutes(app, db, { viewer: (req) => viewerOf(req, db, process.env), appViewer: (req) => mobileSessionUser(db, req), isFarm });
 vitalsRoutes(app, db);
+monitorRoutes(app, db, monitorDb, monitorWrite, { viewer: (req) => viewerOf(req, db, process.env), appViewer: (req) => mobileSessionUser(db, req), isDatacenter });
 commentFeedRoutes(app, db, { card: shareCard, viewer: (req) => viewerOf(req, db, process.env) });
 trendingRoutes(app, db);
 boostRoutes(app, db, { viewer: (req) => viewerOf(req, db, process.env) });
@@ -241,6 +257,8 @@ const server = app.listen(port, "127.0.0.1", () =>
 for (const signal of ["SIGTERM", "SIGINT"])
   process.on(signal, () =>
     server.close(() => {
+      monitorWrite.stop();
+      monitorDb.close();
       db.close();
       process.exit(0);
     }),

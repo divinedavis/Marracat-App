@@ -33,7 +33,8 @@ if [[ -n "$release" && -d "$release" && "$(readlink -e /opt/marracat-web/current
 fi
 nginx -t 2>/dev/null
 systemctl reload nginx
-for attempt in {1..15}; do
+# A restart loads the whole catalog first (20-30 s), as in deploy.sh.
+for attempt in {1..120}; do
   if [[ $(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/api/health || true) == '{"ok":true}' ]]; then
     echo "restored $snap"
     exit 0

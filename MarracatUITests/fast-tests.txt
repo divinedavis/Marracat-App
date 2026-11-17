@@ -45,3 +45,13 @@ AccessibilityAuditTests/testProductDetail
 AccessibilityAuditTests/testBagTotalsAndContinueCard
 YourTasteUITests/testYourTasteStartsEmptyThenShowsTheSizeAddedToTheBag
 LaundryPicksUITests/testLikingADetergentBringsMoreForTheLaundryAndNothingUntouched
+# shopping alerts (2026-11-15): our in-app banner, and the brand rail folding into ⋯
+ShoppingAlertsUITests/testAnAlertWhileTheAppIsOpenIsOurBannerAndItsButtonOpensTheProduct
+ShoppingAlertsUITests/testTheBrandRailFoldsIntoMoreAndTheMenuHasItsButtons
+# masonry grid (2026-11-15): brand and category pages, a tile opens its product
+MasonryGridUITests/testABrandAndACategoryShowProductsAsMasonryAndATileOpensItsProduct
+MasonryGridUITests/testAProductClosesWithASwipeDownOrFromTheLeftEdge
+# Owner 2026-11-16: Share Marracat, the App Store QR code on the Profile.
+ShareAppUITests/testTheProfileOpensABigQRCodeForTheAppStore
+# Owner 2026-11-16: a price sort carries to the next search.
+SortPreferenceUITests/testSortingByLowPriceCarriesToTheNextSearch

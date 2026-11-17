@@ -94,8 +94,8 @@ final class HomeSliceTests: XCTestCase {
             XCTAssertEqual(row(slice, Array(slice.newArrivals), 4), row(full, Array(full.newArrivals), 4), "new arrivals, seed \(seed)")
             for c in full.categories {
                 for limit in [12, 4] {
-                    XCTAssertEqual(row(slice, slice.products(in: c.id).filter(\.available), limit),
-                                   row(full, full.products(in: c.id).filter(\.available), limit),
+                    XCTAssertEqual(row(slice, slice.homePicks(in: c.id), limit),
+                                   row(full, full.homePicks(in: c.id), limit),
                                    "\(c.id) picks (\(limit)), seed \(seed)")
                 }
             }
@@ -128,13 +128,13 @@ final class HomeSliceTests: XCTestCase {
         XCTAssertEqual(Array(full.products(for: p.brand)), Self.whole.products.filter { $0.brand == p.brand })
         XCTAssertEqual(Array(full.products(in: p.category)), Self.whole.products.filter { $0.category == p.category })
         // Deepest markdowns first, ties in catalog order — the old stable sort.
-        let deals = Self.whole.products.filter { $0.available && $0.percentOff != nil }
+        let deals = Self.whole.products.filter { $0.available && !$0.keptOffHome && $0.percentOff != nil }
             .sorted { ($0.percentOff ?? 0) > ($1.percentOff ?? 0) }
         XCTAssertEqual(full.deals.map(\.id), deals.map(\.id))
         // New: in stock and published in the 30 days before the catalog's
         // date, newest first (owner, 2026-10-27: "not the entire catalog").
         let since = CatalogOrder.newArrivalCutoff(Self.whole.generatedAt)
-        let fresh = Self.whole.products.filter { $0.available && ($0.publishedAt ?? "").prefix(10) >= since }
+        let fresh = Self.whole.products.filter { $0.available && !$0.keptOffHome && ($0.publishedAt ?? "").prefix(10) >= since }
             .sorted { ($0.publishedAt ?? "") > ($1.publishedAt ?? "") }
         XCTAssertEqual(full.newArrivals.map(\.id), fresh.map(\.id))
         XCTAssertLessThan(full.newArrivals.count, Self.whole.products.filter(\.available).count / 4, "New is a slice of the catalog, not all of it")

@@ -35,7 +35,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 # catalog. The ship scripts themselves change no binary, so they never cause a
 # build on their own; a change to them is named in the log below and is
 # exercised by the next ship or by Sunday's full suite, whichever is first.
-APP_PATHS=(Marracat MarracatTests MarracatUITests MarracatWidgets project.yml
+APP_PATHS=(Marracat MarracatTests MarracatUITests MarracatWidgets AlertCards MarracatNotificationService MarracatNotificationContent project.yml
            scripts/ExportOptions.plist scripts/catalog_binary catalog/make_compact.py)
 PIPELINE_PATHS=(scripts/ship.sh scripts/daily_ship.sh scripts/smoke_test.sh scripts/ship_log.sh
                 scripts/ship_summary.py scripts/catalog_freshness.py scripts/pull_catalog.sh

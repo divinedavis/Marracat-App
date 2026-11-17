@@ -20,7 +20,7 @@ while IFS= read -r f; do files+=("$f"); done < <(
 # data (and an older build may have left another architecture's copy): its
 # strings would stay in the catalog forever. Keep only files whose Swift
 # source still exists.
-sources=$(find Marracat Shared MarracatWidgets -name '*.swift' -exec basename {} .swift \; 2>/dev/null | sort -u)
+sources=$(find Marracat Shared MarracatWidgets AlertCards MarracatNotificationContent -name '*.swift' -exec basename {} .swift \; 2>/dev/null | sort -u)
 kept=()
 for f in "${files[@]}"; do
     grep -qxF "$(basename "$f" .stringsdata)" <<<"$sources" && kept+=("$f")

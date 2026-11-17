@@ -1113,6 +1113,7 @@ def main():
         brand_fit.apply(rows, {b["id"]: b}, BRAND_FIT)
         for r in rows:
             apply_photo_move(r, b)
+        department_rules.file_adult(rows, b)
         if b.get("platform") == "woocommerce":
             rows = [r for r in rows if link_works(r["url"])]
             # A Woo brand checked out from the app lists only the products whose

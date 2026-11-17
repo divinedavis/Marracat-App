@@ -350,6 +350,9 @@ test("durations, dwell and subtotals are bucketed; no exact amounts are stored",
     email: "x@y.z", address: "1 Main St" });
   assert.deepEqual(c.props, { item_count: 2, subtotal: "50-100" });
   assert.equal(cleanEvent({ name: "checkout_start", via: "teleport" }), null);
+  // The website's Checkout Kit window: the store reported the order, or it closed without one.
+  assert.equal(cleanEvent({ name: "checkout_complete", brand: "gently-soap", via: "checkout_kit", item_count: 1 }).via, "checkout_kit");
+  assert.equal(cleanEvent({ name: "checkout_abandon", via: "checkout_kit", step: "started" }).props.step, "started");
 });
 
 test("PII never lands in the table: emails, long numbers, names and addresses are dropped", async (t) => {

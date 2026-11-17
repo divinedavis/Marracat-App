@@ -162,7 +162,9 @@ systemctl enable --now marracat-db-backup.timer >/dev/null
 install -m 644 mail/marracat-dmarc-sort.service mail/marracat-dmarc-sort.timer /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now marracat-dmarc-sort.timer >/dev/null
-for attempt in {1..10}; do
+# The server loads the whole catalog before it listens: 20-30 s on this
+# 1-CPU box by 2026-11-15, when a 10 s wait rolled back a good release.
+for attempt in {1..120}; do
   if curl -fsS -H 'Host: marracat.com' http://127.0.0.1:3107/api/health >/dev/null; then break; fi
   sleep 1
 done

@@ -17,6 +17,9 @@ final class DealAlertStore {
     /// The price each tracked product was at when tracked (or last alerted).
     private(set) var trackedAt: [String: Double] = [:]
     private(set) var busy = Set<String>()
+    /// The daily digest (owner, 2026-11-15, design C06): price drops, sales,
+    /// new drops and last sizes held back and sent together at 9 AM.
+    private(set) var digest = false
     var message: String?
     /// A tapped brand-sale notification: open that brand.
     var openBrandRequest: String?
@@ -35,6 +38,7 @@ final class DealAlertStore {
             struct B: Decodable { let brandID: String }
             struct D: Decodable { let brandID: String; let categories: [String] }
             let prices: [P]; let brands: [B]; let drops: [D]?
+            let digest: Bool?
         }
         guard let (status, data) = try? await call("", account: account), status == 200,
               let m = try? JSONDecoder().decode(Mine.self, from: data) else { return }
@@ -42,12 +46,32 @@ final class DealAlertStore {
         trackedAt = Dictionary(m.prices.compactMap { p in p.price.map { (p.productID, $0) } }, uniquingKeysWith: { a, _ in a })
         brands = Set(m.brands.map(\.brandID))
         drops = Dictionary((m.drops ?? []).map { ($0.brandID, $0.categories) }, uniquingKeysWith: { a, _ in a })
+        digest = m.digest ?? false
+    }
+
+    /// Turn the daily digest on or off; the phone's time zone says when 9 AM is.
+    func setDigest(_ on: Bool, account: AccountStore) async {
+        if stubbed { digest = on; return }
+        guard account.signedIn else {
+            message = String(localized: "Sign in to get a daily digest.", comment: "Digest setting error")
+            return
+        }
+        busy.insert("digest")
+        defer { busy.remove("digest") }
+        if on { _ = await RestockStore.shared.enableOrderUpdates() }
+        let body = try? JSONSerialization.data(withJSONObject: ["digest": on, "tz": TimeZone.current.identifier])
+        guard let (status, _) = try? await call("prefs", method: "POST", body: body, account: account), status == 200 else {
+            message = String(localized: "That setting couldn't be changed. Try again.", comment: "Digest setting error")
+            return
+        }
+        digest = on
+        Analytics.shared.track(on ? "alert_on" : "alert_off", ["kind": .string("digest")])
     }
 
     /// Signed out: the alerts were the account's, so the phone forgets them
     /// (and Spotlight its followed brands).
     func signedOut() {
-        prices = []; brands = []; trackedAt = [:]; drops = [:]
+        prices = []; brands = []; trackedAt = [:]; drops = [:]; digest = false
     }
 
     func togglePrice(_ productID: String, account: AccountStore) async {

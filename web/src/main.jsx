@@ -57,6 +57,7 @@ import {
   usesMarracatCart,
   diversify,
   optionNoun,
+  keptOffHome,
 } from "./catalog";
 import { saysOwnership, tokens } from "./search-words";
 import { readRecent, rememberSearch, rememberView, forgetRecent } from "./recent";
@@ -81,6 +82,8 @@ if ("serviceWorker" in navigator && import.meta.env.PROD)
 // The kind of page showing when the visit ends, for the speed report.
 let screenNow;
 watchVitals({ screen: () => screenNow });
+// Taps, page changes, API timings and errors for the owner's Monitor page (monitor-client.js).
+startMonitor();
 import "./style.css";
 import OwnershipNotice from "./OwnershipNotice";
 
@@ -106,6 +109,8 @@ import { passkeysSupported, signInWithPasskey } from "./passkeys";
 import BrandPicker from "./BrandPicker";
 import { useServerQuery, FAST_READY, fastReady } from "./fast-query";
 import { track, watchBuyClicks, screenFor, checkoutProps } from "./events";
+import { startMonitor, monitorScreen } from "./monitor-client";
+import { openCheckoutKit, preloadCheckoutKit } from "./checkoutKit";
 import { productURL, preloadProductOnPress } from "./prefetch";
 import { markCatalog, markIndexed, watchVitals } from "./vitals";
 import { loadCatalogInWorker } from "./catalog-loader";
@@ -1091,6 +1096,38 @@ function App() {
     if (buyerComplete(buyer)) go("/checkout");
     else setBuyerOpen(true);
   };
+  // A brand's order is placed: on the shopper's word ("Paid — remove from
+  // cart", via "checkout"), or because Shopify's checkout window said so
+  // (Checkout Kit, via "checkout_kit"). The order goes on the account, so the
+  // app's Orders shows it too, and the brand's lines leave the cart.
+  const markPaid = (id, via = "checkout") => {
+    const g = cartGroups.find((x) => x.brand.id === id);
+    if (g) track("checkout_complete", checkoutProps(g.lines, via, id));
+    if (session?.user && g) recordWebOrder(webOrderRecord({
+      brandID: id,
+      lines: g.lines.map((l) => ({ id: l.id, quantity: l.quantity, title: l.product?.title })),
+      subtotal: g.lines.reduce((n, l) => n + (l.variant?.price || 0) * l.quantity, 0),
+      currency: g.brand.currency || "USD",
+    }));
+    setCart((c) =>
+      c.filter((l) => (details.get(l.id) || productMap.get(l.id))?.brand !== id),
+    );
+    toast(via === "checkout_kit" ? "Order placed. Removed from your cart" : "Removed from your cart");
+  };
+  /// Shopify's checkout window over the page (src/checkoutKit.js) for a
+  /// brand's checkout link; false when the link opens the usual way.
+  const openKit = (brand, href) =>
+    openCheckoutKit(brand, href, {
+      onComplete: () => markPaid(brand.id, "checkout_kit"),
+      onClose: (started) => {
+        const g = cartGroups.find((x) => x.brand.id === brand.id);
+        if (g) track("checkout_abandon", { ...checkoutProps(g.lines, "checkout_kit", brand.id), step: started ? "started" : "opened" });
+      },
+    });
+  // Checkout Kit loads on the cart and checkout pages, before any click.
+  useEffect(() => {
+    if (path === "/cart" || path === "/checkout") preloadCheckoutKit();
+  }, [path]);
   const listOptions = {
     q: search,
     category,
@@ -1190,6 +1227,7 @@ function App() {
   const screen = screenFor(path, params);
   screenNow = screen || undefined;
   useEffect(() => {
+    monitorScreen(screen || path.replace(/^\//, "").split("/")[0] || "home");
     if (screen) track("screen_view", { screen, brand: screen === "brand" ? selectedBrand : undefined,
       product: screen === "product" ? params.get("id") || undefined : undefined });
   }, [route]);
@@ -1254,6 +1292,8 @@ function App() {
       if (p) return p;
     }
   };
+  // "Keep discovering": every in-stock product except the ones kept off Home.
+  const homeFeed = useMemo(() => available.filter((p) => !keptOffHome(p)), [available]);
   const heroProduct = firstPick(HERO_BRANDS, 0, "bags");
   const beautyProduct = firstPick(BEAUTY_BRANDS, 1);
   const homeProduct = firstPick(HOME_BRANDS, 2, ["home", "household"]);
@@ -1593,18 +1633,6 @@ function App() {
     [brands, categories, query],
   );
   const aisleName = aisle && aisles.find((a) => a.leaf === aisle)?.name;
-  // Brands in the department on screen, most products first (its intro line).
-  const deptBrands = useMemo(() => {
-    if (path !== "/shop" || !category || selectedBrand || search) return [];
-    if (server) return server.deptBrands.map((id) => brandMap.get(id)).filter(Boolean);
-    const counts = new Map();
-    for (const p of result) counts.set(p.brand, (counts.get(p.brand) || 0) + 1);
-    return [...counts]
-      .sort((x, y) => y[1] - x[1])
-      .map(([id]) => brandMap.get(id))
-      .filter(Boolean);
-  }, [path, category, selectedBrand, search, result, brandMap, server]);
-  const deptBrandCount = server ? server.deptBrandCount : deptBrands.length;
   const title = selectedBrand
     ? brandMap.get(selectedBrand)?.name
     : search
@@ -2008,7 +2036,7 @@ function App() {
                   </div>
                 </div>
                 <ProductFeed
-                  products={available}
+                  products={homeFeed}
                   total={catalog.partial ? catalog.total_available : undefined}
                   renderProduct={(p) => <ProductCard key={p.id} p={p} />}
                 />
@@ -2032,27 +2060,6 @@ function App() {
                     {!selectedBrand && !search && ` (${resultCount.toLocaleString()})`}
                   </span>
                 </div>
-                {/* A department's one-line intro: what's here and who makes
-                    it, for shoppers and search engines (SEO, 2026-10-09).
-                    "Independent brands", never "independent" (owner rule). */}
-                {category && !selectedBrand && !search && deptBrands.length > 0 && (
-                  <p className="dept-intro">
-                    Shop {resultCount.toLocaleString()} {resultCount === 1 ? "product" : "products"} from{" "}
-                    {deptBrandCount.toLocaleString()} independent {deptBrandCount === 1 ? "brand" : "brands"}
-                    {deptBrands.length > 1 && (
-                      <>
-                        , including{" "}
-                        {deptBrands.slice(0, 3).map((b, i, top) => (
-                          <span key={b.id}>
-                            {i > 0 && (i === top.length - 1 ? " and " : ", ")}
-                            <a href={hrefFor(shop({ brand: b.id }))}>{b.name}</a>
-                          </span>
-                        ))}
-                      </>
-                    )}
-                    .
-                  </p>
-                )}
                 {/* A department or aisle is already named and counted in
                     the breadcrumb, "Socks & Hosiery (265)", so its heading
                     stays for screen readers only (owner, 2026-09-30).
@@ -2800,6 +2807,7 @@ function App() {
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => { if (openKit(b, url)) e.preventDefault(); }}
                               >
                                 Check out at {b.name} <ExternalLink size={17} />
                               </a>
@@ -2873,22 +2881,8 @@ function App() {
                 groups={cartGroups}
                 buyer={buyer}
                 onEditBuyer={() => setBuyerOpen(true)}
-                onPaid={(id) => {
-                  // The order goes on the account, so the app's Orders shows it too.
-                  const g = cartGroups.find((x) => x.brand.id === id);
-                  // The shopper says this brand's checkout is paid.
-                  if (g) track("checkout_complete", checkoutProps(g.lines, "checkout", id));
-                  if (session?.user && g) recordWebOrder(webOrderRecord({
-                    brandID: id,
-                    lines: g.lines.map((l) => ({ id: l.id, quantity: l.quantity, title: l.product?.title })),
-                    subtotal: g.lines.reduce((n, l) => n + (l.variant?.price || 0) * l.quantity, 0),
-                    currency: g.brand.currency || "USD",
-                  }));
-                  setCart((c) =>
-                    c.filter((l) => (details.get(l.id) || productMap.get(l.id))?.brand !== id),
-                  );
-                  toast("Removed from your cart");
-                }}
+                onPaid={markPaid}
+                openKit={openKit}
                 shopHref={hrefFor(shop())}
               />
             )}

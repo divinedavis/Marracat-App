@@ -271,6 +271,8 @@ private enum RestockDeviceKey {
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // The shopping alerts' press-and-hold card and its buttons (InAppAlerts.swift).
+        AlertCategories.register()
         BackgroundRefresh.register()
         // A Live Activity's Dismiss can launch the app in the background.
         DeliveryDismissal.report = { id in await LiveActivityStore.shared.hide(orderID: id) }
@@ -289,11 +291,26 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .list, .sound]
+        // A shopping alert with a card: our own banner instead of Apple's
+        // (owner, 2026-11-15); it still goes in Notification Center.
+        if let card = AlertCard(userInfo: notification.request.content.userInfo) {
+            await MainActor.run { InAppAlerts.shared.show(card) }
+            return [.list]
+        }
+        return [.banner, .list, .sound]
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let info = response.notification.request.content.userInfo
+        // A shopping alert with a card: a tap or one of its buttons.
+        if let card = AlertCard(userInfo: info) {
+            let action = AlertCategories.action(for: response.actionIdentifier)
+            await MainActor.run {
+                Analytics.shared.track("notification_open", ["kind": .string("alert_" + card.k.rawValue), "action": .string(action.rawValue)])
+                InAppAlerts.shared.request = AlertRequest(card: card, action: action)
+            }
+            return
+        }
         let kind = info["trackedOrder"] != nil ? "order_tracking" : info["orderEvent"] != nil ? "order_email"
             : info["brandID"] != nil ? "brand_sale" : info["productID"] != nil ? "restock" : "other"
         await MainActor.run { Analytics.shared.track("notification_open", ["kind": .string(kind)]) }

@@ -41,6 +41,8 @@ enum Route: Hashable {
     case collection(String)
     /// A search from Advanced search: the words and the filters picked there.
     case advancedSearch(String, ProductFilters)
+    /// A shopping alert's products (weekly picks, several price drops), by id.
+    case picks(String, [String])
 }
 
 @Observable
@@ -57,6 +59,8 @@ struct TabRoot<Content: View>: View {
     @State private var router = Router()
     @Environment(CatalogStore.self) private var catalog
     @ViewBuilder var content: Content
+    /// A tapped product photo grows into its page (ProductZoom.swift).
+    @Namespace private var productZoom
 
     private var waiting: Bool { tab != .home && !catalog.isComplete }
 
@@ -77,6 +81,7 @@ struct TabRoot<Content: View>: View {
                 .overlay { if waiting { CatalogLoading() } }
                 .navigationDestination(for: Route.self) { route in
                     FullCatalogGate { RouteView(route: route) }.accessibilityHidden(nav.search != nil)
+                        .modifier(ProductZoomDestination(id: route.productID))
                 }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -89,6 +94,7 @@ struct TabRoot<Content: View>: View {
         }
         .environment(router)
         .environment(\.currentTab, tab)
+        .environment(\.productZoom, productZoom)
     }
 }
 
@@ -140,7 +146,7 @@ struct RouteView: View {
         switch route {
         case .product: "product"
         case .brand: "brand"
-        case .category, .deals, .newArrivals, .style, .collection: "browse"
+        case .category, .deals, .newArrivals, .style, .collection, .picks: "browse"
         case .subcategory: "aisle"
         case .search, .advancedSearch: "search"
         case .brands: "brand"
@@ -169,6 +175,9 @@ struct RouteView: View {
         case .search(let q): SearchResultsView(query: q)
         case .advancedSearch(let q, let filters): SearchResultsView(query: q, filters: filters)
         case .deals: ProductGridScreen(title: String(localized: "Deals", comment: "Screen title"), products: Array(catalog.deals))
+        case .picks(let title, let ids):
+            ProductGridScreen(title: title.isEmpty ? String(localized: "For you", comment: "Screen title for a shopping alert's products") : title,
+                              products: ids.compactMap(catalog.product))
         case .collection(let id):
             ProductGridScreen(title: HolidayCalendar.collection(id)?.title ?? String(localized: "Shop", comment: "Fallback screen title"),
                               products: catalog.products(inCollection: id))

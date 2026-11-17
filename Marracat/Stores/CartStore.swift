@@ -112,7 +112,9 @@ final class CartStore {
 
     func setQuantity(_ quantity: Int, for line: CartLine) {
         guard let i = lines.firstIndex(of: line) else { return }
-        if quantity <= 0 { lines.remove(at: i) } else { lines[i].quantity = min(quantity, 10) }
+        // Down to zero is a removal: logged like the Remove button, so a
+        // bag that leaves the cart this way is counted too (owner, 2026-11-16).
+        if quantity <= 0 { remove(line) } else { lines[i].quantity = min(quantity, 10) }
     }
 
     func remove(_ line: CartLine) {

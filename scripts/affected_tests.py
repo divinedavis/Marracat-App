@@ -19,7 +19,7 @@ import re
 import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-APP_DIRS = ("Marracat/", "MarracatWidgets/")
+APP_DIRS = ("Marracat/", "MarracatWidgets/", "AlertCards/", "MarracatNotificationService/", "MarracatNotificationContent/")
 UNIT, UI = "MarracatTests", "MarracatUITests"
 SMOKE = f"{UI}/MarracatUITests3/testColdLaunchShowsSplash"
 DECL = re.compile(r"^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|private|fileprivate|internal|final|nonisolated)\s+)*"

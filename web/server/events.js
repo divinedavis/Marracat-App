@@ -43,7 +43,7 @@ const APP_UA = /^Marracat\//;
 export const BUY_VIA = ["cart", "bigcartel", "swell", "checkout", "brand_site"];
 // How a checkout starts: those, plus the app's Buy Now sheet and the
 // "review all checkouts" page.
-export const CHECKOUT_VIA = [...BUY_VIA, "buy_now", "review", "ucp"];
+export const CHECKOUT_VIA = [...BUY_VIA, "buy_now", "review", "ucp", "checkout_kit"];
 export const SCREENS = ["home", "search", "browse", "aisle", "brand", "product", "cart", "checkout_review", "orders",
   "order_detail", "account", "saved", "lists", "alerts", "social", "boosts"];
 export const BOOLEAN_FILTERS = ["in_stock", "sale", "under_25", "clean", "metal", "scent", "safer", "food", "baby",

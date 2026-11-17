@@ -135,3 +135,41 @@ def test_build_applies_a_photo_move_unless_hand_pinned_or_the_photo_changed():
         pinned = {**SKIN, "product_categories": {"mamei": "wellness"}, "pinned_handles": ["mamei"]}
         assert not bc.apply_photo_move(dict(r), pinned)
         assert bc.apply_photo_move(r, SKIN) and (r["category"], r["subs"]) == ("garden", ["plants-seeds"])
+
+
+NYTC = {"id": "nytc", "category": "wellness",
+        "product_subcategories": {"a": ["sexual-wellness"], "b": ["sexual-wellness"], "c": ["sexual-wellness"]}}
+
+
+def adult_row(title, ptype, cat, subs=(), brand="nytc"):
+    return {"id": title, "brand": brand, "title": title, "product_type": ptype, "tags": [],
+            "category": cat, "subs": list(subs), "url": "https://x.example/products/x"}
+
+
+def test_sex_toys_leave_bags_and_accessories_for_sexual_wellness():
+    # The two that sat in Bags and Accessories on 2026-11-16, plus a bundle
+    # that had no aisle at all.
+    rows = [adult_row("Pierre Packer Kit | Uncut Silicone Packer + 2 Packing Pouches", "Gender Gear", "bags", ["pouch"]),
+            adult_row("Carter Strap-On Kit | Joque Harness - complete kit", "strap-on kit", "accessories"),
+            adult_row("Shilo & Joque Strap-on bundle", "Harnesses", "wellness")]
+    assert len(dr.file_adult(rows, NYTC)) == 3
+    assert all(r["category"] == "wellness" and r["subs"] == ["sexual-wellness"] for r in rows)
+    assert dr.file_adult(rows, NYTC) == [], "already filed: nothing changes"
+
+
+def test_other_brands_go_by_type_or_an_unmistakable_title():
+    shop = {"id": "shop", "category": "clothing"}
+    toy = adult_row("Rose Bullet", "Vibes", "home", brand="shop")
+    harness = adult_row("Leather Strap-On Harness", "Leather Goods", "accessories", brand="shop")
+    assert dr.is_adult(toy, shop) and dr.is_adult(harness, shop)
+
+
+def test_records_books_and_dog_harnesses_stay_put():
+    shop = {"id": "shop", "category": "music"}
+    for r in [adult_row("Vibrators - Alaska 127 [CD]", "CD", "music", brand="shop"),
+              adult_row("The Dildo Diaries", "Book", "books", brand="shop"),
+              adult_row("Reflective Dog Harness", "Harnesses", "pets", brand="shop"),
+              adult_row("Organic Agave Moisturizing Lubricant", "Intimate Care", "wellness", brand="shop")]:
+        assert not dr.is_adult(r, shop), r["title"]
+    mixed = {"id": "hp", "product_subcategories": {"a": ["sexual-wellness"], "b": ["pads"], "c": ["wash"]}}
+    assert not dr.adult_brand(mixed), "a brand with other aisles is judged product by product"

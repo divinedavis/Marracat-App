@@ -254,3 +254,50 @@ def refine(rows, brand, bc, evidence=None):
             r["category"] = new
             r["subs"] = with_added_aisles(r, new, subcategories_of(r, new))
     return moved
+
+
+# Sex toys and their gear go to Wellness > Sexual Wellness, whatever the
+# keywords, a pin, Jev or a photo check said (owner, 2026-11-16, on the age
+# rating: two New York Toy Collective strap-on and packer kits had landed in
+# Bags and Accessories, where a shopper browsing for a tote would meet them).
+# Home keeps that aisle off its shared rows (Product.keptOffHome).
+ADULT_AISLE = "sexual-wellness"
+# Whole product-type parts a store only uses for these.
+ADULT_TYPES = {"dildo", "dildos", "vibe", "vibes", "vibrator", "vibrators", "sex toy", "sex toys",
+               "adult toy", "adult toys", "strap-on", "strap-ons", "strap-on kit", "strap-on kits",
+               "strap-on harness", "strap-on harnesses", "butt plug", "butt plugs", "anal toys",
+               "masturbator", "masturbators", "stroker", "strokers", "cock ring", "cock rings"}
+# Title words that can't mean anything else. Not "vibrator": The Vibrators
+# are a punk band with CDs in the catalog.
+ADULT_TITLE = re.compile(r"\b(?:dildos?|strap[\s\-]?ons?|butt[\s\-]plugs?|cock[\s\-]rings?|"
+                         r"sex[\s\-]toys?|masturbators?)\b", re.I)
+# Departments whose titles only talk about these (a book, a record).
+_ADULT_TITLE_EXEMPT = {"books", "music", "art"}
+
+
+def adult_brand(brand):
+    """A brand whose hand-checked products are all Sexual Wellness: every
+    product it lists is, including the bundles the pins never saw."""
+    subs = list((brand.get("product_subcategories") or {}).values())
+    return len(subs) >= 3 and all(s and s[0] == ADULT_AISLE for s in subs)
+
+
+def is_adult(row, brand):
+    if adult_brand(brand):
+        return True
+    if any(p in ADULT_TYPES for p in type_parts(row.get("product_type"))):
+        return True
+    return row.get("category") not in _ADULT_TITLE_EXEMPT and bool(ADULT_TITLE.search(row.get("title") or ""))
+
+
+def file_adult(rows, brand):
+    """Runs last, after every other move. Returns the rows it changed."""
+    moved = []
+    for r in rows:
+        if not is_adult(r, brand):
+            continue
+        subs = [ADULT_AISLE] + [s for s in (r.get("subs") or []) if s != ADULT_AISLE and r["category"] == "wellness"]
+        if r["category"] != "wellness" or r.get("subs") != subs:
+            moved.append(r)
+            r["category"], r["subs"] = "wellness", subs
+    return moved

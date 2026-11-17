@@ -817,17 +817,6 @@ del {
   color: #686868;
   padding: 22px 0;
 }
-.dept-intro {
-  margin: -10px 0 18px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #4a4a4a;
-}
-.dept-intro a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
 /* Filters in a column beside the grid, Sort above it (owner, 2026-11-03:
    "5 · Sidebar"). Under 1000px the column is a sheet from the bottom, opened
    by the Filters button. */

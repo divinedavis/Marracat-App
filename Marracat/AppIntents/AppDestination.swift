@@ -14,6 +14,9 @@ enum AppDestination: Hashable {
     case orders
     /// A holiday event's collection (marracat://collection/<id>).
     case collection(String)
+    /// A shopping alert's products, by id: weekly picks, several price drops
+    /// (marracat://picks?title=…&ids=a,b,c; AlertCard.open).
+    case picks(String, [String])
 
     /// The tab whose stack shows it: departments live under Browse, orders
     /// under You, everything else on Home (where shared product links and
@@ -22,7 +25,7 @@ enum AppDestination: Hashable {
         switch self {
         case .category: .browse
         case .orders: .you
-        case .product, .brand, .search, .deals, .collection: .home
+        case .product, .brand, .search, .deals, .collection, .picks: .home
         }
     }
 
@@ -35,6 +38,7 @@ enum AppDestination: Hashable {
         case .deals: [.deals]
         case .orders: [.checkouts]
         case .collection(let id): [.collection(id)]
+        case .picks(let title, let ids): [.picks(title, ids)]
         }
     }
 
@@ -50,6 +54,7 @@ enum AppDestination: Hashable {
         case .category(let id): return catalog.category(id) != nil
         case .collection(let id): return HolidayCalendar.collection(id) != nil
         case .search, .deals, .orders: return true
+        case .picks(_, let ids): return ids.contains { catalog.product($0) != nil }
         }
     }
 
@@ -63,7 +68,7 @@ enum AppDestination: Hashable {
         case .product(let id): "product:" + id
         case .brand(let id): "brand:" + id
         case .category(let id): "category:" + id
-        case .search, .deals, .orders, .collection: nil
+        case .search, .deals, .orders, .collection, .picks: nil
         }
     }
 
@@ -101,6 +106,13 @@ enum AppDestination: Hashable {
         case "deals": self = .deals
         case "orders": self = .orders
         case "collection": guard let id else { return nil }; self = .collection(id)
+        case "picks":
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let ids = (items.first { $0.name == "ids" }?.value ?? "").split(separator: ",").map(String.init)
+                .filter { !$0.isEmpty && $0.count <= 120 }.prefix(AppDestination.maxPicks)
+            guard !ids.isEmpty else { return nil }
+            let title = String((items.first { $0.name == "title" }?.value ?? "").prefix(80))
+            self = .picks(title, Array(ids))
         default: return nil
         }
     }
@@ -116,6 +128,7 @@ enum AppDestination: Hashable {
         case .deals: c.host = "deals"
         case .orders: c.host = "orders"
         case .collection(let id): c.host = "collection"; c.path = "/" + id
+        case .picks(let title, let ids): c.host = "picks"; c.queryItems = [URLQueryItem(name: "title", value: title), URLQueryItem(name: "ids", value: ids.joined(separator: ","))]
         }
         return c.url!
     }
@@ -123,6 +136,8 @@ enum AppDestination: Hashable {
     /// The longest search a link or Siri can start; the search field's own
     /// text is never this long.
     static let maxQuery = 120
+    /// The most products a picks link opens.
+    static let maxPicks = 24
 }
 
 /// Where Siri, Shortcuts and Spotlight reach the running app: the screen they

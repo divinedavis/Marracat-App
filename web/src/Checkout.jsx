@@ -153,7 +153,7 @@ export function BuyerForm({ buyer, account, onSave, onClose }) {
 /// One review for a cart with several brands: every brand's store builds its
 /// checkout from the saved details and reports real shipping and totals, and
 /// each brand is paid on its own checkout page, already filled in.
-export function CheckoutReview({ groups, buyer, onEditBuyer, onPaid, shopHref }) {
+export function CheckoutReview({ groups, buyer, onEditBuyer, onPaid, openKit, shopHref }) {
   const [outcomes, setOutcomes] = useState({});
   const [opened, setOpened] = useState({});
   const key = groups.map((g) => g.brand.id + ":" + g.lines.map((l) => l.variant?.id + "x" + l.quantity).join(",")).join("|")
@@ -260,7 +260,8 @@ export function CheckoutReview({ groups, buyer, onEditBuyer, onPaid, shopHref })
                   {opened[g.brand.id] ? (
                     <div className="review-actions">
                       <a className="outline-button" href={payHref} target="_blank" rel="noopener noreferrer"
-                        data-track-brand={g.brand.id} data-track-via="checkout">
+                        data-track-brand={g.brand.id} data-track-via="checkout"
+                        onClick={(e) => { if (openKit?.(g.brand, payHref)) e.preventDefault(); }}>
                         Open again <ExternalLink size={16} />
                       </a>
                       <button className="primary-button" type="button" onClick={() => onPaid(g.brand.id)} data-action="paid">
@@ -276,7 +277,10 @@ export function CheckoutReview({ groups, buyer, onEditBuyer, onPaid, shopHref })
                       data-action="pay"
                       data-track-brand={g.brand.id}
                       data-track-via={o.kind === "ready" && c.continueUrl ? "checkout" : g.brand.platform === "bigcartel" || g.brand.platform === "swell" ? g.brand.platform : "cart"}
-                      onClick={() => setOpened((s) => ({ ...s, [g.brand.id]: true }))}
+                      onClick={(e) => {
+                        setOpened((s) => ({ ...s, [g.brand.id]: true }));
+                        if (openKit?.(g.brand, payHref)) e.preventDefault();
+                      }}
                     >
                       {o.kind === "ready" && !c.needsAttention && c.total != null
                         ? `Pay ${g.brand.name} · ${money(c.total / 100, cur)}`

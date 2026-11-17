@@ -48,6 +48,8 @@
 	<string>81643017085-8gvbt4ipof1et69ns1jhqgl1qeg4dbmn.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Marracat saves the QR code for the app to your photos.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>
