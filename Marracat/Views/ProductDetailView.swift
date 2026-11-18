@@ -424,16 +424,18 @@ struct ProductDetailView: View {
             .readableWidth()
 
             SponsoredProductRow(items: sponsoredNear, placement: "product")
-            let more = catalog.products(for: brand.id).filter { $0.id != p.id && $0.available }
+            let more = Array(catalog.products(for: brand.id).filter { $0.id != p.id && $0.available }.prefix(12))
             if !more.isEmpty {
-                ProductRow(title: String(localized: "More from \(brand.name)", comment: "Product row title; the argument is a brand name"), products: Array(more.prefix(12)), route: .brand(brand.id), track: "brand_more")
+                ProductRow(title: String(localized: "More from \(brand.name)", comment: "Product row title; the argument is a brand name"), products: more, route: .brand(brand.id), track: "brand_more")
             }
             // On-device AI (MeaningFeatures.swift): the same look, then what
-            // goes with it from other departments.
+            // goes with it from other departments. Each row skips what a row
+            // above it already shows (owner, 2026-11-17).
+            let moreIDs = Set(more.map(\.id))
             AsyncProductRow(title: String(localized: "Similar look", comment: "Product row title: products that look like this one"), key: p.id, identifier: "similarLook", track: "similar") {
-                await MeaningPicks.similar(to: p, catalog: catalog)
+                await MeaningPicks.similar(to: p, catalog: catalog, excluding: moreIDs)
             }
-            PairingsRow(product: p)
+            PairingsRow(product: p, shownAbove: moreIDs)
         }
         .background(Theme.surface)
         .overlay(alignment: .bottom) {

@@ -70,6 +70,18 @@ enum Pairings {
     /// Which source fills the row: the brand's suggestions, then what
     /// shoppers bought together, then (nil) the style-matched fallback.
     enum Source: Equatable { case complements, boughtTogether }
+    /// Drops what the page's rows above already show ("More from", "Similar
+    /// look"), so no product appears in two rows (owner, 2026-11-17).
+    static func unseen(_ products: [Product], shown: Set<String>) -> [Product] {
+        products.filter { !shown.contains($0.id) }
+    }
+
+    /// The product's own brand first, then other brands, each in its order
+    /// (owner, 2026-11-17: other brands only when the brand runs short).
+    static func brandFirst(_ products: [Product], brand: String) -> [Product] {
+        products.filter { $0.brand == brand } + products.filter { $0.brand != brand }
+    }
+
     static func choose(complements: [Product], learned: [Product]) -> (source: Source, products: [Product])? {
         if complements.count >= 4 { return (.complements, Array(complements.prefix(12))) }
         if learned.count >= 4 { return (.boughtTogether, Array(learned.prefix(12))) }
@@ -79,6 +91,8 @@ enum Pairings {
 
 struct PairingsRow: View {
     let product: Product
+    /// "More from" products already on the page; "Similar look" is added here.
+    var shownAbove: Set<String> = []
     @Environment(CatalogStore.self) private var catalog
     @Environment(ShopperStore.self) private var shopper
     @State private var row: (title: String, products: [Product], track: String)?
@@ -99,15 +113,18 @@ struct PairingsRow: View {
             // purchase dog food or search for it we should never show it").
             var allowed = catalog.touchedDepartments(of: shopper)
             if !allowed.isEmpty { allowed.insert(product.category) }
+            let similar = await MeaningPicks.similar(to: product, catalog: catalog, excluding: shownAbove)
+            let shown = shownAbove.union(similar.map(\.id))
             let usable = { (ids: [String]) in
-                ids.compactMap(catalog.product).filter { $0.available && $0.id != product.id && (allowed.isEmpty || allowed.contains($0.category)) }
+                Pairings.brandFirst(Pairings.unseen(ids.compactMap(catalog.product), shown: shown), brand: product.brand)
+                    .filter { $0.available && $0.id != product.id && (allowed.isEmpty || allowed.contains($0.category)) }
             }
             let complements = usable(await Pairings.complements(for: product.id))
             let learned = complements.count >= 4 ? [] : usable(await Pairings.learned(for: product.id))
             switch Pairings.choose(complements: complements, learned: learned) {
             case let (.complements, products)?: row = (String(localized: "Goes well with", comment: "Product row title on a product page"), products, "complements")
             case let (.boughtTogether, products)?: row = (String(localized: "Frequently bought together", comment: "Product row title on a product page"), products, "pairs")
-            case nil: row = (String(localized: "Pairs well with", comment: "Product row title on a product page"), await MeaningPicks.pairsWell(with: product, catalog: catalog, allowed: allowed), "pairs_style")
+            case nil: row = (String(localized: "Pairs well with", comment: "Product row title on a product page"), await MeaningPicks.pairsWell(with: product, catalog: catalog, allowed: allowed, excluding: shown), "pairs_style")
             }
         }
     }

@@ -37,13 +37,33 @@ enum MeaningPicks {
     }
 
     /// The same look in other brands' and the same brand's other products.
+    /// `excluding`: products a row above already shows on the page (owner,
+    /// 2026-11-17: two rows shouldn't show the same products). Kept per
+    /// product page, so "Goes well with" can skip exactly what this row shows.
+    @MainActor private static var similarCache: [String: [Product]] = [:]
+
     @MainActor
-    static func similar(to p: Product, catalog: CatalogStore, limit: Int = 12) async -> [Product] {
+    static func similar(to p: Product, catalog: CatalogStore, limit: Int = 12, excluding: Set<String> = []) async -> [Product] {
+        let key = "\(catalog.stamp)|\(p.id)|\(limit)|\(excluding.sorted().joined(separator: ","))"
+        if let hit = similarCache[key] { return hit }
         guard let v = MeaningIndex.shared.vector(for: p.id) else { return [] }
         let id = p.id, title = p.title.lowercased()
-        let found = await products(near: v, catalog: catalog, limit: limit * 2) { $0 != id }
-        // Not the same item in another colour or size.
-        return Array(found.filter { $0.title.lowercased() != title }.prefix(limit))
+        // The same brand first; other brands only fill what it can't (owner,
+        // 2026-11-17).
+        let ownIDs = Set(catalog.products(for: p.brand).map(\.id))
+        let notSameItem = { (ps: [Product]) in ps.filter { $0.title.lowercased() != title } }  // not another colour or size
+        var picked = notSameItem(await products(near: v, catalog: catalog, limit: limit * 2) {
+            $0 != id && !excluding.contains($0) && ownIDs.contains($0)
+        })
+        if picked.count < limit {
+            picked += notSameItem(await products(near: v, catalog: catalog, limit: limit * 2) {
+                $0 != id && !excluding.contains($0) && !ownIDs.contains($0)
+            })
+        }
+        picked = Array(picked.prefix(limit))
+        if similarCache.count > 40 { similarCache = [:] }
+        similarCache[key] = picked
+        return picked
     }
 
     /// From other departments, close in style: the earrings for the dress.
@@ -66,15 +86,21 @@ enum MeaningPicks {
     /// `allowed`: the departments the shopper has shown interest in, plus
     /// this product's own; empty allows all (a shopper with no history).
     @MainActor
-    static func pairsWell(with p: Product, catalog: CatalogStore, limit: Int = 12, allowed: Set<String> = []) async -> [Product] {
+    static func pairsWell(with p: Product, catalog: CatalogStore, limit: Int = 12, allowed: Set<String> = [], excluding: Set<String> = []) async -> [Product] {
         guard let v = MeaningIndex.shared.vector(for: p.id) else { return [] }
         let category = p.category
         let byID = await departments(catalog)
-        let found = await products(near: v, catalog: catalog, limit: limit * 3) { id in
-            guard let c = byID[id], c != category else { return false }
+        let ownIDs = Set(catalog.products(for: p.brand).map(\.id))
+        let fits: @Sendable (String) -> Bool = { id in
+            guard !excluding.contains(id), let c = byID[id], c != category else { return false }
             return allowed.isEmpty || allowed.contains(c)
         }
-        return catalog.spread(found, limit: limit)
+        // The brand's own products from other departments first; other
+        // brands, spread out, only fill the rest (owner, 2026-11-17).
+        let own = await products(near: v, catalog: catalog, limit: limit) { fits($0) && ownIDs.contains($0) }
+        guard own.count < limit else { return own }
+        let others = await products(near: v, catalog: catalog, limit: limit * 3) { fits($0) && !ownIDs.contains($0) }
+        return own + catalog.spread(others, limit: limit - own.count)
     }
 
     /// Live: what this session's looks, saves and cart point at. Each of the

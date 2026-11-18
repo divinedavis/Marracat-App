@@ -57,7 +57,7 @@ import {
   usesMarracatCart,
   diversify,
   optionNoun,
-  keptOffHome,
+  keptOffHome, unseenIn, brandFirst,
 } from "./catalog";
 import { saysOwnership, tokens } from "./search-words";
 import { readRecent, rememberSearch, rememberView, forgetRecent } from "./recent";
@@ -1026,8 +1026,7 @@ function App() {
   const sponsoredNear = useSponsored("product", { product: params.get("id") || "" }, path === "/product" && !!params.get("id"));
   // "Goes well with": the brand's own picks plus what shoppers cart together.
   const complementsFor = path === "/product" ? params.get("id") || "" : "";
-  const goesWell = useComplements(complementsFor, productMap).slice(0, 6);
-  const tapGoesWell = useRowTracking("complements", complementsFor, goesWell.length >= MIN_SHOWN);
+  const complements = useComplements(complementsFor, productMap);
   // "Top picks in <aisle>": other brands' finds from this product's own aisle
   // (else its department), one per brand, the same picks on every visit.
   // Owner, 2026-11-08: swap out "Goes well with" (4 taps in 291 views on the
@@ -1058,6 +1057,13 @@ function App() {
     return p ? available.filter((x) => x.brand === p.brand && x.id !== p.id).slice(0, 6) : [];
   }, [complementsFor, productMap, available]);
   const tapBrandMore = useRowTracking("brand_more", complementsFor, brandMore.length > 0);
+  // "Goes well with" skips what the rows above it already show (owner,
+  // 2026-11-17: two rows shouldn't show the same products).
+  const goesWell = useMemo(() => {
+    const p = complementsFor && productMap.get(complementsFor);
+    return brandFirst(unseenIn(complements, [typePicks.items, brandMore]), p?.brand).slice(0, 6);
+  }, [complements, typePicks, brandMore, complementsFor, productMap]);
+  const tapGoesWell = useRowTracking("complements", complementsFor, goesWell.length >= MIN_SHOWN);
   const cartLines = cart.map((l) => {
     const product = details.get(l.id) || productMap.get(l.id);
     return {

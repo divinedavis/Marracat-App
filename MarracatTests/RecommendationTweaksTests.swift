@@ -353,6 +353,27 @@ final class RecommendationTweaksTests: XCTestCase {
         XCTAssertNil(Pairings.choose(complements: Array(ps.prefix(2)), learned: Array(ps.prefix(3))), "fewer than four: style fallback")
     }
 
+    func testGoesWellWithSkipsWhatTheRowsAboveShow() throws {
+        let c = CatalogStore(synchronously: true)
+        let ps = Array(c.catalog.products.filter(\.available).prefix(8))
+        let shown = Set(ps.prefix(3).map(\.id))
+        let left = Pairings.unseen(ps, shown: shown)
+        XCTAssertEqual(left.map(\.id), ps.dropFirst(3).map(\.id), "a product in Similar look or More from never repeats in Goes well with")
+        // Too few left after the repeats go: the row falls through to the next source.
+        XCTAssertNil(Pairings.choose(complements: Pairings.unseen(Array(ps.prefix(5)), shown: shown), learned: []))
+    }
+
+    func testRowsLeadWithTheSameBrandAndOtherBrandsOnlyFill() throws {
+        let c = CatalogStore(synchronously: true)
+        let ps = Array(c.catalog.products.filter(\.available).prefix(400))
+        guard let brand = ps.first?.brand, ps.contains(where: { $0.brand != brand }) else { throw XCTSkip("one brand") }
+        let mixed = ps.reversed().map { $0 }
+        let out = Pairings.brandFirst(mixed, brand: brand)
+        let own = out.prefix { $0.brand == brand }
+        XCTAssertEqual(own.count, mixed.filter { $0.brand == brand }.count, "every same-brand product comes before any other brand")
+        XCTAssertEqual(out.count, mixed.count, "other brands still fill the row")
+    }
+
     func testComplementsAreFetchedOncePerProduct() async {
         Pairings.clearCaches()
         var calls = 0

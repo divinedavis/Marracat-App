@@ -16,6 +16,18 @@ export const money = (value, currency = "USD") =>
 // catalog/department_rules.py file_adult) stay in search, their department
 // and their brand's page, but off the home page's shared rows (owner,
 // 2026-11-16), as the app's Home does (Product.keptOffHome).
+// The products not already in one of `rows` (each a list of products), so
+// one product page never shows a product in two rows.
+export function unseenIn(products, rows) {
+  const shown = new Set(rows.flat().map((p) => p.id));
+  return products.filter((p) => !shown.has(p.id));
+}
+
+// The product's own brand first, other brands only after (owner, 2026-11-17).
+export function brandFirst(products, brand) {
+  return [...products.filter((p) => p.brand === brand), ...products.filter((p) => p.brand !== brand)];
+}
+
 export const keptOffHome = (p) => (p?.subs || []).includes("sexual-wellness");
 
 export function cartTotals(lines) {
