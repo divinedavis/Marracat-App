@@ -69,7 +69,7 @@ struct ForBrandsScreen: View {
         }
         .navigationTitle("For brands")
         .marracatChrome()
-        .refreshable { await load() }
+        .markRefreshable { await load() }
         .task { await load() }
         .sheet(item: $browser) { SafariView(url: $0.url).ignoresSafeArea() }
         .overlay {

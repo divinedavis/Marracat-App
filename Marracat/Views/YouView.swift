@@ -479,7 +479,7 @@ struct RestockAlertsView: View {
             }
         }
         .task { await restock.refresh() }
-        .refreshable { await restock.refresh() }
+        .markRefreshable { await restock.refresh() }
         .alert("Restock alert", isPresented: Binding(get: { restock.message != nil }, set: { if !$0 { restock.message = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(restock.message ?? "") }

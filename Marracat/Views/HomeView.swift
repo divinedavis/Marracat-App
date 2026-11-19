@@ -164,8 +164,8 @@ struct HomeView: View {
                 // longest stall 163 -> 300 ms).
                 if new == .home { catchUp() }
             }
-            .refreshable {
-                // Hold the spinner a beat so the swap reads as a refresh.
+            .markRefreshable {
+                // Hold the M a beat so the swap reads as a refresh.
                 try? await Task.sleep(for: .seconds(0.5))
                 mix.next()
                 rebuild(why: "pull to refresh")

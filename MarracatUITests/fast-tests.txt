@@ -55,3 +55,5 @@ MasonryGridUITests/testAProductClosesWithASwipeDownOrFromTheLeftEdge
 ShareAppUITests/testTheProfileOpensABigQRCodeForTheAppStore
 # Owner 2026-11-16: a price sort carries to the next search.
 SortPreferenceUITests/testSortingByLowPriceCarriesToTheNextSearch
+# pull to refresh draws the Marracat M
+PullToRefreshUITests/testHomeRefreshesWithTheMarracatMAtTheTop

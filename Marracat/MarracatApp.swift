@@ -122,6 +122,8 @@ struct MarracatApp: App {
         // AsyncImage rides URLSession.shared; give it room so grids don't refetch on scroll.
         URLCache.shared = URLCache(memoryCapacity: 64 << 20, diskCapacity: 512 << 20)
         MemoryPressure.start(catalog: catalog)
+        // Pull to refresh draws the Marracat M instead (MarkRefresh).
+        MarkRefresh.hideSystemSpinner()
     }
 
     /// marracat.com/p/<product id> → that product, on Home.

@@ -92,6 +92,8 @@ def planned(today):
             out.append(dict(id=h["id"], ref=f"Holiday {h['id']} {y}", year=y, start=start, end=end, theme=theme,
                             line=h["line"], event=e, link=e["link"]))
     for s in DOC["standing"]:
+        if s.get("app_store_event") is False:
+            continue   # App Review won't take it (holidays.json says why)
         e = s["event"]
         if "once" in s:
             a, b = date.fromisoformat(s["once"]["from"]), date.fromisoformat(s["once"]["to"])
@@ -198,7 +200,13 @@ def clear_rejections(apply):
             continue
         ids = [x["data"]["id"] for x in (it.get("relationships") or {}).values()
                if isinstance(x, dict) and isinstance(x.get("data"), dict)]
-        name = next((names[i] for i in ids if names.get(i)), it["id"])
+        name = next((names[i] for i in ids if names.get(i)), None)
+        if name is None:
+            # Not an event or holiday art: the app version itself, or anything
+            # else a person submitted. Never this job's to pull (it took
+            # Marracat 1.14 out of its submission on 2026-11-18).
+            log(f"rejected item {it['id'][:12]}… in {sid[:8]} is not an event or holiday art: left alone")
+            continue
         log(f"rejected {name} in {sid[:8]}: {'taking it out' if apply else 'would take it out'}; "
             f"reason is on ASC > App Review; held in {HELD.name}")
         if apply:

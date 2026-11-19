@@ -1509,7 +1509,9 @@
     "telfar",
     "curves",
     "ripl-efek"
-   ]
+   ],
+   "app_store_event": false,
+   "app_store_event_note": "App Review 2026-11-18, guideline 2.3.13: events can't promote physical goods (Standing spotlight 2026-12 rejected)."
   }
  ],
  "collections": [

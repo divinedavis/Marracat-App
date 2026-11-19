@@ -749,7 +749,7 @@ struct FriendsScreen: View {
             try? await Task.sleep(for: .milliseconds(300))
             await search()
         }
-        .refreshable { await social.reloadFriends() }
+        .markRefreshable { await social.reloadFriends() }
     }
 
     private func search() async {
@@ -805,7 +805,7 @@ struct InboxScreen: View {
         }
         .navigationTitle(String(localized: "Shared with you", comment: "Row in the Connect screen: products friends shared"))
         .task { await social.loadInbox(); loaded = true }
-        .refreshable { await social.loadInbox() }
+        .markRefreshable { await social.loadInbox() }
         .confirmationDialog("Report this message?", isPresented: .init(get: { reporting != nil }, set: { if !$0 { reporting = nil } }),
                             titleVisibility: .visible) {
             Button("Report", role: .destructive) {
