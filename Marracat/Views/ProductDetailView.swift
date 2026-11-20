@@ -200,28 +200,29 @@ struct ProductDetailView: View {
                         withAnimation(.easeInOut(duration: 0.2)) { titleInBar = gone }
                     }
                 // One seal per badge (owner, 2026-10-31, from the B3 preview),
-                // stacked; each row is the button to that badge's standard.
+                // side by side and centred, with no text beside them (owner,
+                // 2026-11-20); each seal is the button to that badge's standard.
                 if p.isCertifiedOrganic || p.isMarracatClean || p.isMarracatTrueMetal
                     || !QualityLabelBadge.Label.all(for: p).isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 14) {
                         if p.isCertifiedOrganic {
-                            BadgeSealRow(color: Theme.organic, symbol: "leaf.fill", name: "Certified organic",
-                                         summary: "Certified organic by the brand\u{2019}s certifier.", explains: false)
+                            BadgeSealMark(color: Theme.organic, symbol: "leaf.fill", name: "Certified organic",
+                                          summary: "Certified organic by the brand\u{2019}s certifier.", explains: false)
                                 .accessibilityIdentifier("organicSeal")
                         }
                         if p.isMarracatClean {
                             Button { showCleanStandard = true } label: {
-                                BadgeSealRow(color: Theme.clean, symbol: "checkmark.shield.fill", name: "Marracat Clean",
-                                             summary: "Its ingredient list is published, with nothing on it banned in any major market.")
+                                BadgeSealMark(color: Theme.clean, symbol: "checkmark.shield.fill", name: "Marracat Clean",
+                                              summary: "Its ingredient list is published, with nothing on it banned in any major market.")
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("cleanBadgeButton")
                         }
                         if p.isMarracatTrueMetal {
                             Button { showTrueMetalStandard = true } label: {
-                                BadgeSealRow(color: Theme.metal, symbol: "checkmark.seal.fill", name: "Marracat True Metal",
-                                             tier: p.isEthicallySourced ? "Ethically Sourced" : nil,
-                                             summary: String(localized: "Every metal the brand names is the real thing, and it\u{2019}s safe on skin."))
+                                BadgeSealMark(color: Theme.metal, symbol: "checkmark.seal.fill", name: "Marracat True Metal",
+                                              tier: p.isEthicallySourced ? "Ethically Sourced" : nil,
+                                              summary: String(localized: "Every metal the brand names is the real thing, and it\u{2019}s safe on skin."))
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("trueMetalBadgeButton")
@@ -229,13 +230,17 @@ struct ProductDetailView: View {
                         ForEach(QualityLabelBadge.Label.all(for: p), id: \.self) { label in
                             let parts = label.title.components(separatedBy: " · ")
                             Button { labelStandard = label } label: {
-                                BadgeSealRow(color: label.color, symbol: label.icon, name: parts[0],
-                                             tier: parts.count > 1 ? parts[1] : nil, summary: label.summary)
+                                BadgeSealMark(color: label.color, symbol: label.icon, name: parts[0],
+                                              tier: parts.count > 1 ? parts[1] : nil, summary: label.summary)
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("\(label.id)BadgeButton")
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 2)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("badgeSeals")
                 }
 
                 ImagePager(images: images(p), productID: p.id, openGallery: {

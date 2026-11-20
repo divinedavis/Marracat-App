@@ -18,6 +18,16 @@ struct FilterPhotoTests {
         FilterFacets(products: ps, filters: ProductFilters(), brandName: { $0 }, aisleName: { $0 })
     }
 
+    /// Badges lead the sheet's groups (owner, 2026-11-20: "make badges the
+    /// first item"); the rest keep their order.
+    @Test func badgesLeadTheGroups() {
+        #expect(FilterGroup.allCases.first == .badges)
+        #expect(FilterGroup.allCases.dropFirst().prefix(3) == [.category, .aisle, .gender])
+        let f = facets([product("cheap", brand: "a", price: 10, image: "https://x/cheap.jpg"),
+                        product("dear", brand: "c", price: 300, image: "https://x/dear.jpg")])
+        #expect(f.groups == FilterGroup.allCases.filter(f.groups.contains), "the sheet lists them in that order")
+    }
+
     @Test func brandPriceAndOfferTilesCarryAPhoto() {
         let f = facets([product("cheap", brand: "a", price: 10, image: "https://x/cheap.jpg"),
                         product("dear", brand: "c", price: 300, image: "https://x/dear.jpg")])

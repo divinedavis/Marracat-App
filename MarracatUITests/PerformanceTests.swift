@@ -102,6 +102,96 @@ final class PerformanceTests: XCTestCase {
     }
 }
 
+extension PerformanceTests {
+    /// The first tab switch after a launch (owner, 2026-11-20: "when the app
+    /// first loads up and I touch on another tab bar button the app freezes
+    /// for a second"). Home opens on the rows saved last session and used to
+    /// rebuild them from the whole catalog inside that first tap: ~0.6 s of
+    /// frozen app in the simulator for a shopper with history. A shopper
+    /// with searches, a viewed product, a cart and a saved item launches the
+    /// everyday way, lets Home settle and taps Cart; HitchProbe reports the
+    /// longest main-thread stall from the tap on, which also covers the rows
+    /// being rebuilt a moment later, off Home.
+    ///
+    /// The tab is tapped at a point worked out beforehand: an element query
+    /// there would stall the app with the test's own accessibility snapshot.
+    func testFirstTabSwitchAfterLaunch() {
+        let app = XCUIApplication()
+        func any(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
+        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-OFFLINE_CATALOG"]
+        app.launch()
+        for query in ["candle", "gold necklace"] {
+            let field = app.storeSearchField()
+            XCTAssertTrue(field.waitForExistence(timeout: 15))
+            let input = any("searchInput")
+            for _ in 0..<3 where !input.exists {
+                field.tap()
+                if input.waitForExistence(timeout: 5) { break }
+            }
+            XCTAssertTrue(input.exists, "search didn't open")
+            input.typeText(query + "\n")
+            let result = any("resultTitle")
+            XCTAssertTrue(result.waitForExistence(timeout: 10))
+            result.tap()
+            let add = any("addToCart")
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let save = any("addToList")
+            if save.waitForExistence(timeout: 3) { save.tap() }
+            sleep(1)
+            app.buttons["tab.home"].tap()
+        }
+        let cart = app.buttons["tab.cart"]
+        XCTAssertTrue(cart.waitForExistence(timeout: 10))
+        let size = app.windows.firstMatch.frame.size
+        let spot = CGVector(dx: cart.frame.midX / size.width, dy: cart.frame.midY / size.height)
+        // To the background, so Home saves the rows the next launch opens on.
+        XCUIDevice.shared.press(.home)
+        sleep(2)
+        app.terminate()
+
+        let today = Calendar.current.startOfDay(for: .now).timeIntervalSince1970
+        app.launchArguments = ["-CHECKOUT_STUB", "-OFFLINE_CATALOG", "-HITCH_PROBE", "-splash.lastShownDay", String(today)]
+        let opts = XCTMeasureOptions(); opts.iterationCount = 3
+        measure(metrics: [TabSwitchMetric()], options: opts) {
+            app.launch()
+            sleep(3)
+            app.coordinate(withNormalizedOffset: spot).tap()
+            sleep(3)
+            let probe = app.descendants(matching: .any).matching(identifier: "hitchProbe").firstMatch
+            XCTAssertTrue(probe.waitForExistence(timeout: 10), "the app's HitchProbe isn't there (-HITCH_PROBE)")
+            TabSwitchMetric.readings.append((Date(), probe.label))
+            app.terminate()
+        }
+    }
+}
+
+/// HitchProbe's longest stall since a tab was tapped, for the iteration that
+/// just ran (see HomeFlingMetric).
+final class TabSwitchMetric: NSObject, XCTMetric {
+    static var readings: [(at: Date, label: String)] = []
+
+    func copy(with zone: NSZone? = nil) -> Any { TabSwitchMetric() }
+
+    func reportMeasurements(from startTime: XCTPerformanceMeasurementTimestamp,
+                            to endTime: XCTPerformanceMeasurementTimestamp) throws -> [XCTPerformanceMeasurement] {
+        let reading = Self.readings.last { $0.at >= startTime.date && $0.at <= endTime.date }?.label ?? ""
+        let tab = reading.split(separator: ";").compactMap { part -> Double? in
+            let kv = part.split(separator: "=")
+            return kv.count == 2 && kv[0] == "tab" ? Double(kv[1]) : nil
+        }.first
+        // -1: the tap never reached a tab.
+        guard let tab, tab >= 0 else {
+            throw NSError(domain: "TabSwitchMetric", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "no tab switch in the HitchProbe reading: \(reading)"])
+        }
+        return [
+            XCTPerformanceMeasurement(identifier: "com.marracat.tab.firstSwitchStall", displayName: "First tab switch longest stall",
+                                      doubleValue: tab, unitSymbol: "ms", polarity: .prefersSmaller),
+        ]
+    }
+}
+
 /// The numbers HitchProbe reported for the iteration that just ran, as
 /// XCTMetric measurements, so scripts/perf_gate.py keeps a baseline of them
 /// like any other metric.

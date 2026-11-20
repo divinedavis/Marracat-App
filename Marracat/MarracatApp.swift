@@ -595,6 +595,7 @@ final class AppNav {
     /// A tap on a tab, from the floating bar or the sidebar.
     func tap(_ tab: AppTab) {
         LaunchTiming.log.notice("tab: tapped \(String(describing: tab), privacy: .public) at \(LaunchTiming.sinceStart(), privacy: .public) ms")
+        if HitchProbe.enabled { MainActor.assumeIsolated { HitchProbe.shared.tabTapped() } }
         if tab == .browse {
             // The search icon, ASOS-style: the first tap lands on the Browse page;
             // tapping it again there opens search with the cursor and keyboard up.

@@ -77,6 +77,36 @@ final class FreshCatalogTests: XCTestCase {
         XCTAssertTrue(catalog.product(known.id)?.variants.first?.available == true)
     }
 
+    /// A product that sold out since the last publish goes to the bottom of
+    /// a grid, filtered or not (owner, 2026-11-20: "sold out items should be
+    /// at the bottom. Even if someone filters"). The grid was ordered by the
+    /// catalog's stock while each card showed the fresher one.
+    func testWhatSoldOutSinceThePublishSinksInAGrid() throws {
+        let catalog = CatalogStore(synchronously: true)
+        let brand = try XCTUnwrap(catalog.brands.first { catalog.products(for: $0.id).filter(\.available).count >= 4 })
+        let list = Array(catalog.products(for: brand.id).filter(\.available).prefix(4))
+        let f = FreshCatalog.shared
+        defer { f.clear() }
+        XCTAssertEqual(f.current(list).map(\.id), list.map(\.id), "nothing fresher: the list as it was")
+        var gone = list[0]
+        gone.available = false
+        f.merge([gone], brand: brand.id, catalog: catalog)
+        let fresh = f.current(list)
+        XCTAssertEqual(fresh.map(\.available), [false, true, true, true], "the list knows what the cards know")
+        XCTAssertEqual(catalog.inStockFirst(ProductFilters().apply(fresh)).map(\.id), list.dropFirst().map(\.id) + [list[0].id])
+        for sort in ProductSort.allCases {
+            var sorted = ProductFilters()
+            sorted.sort = sort
+            XCTAssertEqual(catalog.inStockFirst(sorted.apply(fresh)).last?.id, list[0].id, "last whatever the sort: \(sort)")
+        }
+        var narrowed = ProductFilters()
+        narrowed.brands = [brand.id]
+        XCTAssertEqual(catalog.inStockFirst(narrowed.apply(fresh)).last?.id, list[0].id, "and under a filter")
+        var inStock = ProductFilters()
+        inStock.offers = [.inStock]
+        XCTAssertFalse(inStock.apply(fresh).contains { $0.id == list[0].id }, "In stock leaves it out")
+    }
+
     private func product(_ id: String, brand: String) -> Product {
         Product(id: id, brand: brand, title: id, category: "bags", productType: nil, subs: [], price: 10, compareAt: nil,
                 images: [], url: "https://example.com", available: true, variants: [], tags: [], description: nil,

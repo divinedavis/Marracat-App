@@ -372,34 +372,30 @@ struct BadgeSeal: View {
     }
 }
 
-/// A seal with the badge's name (and tier), what it means, and the link to
-/// its standard. Used for every badge on the product page.
-struct BadgeSealRow: View {
+/// A badge on the product page: its seal and nothing beside it (owner,
+/// 2026-11-20: "we only need to have the badges we don't need the text. When
+/// someone clicks on the badge it'll show them what the badge means"). The
+/// name, tier and one-line meaning that sat beside each seal are still what
+/// VoiceOver reads; sighted shoppers get them from the sheet the seal opens.
+struct BadgeSealMark: View {
     let color: Color
     let symbol: String
     /// "Marracat Clean"; badge names stay English everywhere.
     let name: String
     var tier: String? = nil
     let summary: String
+    /// Tapping it opens the badge's standard.
     var explains = true
 
+    static let size: CGFloat = 64
+
     var body: some View {
-        HStack(spacing: 12) {
-            BadgeSeal(color: color, ring: Self.ring(for: name), symbol: symbol)
-            VStack(alignment: .leading, spacing: 2) {
-                (Text(verbatim: name).bold() + Text(verbatim: tier.map { " · \($0)" } ?? "").foregroundStyle(color))
-                    .font(.subheadline)
-                Text(summary).font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if explains {
-                    (Text("What this means") + Text(verbatim: " ›")).font(.caption.bold()).foregroundStyle(color)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        ZStack { BadgeSeal(color: color, ring: Self.ring(for: name), symbol: symbol, size: Self.size) }
+            .contentShape(Circle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: tier.map { "\(name) · \($0)" } ?? name))
+            .accessibilityValue(Text(summary))
+            .accessibilityHint(explains ? Text("Shows what this badge means", comment: "VoiceOver hint on a product page badge seal") : Text(verbatim: ""))
     }
 
     /// "Marracat Pet Safe" -> "MARRACAT • PET SAFE •"; "Certified organic"
@@ -885,7 +881,7 @@ struct TrueMetalStandardSheet: View {
 struct BadgeIconRow: View {
     let product: Product
 
-    private struct Mark: Identifiable {
+    fileprivate struct Mark: Identifiable {
         let id: String, symbol: String, color: Color, ink: Color, name: String
     }
 
@@ -894,7 +890,7 @@ struct BadgeIconRow: View {
     /// Whether the product shows any badge icons (a row reserves their line).
     static func hasMarks(_ product: Product) -> Bool { !marks(for: product).isEmpty }
 
-    private static func marks(for product: Product) -> [Mark] {
+    fileprivate static func marks(for product: Product) -> [Mark] {
         var out: [Mark] = []
         if product.isCertifiedOrganic { out.append(.init(id: "organicBadge", symbol: "leaf.fill", color: Theme.organic, ink: .white, name: "Certified organic")) }
         if product.isMarracatClean { out.append(.init(id: "cleanBadge", symbol: "checkmark.shield.fill", color: Theme.clean, ink: .white, name: "Marracat Clean ingredients")) }
@@ -925,6 +921,41 @@ struct BadgeIconRow: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("badgeIconRow")
+        }
+    }
+}
+
+/// A product's badges on a grid tile: a tab hanging from the photo's top
+/// right corner, one coloured segment per badge (owner, 2026-11-20, picked
+/// "5 · Corner tab" from five previews; the grid tiles showed no badge at
+/// all, so a list narrowed to Safe Fabric looked like any other). The same
+/// icons, colours and names as `BadgeIconRow` on the row cards.
+struct BadgeCornerTab: View {
+    let product: Product
+
+    static let width: CGFloat = 26
+
+    var body: some View {
+        let marks = BadgeIconRow.marks(for: product)
+        if !marks.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(marks) { m in
+                    Image(systemName: m.symbol)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(m.ink)
+                        // The first hangs from the photo's edge: a little taller.
+                        .padding(.top, m.id == marks.first?.id ? 3 : 0)
+                        .frame(width: Self.width, height: m.id == marks.first?.id ? 30 : 27)
+                        .background(m.color)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(m.name)
+                        .accessibilityIdentifier(m.id)
+                }
+            }
+            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 8, bottomTrailingRadius: 8))
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("badgeCornerTab")
         }
     }
 }

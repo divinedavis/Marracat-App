@@ -119,6 +119,16 @@ final class FreshCatalog {
     /// The freshest copy of a product this phone has.
     func current(_ product: Product) -> Product { overlay[product.id] ?? product }
 
+    /// A list as fresh as this phone has it, for a grid about to be filtered
+    /// and ordered. The cards already show the freshest copy; a grid ordered
+    /// by the catalog's left a product that sold out since the last publish
+    /// where it stood, "Sold out" among the ones that can be bought, or first
+    /// under a filter (owner, 2026-11-20: "sold out items should be at the
+    /// bottom. Even if someone filters").
+    func current(_ products: [Product]) -> [Product] {
+        overlay.isEmpty ? products : products.map { overlay[$0.id] ?? $0 }
+    }
+
     func arrival(_ id: String) -> Product? {
         for list in arrivals.values { if let p = list.first(where: { $0.id == id }) { return p } }
         return nil

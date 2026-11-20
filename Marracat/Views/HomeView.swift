@@ -42,6 +42,8 @@ struct HomeView: View {
     /// The personal rows on the page came from an earlier session, or the
     /// history changed while they were on screen: redone at the next fresh visit.
     @State private var personalStale = false
+    /// `leftHome` is working the personal rows out, off the tab tap.
+    @State private var rebuildingOffHome = false
     /// The history Home last built from. Search now runs on Browse
     /// (2026-10-20), where Home isn't on screen and its onChange hooks
     /// don't reliably fire, so Home also compares on coming back.
@@ -309,13 +311,34 @@ struct HomeView: View {
     }
 
     /// The shopper went to another tab: Home's next visit is fresh.
+    ///
+    /// Not inside the tap. After a launch the rows are the ones saved last
+    /// session, so the first tab switch rebuilt them, on the main thread, as
+    /// the tap landed: the app froze before the other tab appeared (owner,
+    /// 2026-11-20: "when the app first loads up and I touch on another tab
+    /// bar button the app freezes for a second"; 0.6 s in the simulator for
+    /// a shopper with two small recent searches, 3.6 s with "candle" among
+    /// them). The other tab draws first; the recent
+    /// searches the rows are made from run on a background thread
+    /// (`warmSearches`), and only then are the rows built, while Home is
+    /// still out of sight. Back on Home before that, they wait for the next
+    /// time it is left.
     private func leftHome() {
-        if personalStale, catalog.isComplete {
-            var next = page
-            next.setPersonal(personalRows())
-            page = next
-            personalStale = false
-            logPersonal("rebuilt on leaving")
+        if personalStale, catalog.isComplete, !rebuildingOffHome {
+            rebuildingOffHome = true
+            Task { @MainActor in
+                defer { rebuildingOffHome = false }
+                try? await Task.sleep(for: .milliseconds(300))
+                await catalog.warmSearches(CatalogStore.searchRowQueries(shopper.recentSearches, memory: SearchMemory.load()))
+                guard personalStale, catalog.isComplete, nav.tab != .home else { return }
+                let started = Date()
+                var next = page
+                next.setPersonal(personalRows())
+                page = next
+                personalStale = false
+                LaunchTiming.log.notice("home: personal rows rebuilt off Home in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms at \(LaunchTiming.sinceStart(), privacy: .public) ms")
+                logPersonal("rebuilt after leaving")
+            }
         }
         Task { await refreshPicked() }
     }

@@ -455,7 +455,8 @@ struct SearchResultsView: View {
         let picked = unfiltered ? picks : nil
         let pickedIDs = Set(picked?.products.map(\.id) ?? [])
         // Sold-out results go to the bottom whatever the sort or relevance.
-        let shown = catalog.inStockFirst(filters.apply(all)).filter { !pickedIDs.contains($0.id) }
+        // By the freshest stock this phone has, as the cards show it.
+        let shown = catalog.inStockFirst(filters.apply(FreshCatalog.shared.current(all))).filter { !pickedIDs.contains($0.id) }
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {

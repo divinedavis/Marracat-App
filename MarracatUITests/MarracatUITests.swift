@@ -585,6 +585,10 @@ final class MarracatUITests: MarracatUITestCase {
         late.tap()
         XCTAssertTrue(any("orderLateShipmentNote").disappears(timeout: 5))
         XCTAssertEqual(late.value as? String, "Not reported")
+        // A finger on the photo itself lands on the product page (owner,
+        // 2026-11-20: the link was there in build 194 and the tap did nothing).
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+        XCTAssertTrue(any("buyNow").appears(timeout: 5), "tapping the order's photo should open the product")
     }
 
     /// A brand's store narrows to Marracat Clean like every other list. Since
@@ -624,6 +628,16 @@ final class MarracatUITests: MarracatUITestCase {
         XCTAssertTrue(any("filterSheet").disappears(timeout: 5))
         XCTAssertTrue(count.appears(timeout: 3))
         XCTAssertNotEqual(count.label, before, "turning Clean on should narrow the brand's items")
+        // A tile says which badges its product carries, on a tab hanging from
+        // the photo's top right corner (owner, 2026-11-20, picked from five
+        // previews; the grid showed no badge before).
+        let tab = any("badgeCornerTab")
+        XCTAssertTrue(tab.appears(timeout: 5), "a Clean product's tile should show its badge")
+        XCTAssertEqual(any("cleanBadge").label, "Marracat Clean ingredients")
+        let tiles = any("masonryGrid").descendants(matching: .any).matching(identifier: "productTile").allElementsBoundByIndex.map(\.frame)
+        XCTAssertTrue(tiles.contains { abs($0.minY - tab.frame.minY) < 2 && tab.frame.minX > $0.midX && tab.frame.maxX < $0.maxX },
+                      "the tab hangs from a photo's top right corner: \(tab.frame) in \(tiles)")
+        snap("grid-badge-tab")
     }
 
     func testHomeTabScrollsHomeToTop() {
@@ -1403,14 +1417,22 @@ final class MarracatUITests2: MarracatUITestCase {
         title.tap()
         let button = any("cleanBadgeButton")
         XCTAssertTrue(button.appears(timeout: 5), "the product page should show the badge")
-        // One seal row per badge (owner, 2026-10-31), stacked right under
-        // each other: a row starts where the last one ends, plus 8 pt.
-        XCTAssertGreaterThanOrEqual(button.frame.height, 56, "the badge should be a seal row, not the old one-line badge")
+        // One seal per badge (owner, 2026-10-31), and only the seal (owner,
+        // 2026-11-20: "we only need to have the badges we don't need the
+        // text", "then center the badges"): side by side on one line, in the
+        // middle of the page, with no words beside them.
+        XCTAssertGreaterThanOrEqual(button.frame.height, 56, "the badge should be a seal, not the old one-line badge")
+        XCTAssertEqual(button.frame.width, button.frame.height, accuracy: 2, "a seal alone, no text beside it: \(button.frame)")
+        XCTAssertTrue(button.label.hasPrefix("Marracat Clean"), "VoiceOver still hears the badge's name: \(button.label)")
+        XCTAssertFalse(app.staticTexts["What this means"].exists, "the words beside the seal are gone")
         let badges = app.buttons.matching(NSPredicate(format: "identifier ENDSWITH 'BadgeButton'"))
-            .allElementsBoundByIndex.map(\.frame).sorted { $0.minY < $1.minY }
+            .allElementsBoundByIndex.map(\.frame).sorted { $0.minX < $1.minX }
         for (a, b) in zip(badges, badges.dropFirst()) {
-            XCTAssertLessThanOrEqual(b.minY - a.maxY, 12, "badges on the product page should sit right under each other")
+            XCTAssertEqual(a.midY, b.midY, accuracy: 2, "badges on the product page sit on one line")
         }
+        let page = app.windows.firstMatch.frame
+        XCTAssertEqual((badges.first!.minX + badges.last!.maxX) / 2, page.midX, accuracy: 4, "the badges are centred")
+        snap("product-badge-seals")
         button.tap()
         XCTAssertTrue(any("cleanStandardSheet").appears(timeout: 5),
                       "tapping the badge should explain the standard")

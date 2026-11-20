@@ -155,6 +155,9 @@ struct ProductFilters: Hashable {
 /// Sort is deliberately not here. It reorders rather than narrows, so it sits
 /// beside the Filters button instead of inside the sheet.
 enum FilterGroup: String, CaseIterable, Identifiable {
+    // The sheet lists its groups in this order. Badges lead (owner,
+    // 2026-11-20: "make badges the first item"); they were second to last.
+    case badges = "Badges"
     case category = "Category"
     case aisle = "Type"
     case gender = "Gender"
@@ -171,7 +174,6 @@ enum FilterGroup: String, CaseIterable, Identifiable {
     case pack = "Minis & sets"
     case color = "Colour"
     case size = "Size"
-    case badges = "Badges"
     case offers = "Offers"
     var id: String { rawValue }
     /// rawValue is the stable id; this is the heading the shopper reads.

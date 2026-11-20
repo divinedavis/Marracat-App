@@ -126,9 +126,11 @@ struct BrandStoreView: View {
 
     private func content(_ brand: Brand) -> some View {
         // New since the last publish first (FreshCatalog), then the catalog's.
-        let all = FreshCatalog.shared.arrivals[brand.id, default: []] + Array(catalog.products(for: brand.id))
-        // Sold-out items go last whatever the sort, so a brand page leads with
-        // what can be bought.
+        // Each as fresh as this phone has it, so what sold out since the last
+        // publish is filtered, sorted and counted as sold out.
+        let all = FreshCatalog.shared.arrivals[brand.id, default: []] + FreshCatalog.shared.current(Array(catalog.products(for: brand.id)))
+        // Sold-out items go last whatever the sort or filter, so a brand page
+        // leads with what can be bought.
         let shown = catalog.inStockFirst(filters.apply(all))
         let photo = Self.heroPhoto(brand, all)
 
@@ -497,6 +499,8 @@ struct MasonryTile: View {
                     .overlay(alignment: .topLeading) {
                         if let off = product.percentOff, product.available { DealBadge(percent: off).padding(8) }
                     }
+                    // Its badges, on a tab in the other corner.
+                    .overlay(alignment: .topTrailing) { BadgeCornerTab(product: product).padding(.trailing, 12) }
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .modifier(ProductZoomSource(id: product.id))
                 Text(product.title)
@@ -549,6 +553,8 @@ struct ProductGridScreen: View {
     @State private var scroll = BrandScroll()
 
     var body: some View {
+        // As fresh as this phone has them, so the newly sold out sink too.
+        let products = FreshCatalog.shared.current(self.products)
         let shown = catalog.inStockFirst(filters.apply(products))
 
         ScrollView {

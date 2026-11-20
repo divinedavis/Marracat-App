@@ -873,49 +873,66 @@ final class CatalogStore {
                 .map(\.element.0)
         }
         let s = seed ?? Calendar.current.ordinality(of: .day, in: .era, for: .now) ?? 0
-        // Each brand's hash is computed once. Hashing inside the comparators
-        // cost millions of string hashes per page once a category held
-        // thousands of products from hundreds of brands.
-        var brandHash: [String: UInt64] = [:]
-        for (p, _) in ranked where brandHash[p.brand] == nil { brandHash[p.brand] = Self.hash(p.brand, seed: s) }
-        var buckets: [String: [(Product, Int)]] = [:]
-        for item in ranked.sorted(by: { a, b in
-            if a.1 != b.1 { return a.1 > b.1 }
-            let (ha, hb) = (brandHash[a.0.brand]!, brandHash[b.0.brand]!)
-            return ha != hb ? ha < hb : a.0.id < b.0.id
-        }) {
-            buckets[item.0.brand, default: []].append(item)
+        // Brands by number and products by position, so the work below reads
+        // arrays of numbers. Looking brands up by name in every comparison
+        // and at every slot made a search with thousands of matches from
+        // hundreds of brands slow: "candle", 17,000 matches, took 2.7 s in
+        // the simulator, nearly all of it here (2026-11-20). The order that
+        // comes out is the one this always made.
+        var number: [String: Int] = [:]
+        var hashes: [UInt64] = []          // each brand's hash, computed once
+        var brandOf: [Int] = []            // each product's brand
+        brandOf.reserveCapacity(ranked.count)
+        for (p, _) in ranked {
+            if let k = number[p.brand] { brandOf.append(k); continue }
+            number[p.brand] = hashes.count
+            brandOf.append(hashes.count)
+            hashes.append(Self.hash(p.brand, seed: s))
         }
-        var head: [String: Int] = buckets.mapValues { _ in 0 }
-        /// The brand with the best product waiting, preferring ones that
-        /// haven't just been shown.
-        func pick(skipping recent: [String]) -> String? {
-            var best: String?
-            var bestScore = Int.min, bestHash = UInt64.max
-            for (b, i) in head where !recent.contains(b) {
-                let score = buckets[b]![i].1, h = brandHash[b]!
-                if best == nil || score > bestScore || (score == bestScore && h < bestHash) {
-                    (best, bestScore, bestHash) = (b, score, h)
-                }
-            }
-            return best
+        let scores = ranked.map(\.1)
+        // Best first; equal scores in the day's brand order, then by id.
+        let order = ranked.indices.sorted { a, b in
+            if scores[a] != scores[b] { return scores[a] > scores[b] }
+            let (ha, hb) = (hashes[brandOf[a]], hashes[brandOf[b]])
+            return ha != hb ? ha < hb : ranked[a].0.id < ranked[b].0.id
         }
+        var buckets = [[Int]](repeating: [], count: hashes.count)
+        for i in order { buckets[brandOf[i]].append(i) }
+        var head = [Int](repeating: 0, count: buckets.count)
+        // The score of the product each brand has waiting.
+        var waiting = buckets.map { scores[$0[0]] }
+        var active = Array(buckets.indices)
         var out: [Product] = []
         out.reserveCapacity(ranked.count)
-        var recent: [String] = []
-        func nextScore(_ brand: String) -> Int { buckets[brand]![head[brand]!].1 }
-        while !head.isEmpty {
+        var recent: [Int] = []
+        while !active.isEmpty {
+            // The brand with the best product waiting, and the best among
+            // brands that haven't just been shown, in one pass.
+            var best = -1, bestScore = Int.min, bestHash = UInt64.max
+            var fresh = -1, freshScore = Int.min, freshHash = UInt64.max
+            for k in active {
+                let score = waiting[k], h = hashes[k]
+                if best < 0 || score > bestScore || (score == bestScore && h < bestHash) {
+                    (best, bestScore, bestHash) = (k, score, h)
+                }
+                if !recent.contains(k), fresh < 0 || score > freshScore || (score == freshScore && h < freshHash) {
+                    (fresh, freshScore, freshHash) = (k, score, h)
+                }
+            }
             // Once only one brand has anything left, the tail is unavoidably its own.
-            guard let spread = pick(skipping: recent) ?? pick(skipping: []) else { break }
+            let spread = fresh >= 0 ? fresh : best
             // Spreading brands breaks ties between equally good matches; it must
             // never put a weaker one above a stronger one. A search for vitamin
             // D showed a Vitamin C serum between the two real results, because
             // both real ones came from the same brand.
-            let best = pick(skipping: []) ?? spread
-            let b = nextScore(best) > nextScore(spread) ? best : spread
-            let i = head[b]!
-            out.append(buckets[b]![i].0)
-            if i + 1 == buckets[b]!.count { head[b] = nil } else { head[b] = i + 1 }
+            let b = bestScore > waiting[spread] ? best : spread
+            out.append(ranked[buckets[b][head[b]]].0)
+            head[b] += 1
+            if head[b] == buckets[b].count {
+                active.remove(at: active.firstIndex(of: b)!)
+            } else {
+                waiting[b] = scores[buckets[b][head[b]]]
+            }
             recent.append(b)
             if recent.count > 2 { recent.removeFirst() }
         }
@@ -943,7 +960,13 @@ final class CatalogStore {
     /// of it and kept for this catalog.
     private func searchTextForAll() -> [SearchText] {
         if let searchTextMemo, searchTextMemo.count == catalog.products.count { return searchTextMemo }
-        let products = catalog.products
+        let made = Self.searchTexts(catalog.products)
+        searchTextMemo = made
+        return made
+    }
+
+    /// Every product's search text, made on every core.
+    static func searchTexts(_ products: [Product]) -> [SearchText] {
         var out = [SearchText?](repeating: nil, count: products.count)
         let slices = products.count < 2000 ? 1 : CatalogBinary.pieces
         out.withUnsafeMutableBufferPointer { buffer in
@@ -953,9 +976,7 @@ final class CatalogStore {
                 }
             }
         }
-        let made = out.map { $0! }
-        searchTextMemo = made
-        return made
+        return out.map { $0! }
     }
 
     /// What search reads, copied out of the store so Siri and Shortcuts
@@ -2024,8 +2045,7 @@ extension CatalogStore {
         // Owner, 2026-10-10: searches the shopper acted on come first, holiday
         // searches expire, and a search that was really one product's name
         // becomes "More from <brand>" or "<kind> like this".
-        let candidates = searches.prefix(8).filter { !memory.isExpired($0, now: now) }
-        let ordered = candidates.filter { memory.actedOn($0) } + candidates.filter { !memory.actedOn($0) }
+        let ordered = Self.searchRowQueries(searches, memory: memory, now: now)
         for q in ordered where rows.count < 2 {
             let results = search(q)
             if let named = Self.lookedUpProduct(q, in: results) {
@@ -2071,32 +2091,25 @@ extension CatalogStore {
                 + p.subs.reduce(0) { $0 + subW[p.category + ":" + $1, default: 0] }
         }
         let seeds = Set(saved + viewed)
-        // Scored once each, then sorted: score() builds strings, and calling it
-        // inside the comparator ran it ~n log n times on the main thread. The
-        // scoring is split across the cores (it was most of the ~0.3 s Home's
-        // personal rows took on 146k products, 2026-10-11).
+        // Scored once each: score() builds strings, and calling it inside a
+        // comparator ran it ~n log n times on the main thread. The scoring is
+        // split across the cores (it was most of the ~0.3 s Home's personal
+        // rows took on 146k products, 2026-10-11), and only the best 180 are
+        // kept (`best`): sorting every scored product to take the first 180
+        // was 140 ms of the freeze on the first tab switch after launch
+        // (owner, 2026-11-20). The row is the same one, product for product.
         let products = catalog.products, shownNow = shown, touchedNow = touched
         let slices = products.count < 4000 ? 1 : min(max(ProcessInfo.processInfo.activeProcessorCount, 1), 8)
-        var parts = [[(Product, Double)]](repeating: [], count: slices)
-        parts.withUnsafeMutableBufferPointer { out in
-            DispatchQueue.concurrentPerform(iterations: slices) { slice in
-                var found: [(Product, Double)] = []
-                for i in (products.count * slice / slices)..<(products.count * (slice + 1) / slices) {
-                    let p = products[i]
-                    guard p.available, !shownNow.contains(p.id), !seeds.contains(p.id),
-                          touchedNow.isEmpty || touchedNow.contains(p.category) else { continue }
-                    let s = score(p)
-                    if s > 0 { found.append((p, s)) }
-                }
-                out[slice] = found
-            }
-        }
-        let ranked = parts.joined()
-            .sorted { a, b in a.1 == b.1 ? a.0.id < b.0.id : a.1 > b.1 }
-            .map(\.0)
+        let ranked = Self.best(180, of: products.count, slices: slices, score: { i in
+            let p = products[i]
+            guard p.available, !shownNow.contains(p.id), !seeds.contains(p.id),
+                  touchedNow.isEmpty || touchedNow.contains(p.category) else { return nil }
+            let s = score(p)
+            return s > 0 ? s : nil
+        }, id: { products[$0].id }).map { products[$0] }
         // Round-robin keeps a prolific brand from occupying the whole row.
         // Limit the candidate pool so refresh preserves relevance.
-        let pool = Array(ranked.prefix(180)).distinctLooking()
+        let pool = ranked.distinctLooking()
         let related = spread(pool, limit: 12, mix: mix)
         if related.count >= 4 {
             let lean = departmentLean(viewed: viewed, saved: saved, purchased: purchased)
@@ -2107,6 +2120,93 @@ extension CatalogStore {
                                   products: products, reserved: mixed.reserved.intersection(products.map(\.id))))
         }
         return rows
+    }
+
+    /// The `limit` best of `count` candidates, best first: the highest
+    /// scores, equal scores in `id` order, as sorting them all and taking the
+    /// first `limit` would give. `score` is nil for a candidate that isn't
+    /// one. The candidates are split across `slices` threads, each keeping
+    /// only its own best `limit`, so nothing the size of the catalog is ever
+    /// sorted; `score` and `id` run on those threads.
+    static func best(_ limit: Int, of count: Int, slices: Int, score: (Int) -> Double?, id: (Int) -> String) -> [Int] {
+        guard limit > 0, count > 0 else { return [] }
+        func ahead(_ a: (Int, Double), _ b: (Int, Double)) -> Bool {
+            a.1 == b.1 ? id(a.0) < id(b.0) : a.1 > b.1
+        }
+        let slices = max(1, min(slices, count))
+        var parts = [[(Int, Double)]](repeating: [], count: slices)
+        parts.withUnsafeMutableBufferPointer { out in
+            DispatchQueue.concurrentPerform(iterations: slices) { slice in
+                var kept: [(Int, Double)] = []
+                kept.reserveCapacity(limit + 1)
+                for i in (count * slice / slices)..<(count * (slice + 1) / slices) {
+                    guard let s = score(i) else { continue }
+                    let found = (i, s)
+                    if kept.count == limit, !ahead(found, kept[limit - 1]) { continue }
+                    // After everything it doesn't beat, where a stable sort would put it.
+                    var low = 0, high = kept.count
+                    while low < high {
+                        let mid = (low + high) / 2
+                        if ahead(found, kept[mid]) { high = mid } else { low = mid + 1 }
+                    }
+                    kept.insert(found, at: low)
+                    if kept.count > limit { kept.removeLast() }
+                }
+                out[slice] = kept
+            }
+        }
+        return parts.joined().sorted(by: ahead).prefix(limit).map(\.0)
+    }
+
+    /// The recent searches `forYou` tries for its "Inspired by your search"
+    /// rows, in the order it tries them (owner, 2026-10-10): searches the
+    /// shopper acted on come first, and holiday searches expire.
+    static func searchRowQueries(_ searches: [String], memory: SearchMemory = SearchMemory(), now: Date = .now) -> [String] {
+        let candidates = searches.prefix(8).filter { !memory.isExpired($0, now: now) }
+        return candidates.filter { memory.actedOn($0) } + candidates.filter { !memory.actedOn($0) }
+    }
+
+    /// Runs searches someone is about to ask for on a background thread and
+    /// keeps their results, so `search` answers them at once. Home's personal
+    /// rows search the shopper's recent searches on the main thread; done
+    /// there on the way out of Home, they were most of a freeze on the first
+    /// tab switch after launch (owner, 2026-11-20). Only the first
+    /// `limit` not already answered; a catalog that changes meanwhile drops
+    /// the results.
+    ///
+    /// With the store's own copy of every product's search text, not
+    /// `SearchSnapshot`'s, which makes it again for each search that reads
+    /// most of the catalog ("candle" has other words for it, so it does):
+    /// that was 1.5 s a search here. Made on this thread if the store has
+    /// none yet, and kept.
+    @MainActor
+    func warmSearches(_ queries: [String], limit: Int = 4) async {
+        guard isComplete else { return }
+        var keys = Set<String>()
+        let wanted = queries.filter { searchMemo[$0.lowercased()] == nil && keys.insert($0.lowercased()).inserted }.prefix(limit)
+        guard !wanted.isEmpty else { return }
+        let catalog = catalog, brands = brandsByID, categories = categoriesByID, index = searchWordIndex, stamp = catalogGeneration
+        let kept = searchTextMemo.flatMap { $0.count == catalog.products.count ? $0 : nil }
+        let started = Date()
+        let (found, made) = await Task.detached(priority: .userInitiated) { () -> ([(String, [Product])], [SearchText]?) in
+            var texts = kept
+            let found = wanted.map { q in
+                (q.lowercased(), Self.runSearch(q, catalog: catalog, brands: brands, categories: categories, wordIndex: index, allText: {
+                    if let texts { return texts }
+                    let all = Self.searchTexts(catalog.products)
+                    texts = all
+                    return all
+                }))
+            }
+            return (found, kept == nil ? texts : nil)
+        }.value
+        LaunchTiming.log.notice("search: warmed \(found.count, privacy: .public) searches off the main thread in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms at \(LaunchTiming.sinceStart(), privacy: .public) ms")
+        guard stamp == catalogGeneration else { return }
+        if searchTextMemo == nil, let made { searchTextMemo = made }
+        for (key, results) in found where searchMemo[key] == nil {
+            if searchMemo.count >= 24 { searchMemo.removeAll() }
+            searchMemo[key] = results
+        }
     }
 
     /// The product a search named outright, if it was a lookup rather than a

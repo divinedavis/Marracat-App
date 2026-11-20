@@ -23,6 +23,8 @@ final class HitchProbe: NSObject {
     private var hitch: CFTimeInterval = 0
     private var longest: CFTimeInterval = 0
     private var interactiveMs = -1
+    /// The longest stall since the last tab tap (`tabTapped`), -1 before one.
+    private var tabStall: CFTimeInterval = -1
     private var view: ProbeView?
 
     func start() {
@@ -41,6 +43,13 @@ final class HitchProbe: NSObject {
         attach()
     }
 
+    /// A tab was tapped: the stall that follows is how long the app froze on
+    /// the way to it (PerformanceTests.testFirstTabSwitchAfterLaunch).
+    func tabTapped() {
+        guard Self.enabled, since > 0 else { return }
+        tabStall = 0
+    }
+
     @objc private func tick(_ link: CADisplayLink) {
         let now = link.timestamp
         defer { last = now }
@@ -51,16 +60,18 @@ final class HitchProbe: NSObject {
         guard frame > 0, gap > frame * 1.5 else { return }
         hitch += gap - frame
         longest = max(longest, gap)
+        if tabStall >= 0 { tabStall = max(tabStall, gap) }
         if gap > 0.05 {
             LaunchTiming.log.notice("hitch: main thread stalled \(Int(gap * 1000), privacy: .public) ms at \(LaunchTiming.sinceStart(), privacy: .public) ms")
         }
     }
 
-    /// "hitch=<ms per s>;stall=<longest ms>;interactive=<ms from process start>;elapsed=<s>"
+    /// "hitch=<ms per s>;stall=<longest ms>;interactive=<ms from process start>;elapsed=<s>;tab=<longest ms since a tab tap, -1 before one>"
     var summary: String {
         let elapsed = since > 0 ? CACurrentMediaTime() - since : 0
         let ratio = elapsed > 0 ? hitch * 1000 / elapsed : 0
-        return String(format: "hitch=%.2f;stall=%.1f;interactive=%d;elapsed=%.2f", ratio, longest * 1000, interactiveMs, elapsed)
+        return String(format: "hitch=%.2f;stall=%.1f;interactive=%d;elapsed=%.2f;tab=%.1f", ratio, longest * 1000, interactiveMs, elapsed,
+                      tabStall < 0 ? -1 : tabStall * 1000)
     }
 
     private func attach() {
