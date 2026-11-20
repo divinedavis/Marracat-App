@@ -33,7 +33,7 @@ final class CatalogStore {
 
     /// Starts empty and fills itself a moment later, in two steps: Home's
     /// slice (a few thousand products, tens of milliseconds), then the whole
-    /// catalog behind it at a lower priority. Reading and indexing all 146k
+    /// catalog, read beside it. Reading and indexing all 146k
     /// products took ~1.4 s of every cold launch, all of it before Home could
     /// draw (owner, 2026-10-11: "any chance we can speed up the loading").
     init(bundle: Bundle = .main, synchronously: Bool = false) {
@@ -42,32 +42,38 @@ final class CatalogStore {
         if synchronously {
             install(Self.prepare(Self.bestLocal(bundle).catalog, complete: true))
         } else {
+            // Read AND index off the main thread: building the lookups froze
+            // the launch animation mid-flight. All four reads start here, not
+            // inside the main-actor task below: that task's body waits for
+            // the main thread, which is busy bringing the app up for the
+            // first ~0.7 s, so the whole catalog (which the launch cover
+            // waits for) used to start that late. Launch to Home had crept
+            // from 1.9 s to 2.12 s as the catalog grew to 198k products and
+            // failed the ship's ceiling (2026-11-20).
+            let rows = Task.detached(priority: .userInitiated) { HomeRowsCache.load() }
+            let styles = Task.detached(priority: .userInitiated) { StyleBoardsCache.load() }
+            let slice = Task.detached(priority: .userInitiated) { () -> Indexed? in
+                guard !ProcessInfo.processInfo.arguments.contains("-NO_HOME_SLICE") else { return nil }
+                let t0 = Date()
+                guard let c = HomeSlice.load(expecting: Self.onDiskGeneratedAt(bundle), bundle: bundle) else { return nil }
+                let indexed = Self.prepare(c, complete: false)
+                LaunchTiming.log.notice("launch: home slice \(Int(Date().timeIntervalSince(t0) * 1000), privacy: .public) ms, \(c.products.count, privacy: .public) products")
+                return indexed
+            }
+            // The whole catalog, beside the slice: the cover waits for it.
+            let whole = Task.detached(priority: .userInitiated) {
+                let t0 = Date()
+                let loaded = Self.bestLocal(bundle)
+                let t1 = Date()
+                let indexed = Self.prepare(loaded.catalog, complete: true)
+                LaunchTiming.log.notice("launch: catalog read \(Int(t1.timeIntervalSince(t0) * 1000), privacy: .public) ms, indexed \(Int(Date().timeIntervalSince(t1) * 1000), privacy: .public) ms, \(loaded.catalog.products.count, privacy: .public) products, done at \(LaunchTiming.sinceStart(), privacy: .public) ms")
+                return (indexed, loaded.fromBinary)
+            }
             Task { @MainActor [weak self] in
-                // Read AND index off the main thread: building the lookups
-                // froze the launch animation mid-flight.
-                let onDisk = Self.onDiskGeneratedAt(bundle)
-                let rows = Task.detached(priority: .userInitiated) { HomeRowsCache.load() }
-                let styles = Task.detached(priority: .userInitiated) { StyleBoardsCache.load() }
-                let slice = await Task.detached(priority: .userInitiated) { () -> Indexed? in
-                    guard !ProcessInfo.processInfo.arguments.contains("-NO_HOME_SLICE") else { return nil }
-                    let t0 = Date()
-                    guard let c = HomeSlice.load(expecting: onDisk, bundle: bundle) else { return nil }
-                    let indexed = Self.prepare(c, complete: false)
-                    LaunchTiming.log.notice("launch: home slice \(Int(Date().timeIntervalSince(t0) * 1000), privacy: .public) ms, \(c.products.count, privacy: .public) products")
-                    return indexed
-                }.value
                 self?.launchHomeRows = await rows.value
                 self?.launchStyleBoards = await styles.value
-                if let slice { self?.apply(slice) }
-                // The whole catalog, behind Home when the slice is showing.
-                let (ready, fromBinary) = await Task.detached(priority: slice == nil ? .userInitiated : .utility) {
-                    let t0 = Date()
-                    let loaded = Self.bestLocal(bundle)
-                    let t1 = Date()
-                    let indexed = Self.prepare(loaded.catalog, complete: true)
-                    LaunchTiming.log.notice("launch: catalog read \(Int(t1.timeIntervalSince(t0) * 1000), privacy: .public) ms, indexed \(Int(Date().timeIntervalSince(t1) * 1000), privacy: .public) ms, \(loaded.catalog.products.count, privacy: .public) products")
-                    return (indexed, loaded.fromBinary)
-                }.value
+                if let slice = await slice.value { self?.apply(slice) }
+                let (ready, fromBinary) = await whole.value
                 self?.apply(ready)
                 LaunchTiming.log.notice("launch: catalog complete at \(LaunchTiming.sinceStart(), privacy: .public) ms")
                 // Read from JSON (a download the binary wasn't written for):
@@ -224,8 +230,10 @@ final class CatalogStore {
         var deals: [Int32] = [], newArrivals: [Int32] = [], discover: [Int32] = []
         let jobs: [() -> Void] = [
             { products.reserveCapacity(all.count)
-              // The first of a repeated id wins, as the old Dictionary(uniquingKeysWith:) did.
-              for (i, p) in all.enumerated() where products[p.id] == nil { products[p.id] = Int32(i) } },
+              // The first of a repeated id wins, as the old Dictionary(uniquingKeysWith:)
+              // did: walked backwards, the last write is the first product, with
+              // one lookup each instead of two.
+              for i in all.indices.reversed() { products[all[i].id] = Int32(i) } },
             { subCounts = all.reduce(into: [String: Int]()) { counts, p in
                 for leaf in p.subs { counts["\(p.category):\(leaf)", default: 0] += 1 }
             } },
@@ -256,9 +264,9 @@ final class CatalogStore {
     /// Hash each product once, then sort by the key: hashing inside the
     /// comparator ran ~n log n string hashes on every Home render.
     private static func makeDiscover(_ products: [Product], day: Int) -> [Int32] {
-        var keyed: [(UInt64, Int32)] = []
-        keyed.reserveCapacity(products.count)
-        for (i, p) in products.enumerated() where p.available && !p.keptOffHome { keyed.append((hash(p.id, seed: day), Int32(i))) }
+        let keyed: [(UInt64, Int32)] = CatalogOrder.gather(products) { p, i in
+            p.available && !p.keptOffHome ? (hash(p.id, seed: day), i) : nil
+        }
         return keyed.sorted { $0.0 < $1.0 }.map(\.1)
     }
 
@@ -1969,7 +1977,14 @@ final class CatalogStore {
     }
 
     static func hash(_ s: String, seed: Int) -> UInt64 {
-        var h: UInt64 = 1469598103934665603 &+ UInt64(truncatingIfNeeded: seed)
+        let start: UInt64 = 1469598103934665603 &+ UInt64(truncatingIfNeeded: seed)
+        // The same bytes either way; a native string hands them over in one piece.
+        if let h = s.utf8.withContiguousStorageIfAvailable({ bytes -> UInt64 in
+            var h = start
+            for b in bytes { h = (h ^ UInt64(b)) &* 1099511628211 }
+            return h
+        }) { return h }
+        var h = start
         for b in s.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 }
         return h
     }

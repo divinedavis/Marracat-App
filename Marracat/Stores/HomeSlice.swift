@@ -159,11 +159,32 @@ extension Product {
 /// whole catalog does. Ties keep catalog order, which is what the stable sort
 /// these replaced did, so a subset in catalog order ranks the same way.
 enum CatalogOrder {
+    /// What `pick` keeps of the products, in catalog order, looked at on every
+    /// core. One pass over 198k products on one core was a third of a second
+    /// each for deals, new arrivals and the day's shuffle, and the launch
+    /// cover waits for the slowest of them (2026-11-20).
+    static func gather<T>(_ products: [Product], _ pick: (Product, Int32) -> T?) -> [T] {
+        let pieces = CatalogBinary.pieces, count = products.count
+        var parts = [[T]](repeating: [], count: pieces)
+        products.withUnsafeBufferPointer { all in
+            parts.withUnsafeMutableBufferPointer { out in
+                DispatchQueue.concurrentPerform(iterations: pieces) { k in
+                    var part: [T] = []
+                    for i in (count * k / pieces)..<(count * (k + 1) / pieces) {
+                        if let kept = pick(all[i], Int32(i)) { part.append(kept) }
+                    }
+                    out[k] = part
+                }
+            }
+        }
+        return Array(parts.joined())
+    }
+
     /// In-stock markdowns, deepest first.
     static func deals(_ products: [Product]) -> [Int32] {
-        var out: [(Int32, Int)] = []
-        for (i, p) in products.enumerated() where p.available && !p.keptOffHome {
-            if let off = p.percentOff { out.append((Int32(i), off)) }
+        let out: [(Int32, Int)] = gather(products) { p, i in
+            guard p.available, !p.keptOffHome, let off = p.percentOff else { return nil }
+            return (i, off)
         }
         return out.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }.map(\.0)
     }
@@ -178,11 +199,10 @@ enum CatalogOrder {
     /// today, so the slice and the whole catalog always agree.
     static func newArrivals(_ products: [Product], asOf generatedAt: String) -> [Int32] {
         let since = newArrivalCutoff(generatedAt)
-        var out: [(Int32, String)] = []
-        for (i, p) in products.enumerated() where p.available && !p.keptOffHome {
+        let out: [(Int32, String)] = gather(products) { p, i in
             // ISO 8601 dates compare as text; the day is enough.
-            guard let at = p.publishedAt, at.prefix(10) >= since else { continue }
-            out.append((Int32(i), at))
+            guard p.available, !p.keptOffHome, let at = p.publishedAt, at.prefix(10) >= since else { return nil }
+            return (i, at)
         }
         return out.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }.map(\.0)
     }

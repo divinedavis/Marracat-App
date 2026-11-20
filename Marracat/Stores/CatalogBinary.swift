@@ -287,23 +287,36 @@ enum CatalogBinary {
                 recordsAt + Int(raw.loadUnaligned(fromByteOffset: productOffsetsAt + i * 4, as: UInt32.self).littleEndian)
             }
             guard recordOffset(productCount) <= count else { return nil }
-            var products = [Product?](repeating: nil, count: productCount)
+            // Written straight into the array's own storage: filling an array
+            // of optionals and unwrapping it into a second one was ~60 ms of
+            // every launch on 198k products.
             var bad = false
             let lock = NSLock()
-            products.withUnsafeMutableBufferPointer { out in
-                DispatchQueue.concurrentPerform(iterations: cores) { slice in
-                    for i in (productCount * slice / cores)..<(productCount * (slice + 1) / cores) {
-                        guard let p = readProduct(raw, from: recordOffset(i), to: recordOffset(i + 1), strings: strings) else {
-                            lock.lock(); bad = true; lock.unlock(); return
+            var filled = [Int](repeating: 0, count: cores)
+            let products = [Product](unsafeUninitializedCapacity: productCount) { out, initialized in
+                guard let base = out.baseAddress else { return }
+                filled.withUnsafeMutableBufferPointer { filled in
+                    DispatchQueue.concurrentPerform(iterations: cores) { slice in
+                        let from = productCount * slice / cores
+                        for i in from..<(productCount * (slice + 1) / cores) {
+                            guard let p = readProduct(raw, from: recordOffset(i), to: recordOffset(i + 1), strings: strings) else {
+                                lock.lock(); bad = true; lock.unlock(); return
+                            }
+                            (base + i).initialize(to: p)
+                            filled[slice] = i - from + 1
                         }
-                        out[i] = p
+                    }
+                    // A record that doesn't read: give back what was made.
+                    if bad {
+                        for slice in 0..<cores { (base + productCount * slice / cores).deinitialize(count: filled[slice]) }
                     }
                 }
+                initialized = bad ? 0 : productCount
             }
             guard !bad else { return nil }
             return Catalog(generatedAt: header.generatedAt, categories: header.categories,
                            subcategories: header.subcategories, brands: header.brands,
-                           products: products.map { $0! })
+                           products: products)
         }
     }
 

@@ -140,6 +140,28 @@ final class HomeSliceTests: XCTestCase {
         XCTAssertLessThan(full.newArrivals.count, Self.whole.products.filter(\.available).count / 4, "New is a slice of the catalog, not all of it")
     }
 
+    /// Deals, New and the day's shuffle are gathered on every core, so the
+    /// launch cover lifts sooner (2026-11-20): each must come out exactly as
+    /// one pass in catalog order did.
+    func testOrdersGatheredOnEveryCoreMatchOnePass() {
+        let all = Self.whole.products
+        XCTAssertEqual(CatalogOrder.gather(all) { p, i in p.available ? i : nil },
+                       all.indices.filter { all[$0].available }.map(Int32.init), "in catalog order, none dropped or doubled")
+        var deals: [(Int32, Int)] = []
+        for (i, p) in all.enumerated() where p.available && !p.keptOffHome {
+            if let off = p.percentOff { deals.append((Int32(i), off)) }
+        }
+        XCTAssertFalse(deals.isEmpty)
+        XCTAssertEqual(CatalogOrder.deals(all), deals.sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 < $1.0 }.map(\.0))
+        // The shuffle's hash reads a string's bytes in one piece when it can:
+        // the same number either way, and the one the plain loop gave.
+        let id = all[0].id
+        var plain: UInt64 = 1469598103934665603 &+ 7
+        for b in id.utf8 { plain = (plain ^ UInt64(b)) &* 1099511628211 }
+        XCTAssertEqual(CatalogStore.hash(id, seed: 7), plain)
+        XCTAssertEqual(CatalogStore.hash(NSString(string: id) as String, seed: 7), plain)
+    }
+
     func testNewReachesBackThirtyDaysFromTheCatalogsDate() {
         XCTAssertEqual(CatalogOrder.newArrivalCutoff("2026-10-27T07:12:00Z"), "2026-09-27")
         XCTAssertEqual(CatalogOrder.newArrivalCutoff("2026-03-01T00:00:00Z"), "2026-01-30")
