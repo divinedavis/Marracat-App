@@ -618,7 +618,20 @@ struct OrderDetailView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 300)
             .overlay {
-                if let image = lead?.image {
+                // Tapping the photo opens the product (owner, 2026-11-19), the
+                // same page as the round Product button.
+                if let product = lead?.product {
+                    NavigationLink(value: Route.product(product.id)) {
+                        Group {
+                            if let image = lead?.image { RemoteImage(url: image, width: 900).padding(24) }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("View \(product.title)", comment: "Order details: the big product photo, which opens the product"))
+                    .accessibilityIdentifier("orderHeroProduct")
+                } else if let image = lead?.image {
                     RemoteImage(url: image, width: 900).padding(24).accessibilityHidden(true)
                 }
             }

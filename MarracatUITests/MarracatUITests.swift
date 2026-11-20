@@ -558,6 +558,10 @@ final class MarracatUITests: MarracatUITestCase {
         let manage = any("orderManage")
         XCTAssertTrue(manage.exists, "Order details should offer Manage your order")
         XCTAssertTrue(manage.label.contains("Manage your order"), manage.label)
+        // The big photo opens the product too (owner, 2026-11-19).
+        let photo = any("orderHeroProduct")
+        XCTAssertTrue(photo.exists, "the order's photo should open the product")
+        XCTAssertTrue(photo.label.hasPrefix("View "), photo.label)
         // The actions are round buttons on one line (owner, 2026-11-13), not
         // pills that wrap; VoiceOver still hears each one's full name.
         let actions = ["orderTrackPackage", "orderViewProduct", "orderViewStore", "orderLateShipment"].map { any($0) }
