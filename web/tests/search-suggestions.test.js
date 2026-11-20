@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createSearchIndex, suggest } from "../src/search-suggestions.js";
+import { createSearchIndex, liteIndex, serverSuggestions, suggest, suggestQuery } from "../src/search-suggestions.js";
 import { filterProducts } from "../src/catalog.js";
 import { websiteProduct, websiteBrand } from "../server/website-copy.js";
 const catalog = JSON.parse(
@@ -117,4 +117,25 @@ test("the dropdown's product cards are the search page's first results, and its 
     assert.deepEqual(cards, page.slice(0, cards.length), q);
     assert.equal(s.count, page.length, q);
   }
+});
+
+test("while the catalog loads, the panel offers brands, aisles and the server's first products (owner, 2026-11-19)", () => {
+  const lite = liteIndex(brands, catalog.categories); // as the index above is built
+  // Before the server answers: the brand the words name, as the full index offers it.
+  const early = serverSuggestions(lite, "fear of god", null);
+  const full = suggest(index, "fear of god");
+  const brandsOf = (r) => r.items.filter((x) => x.kind === "Brand").map((x) => x.to);
+  if (brandsOf(full).length) assert.deepEqual(brandsOf(early), brandsOf(full));
+  assert.equal(early.count, 0);
+  // Its departments match the full index's too.
+  const dept = (r) => r.items.filter((x) => x.kind === "Department" || x.kind === "Aisle").map((x) => x.id);
+  assert.deepEqual(dept(serverSuggestions(lite, "laundr", null)), dept(suggest(index, "laundr")));
+  // The server's products follow, as product rows that open the product.
+  const found = { total: 2, products: products.slice(0, 2) };
+  const answered = serverSuggestions(lite, "fear of god", found);
+  const rows = answered.items.filter((x) => x.id.startsWith("product:"));
+  assert.deepEqual(rows.map((x) => x.to), found.products.map((p) => "/product?id=" + encodeURIComponent(p.id)));
+  assert.ok(answered.items.length <= 10);
+  assert.deepEqual(serverSuggestions(lite, "   ", found).items, []);
+  assert.equal(suggestQuery(" fear of god "), "/api/query?q=fear+of+god&limit=4");
 });

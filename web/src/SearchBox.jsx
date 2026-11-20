@@ -2,7 +2,7 @@ import { toPath as hrefFor } from "./router";
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useDeferredValue } from "react";
 import { createPortal } from "react-dom";
 import { Search, X, ArrowRight, Store, Grid2X2 } from "lucide-react";
-import { buildSearchIndex, suggest } from "./search-suggestions";
+import { buildSearchIndex, liteIndex, serverSuggestions, suggest, suggestQuery } from "./search-suggestions";
 import { imageURL, money } from "./catalog";
 import { Price } from "./fx";
 import { saysOwnership, tokens } from "./search-words";
@@ -69,12 +69,39 @@ export default function SearchBox({
     return () => clearTimeout(wait);
   }, [text]);
   const typed = useDeferredValue(settled);
-  const results = useMemo(
-    () => (index ? suggest(index, typed) : { items: [], categories: [], count: 0 }),
-    [index, typed],
+  // Until the index is built (the catalog is ~12 MB), the panel offers the
+  // brands, aisles and departments the words start, plus the first products
+  // of the server's search (src/search-suggestions.js, serverSuggestions).
+  const lite = useMemo(() => liteIndex(brands, categories, subcategories), [brands, categories, subcategories]);
+  const [remote, setRemote] = useState(null);
+  const asked = typed.trim();
+  useEffect(() => {
+    if (index || !asked) return;
+    const controller = new AbortController();
+    const wait = setTimeout(() => {
+      fetch(suggestQuery(asked), { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((found) => found && setRemote({ q: asked, found }))
+        .catch(() => {});
+    }, 120);
+    return () => {
+      clearTimeout(wait);
+      controller.abort();
+    };
+  }, [index, asked]);
+  const answered = remote?.q === asked ? remote.found : null;
+  const fresh = useMemo(
+    () => (index ? suggest(index, typed) : serverSuggestions(lite, typed, answered)),
+    [index, typed, lite, answered],
   );
+  // The list on screen when the shopper starts choosing with the arrow keys
+  // stays put until they type: the index landing mid-choice would swap the
+  // rows under the highlight, and Enter would open a different one.
+  const [held, setHeld] = useState(null);
+  const results = held || fresh;
   showing.current = results.items.length > 0;
-  const indexing = loading || !index;
+  // Still waiting: no index, and the server hasn't answered these words.
+  const indexing = (loading || !index) && !answered;
   const visible = open && text.trim().length > 0;
   useLayoutEffect(() => {
     // Preserve a new query typed while the previous navigation is finishing.
@@ -85,7 +112,8 @@ export default function SearchBox({
   }, [query, navigationKey]);
   useEffect(() => {
     setActive(-1);
-  }, [text, index]);
+    setHeld(null);
+  }, [text]);
   useEffect(() => {
     if (!visible) return;
     const outside = (e) => {
@@ -137,6 +165,7 @@ export default function SearchBox({
     ) {
       e.preventDefault();
       setOpen(true);
+      if (!held) setHeld(results);
       setActive((current) =>
         e.key === "ArrowDown"
           ? (current + 1) % results.items.length
@@ -244,10 +273,10 @@ export default function SearchBox({
             )}
             {saysOwnership(tokens(text)) && <OwnershipNotice compact />}
             <div className="suggestion-heading">
-              {indexing
-                ? "Loading the catalog…"
-                : results.items.length
-                  ? "Suggestions"
+              {results.items.length
+                ? "Suggestions"
+                : indexing
+                  ? "Searching…"
                   : "No matches yet"}
             </div>
             {!indexing && !results.items.length && (

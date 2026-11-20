@@ -142,10 +142,7 @@ function* indexSteps(products, brands, categories, subcategories) {
   // Each brand's first product photo, as the app's brand row shows.
   const brandImages = new Map();
   // Brand names as the app compares them: folded, run together, word by word.
-  const brandKeys = brands.map((b) => {
-    const name = fold(b.name);
-    return { brand: b, name, squashed: squash(b.name), words: name.split(/[^\p{L}\p{N}]+/u).filter(Boolean) };
-  });
+  const brandKeys = brandKeysFor(brands);
   const terms = new Map();
   for (let n = 0; n < products.length; n++) {
     if (n % 2000 === 1999) yield;
@@ -295,26 +292,7 @@ export function suggest(index, query) {
       to: route({ q: c.text }),
     });
   }
-  for (const sub of index.subcategories
-    .filter((a) => startsTerm(a.name, value, singularValue))
-    .slice(0, 1)) {
-    const [category, leaf] = sub.id.split(":");
-    items.push({
-      id: "aisle:" + sub.id,
-      kind: "Aisle",
-      label: sub.name,
-      to: route({ category, aisle: leaf }),
-    });
-  }
-  for (const category of index.categories
-    .filter((c) => startsTerm(c.name, value, singularValue))
-    .slice(0, 1))
-    items.push({
-      id: "category:" + category.id,
-      kind: "Department",
-      label: category.name,
-      to: route({ category: category.id }),
-    });
+  items.push(...placeItems(index.categories, index.subcategories, value, singularValue));
   const terms = index.terms
     .filter((t) => t.key !== value && startsTerm(t.key, value, singularValue) && !seen.has(matchKey(t.key)))
     .sort(
@@ -332,42 +310,11 @@ export function suggest(index, query) {
       image: term.image,
       to: route({ q: term.label }),
     });
-  // Brands as the app finds them (CatalogStore.suggestions): the name or one
-  // of its words starts with what's typed, or the name run together does
-  // ("fearofgod" is Fear of God); then, for two or more words, brands whose
-  // name holds every word in any order ("aqua water" finds Aqua Equity Water).
-  const squashed = squash(value);
-  const exact = index.brandKeys.filter(
-    (b) => b.name.startsWith(value) || b.name.includes(" " + value) || (squashed.length >= 3 && b.squashed.startsWith(squashed)),
-  );
-  const typedWords = value.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2);
-  const exactIds = new Set(exact.map((b) => b.brand.id));
-  const wordBrands =
-    typedWords.length < 2
-      ? []
-      : index.brandKeys.filter(
-          (b) => !exactIds.has(b.brand.id) && typedWords.every((w) => b.words.some((n) => n.startsWith(w))),
-        );
-  for (const { brand } of [...exact, ...wordBrands].slice(0, 2))
-    items.push({
-      id: "brand:" + brand.id,
-      kind: "Brand",
-      label: brand.name,
-      image: index.brandImages.get(brand.id),
-      to: route({ brand: brand.id }),
-    });
+  items.push(...brandItems(index.brandKeys, value, (id) => index.brandImages.get(id)));
   // Ten rows at most, and never fewer than three of them products.
   items.splice(7);
   for (const product of cards.slice(0, Math.min(4, 10 - items.length)))
-    items.push({
-      id: "product:" + product.id,
-      kind: index.brandMap.get(product.brand)?.name || "Product",
-      label: product.title,
-      image: product.images?.[0],
-      price: product.price,
-      currency: product.currency,
-      to: "/product?id=" + encodeURIComponent(product.id),
-    });
+    items.push(productItem(product, index.brandMap));
   const categoryCounts = new Map();
   for (const [product] of found)
     categoryCounts.set(
@@ -386,3 +333,88 @@ export function suggest(index, query) {
     .filter((c) => c.name);
   return { items, categories, count: found.length };
 }
+
+// --- Pieces suggest() shares with serverSuggestions() ---------------------
+/// Brand names as the app compares them: folded, run together, word by word.
+export function brandKeysFor(brands) {
+  return brands.map((b) => {
+    const name = fold(b.name);
+    return { brand: b, name, squashed: squash(b.name), words: name.split(/[^\p{L}\p{N}]+/u).filter(Boolean) };
+  });
+}
+/// The first aisle and department the typed words start.
+function placeItems(categories, subcategories, value, singularValue) {
+  const items = [];
+  for (const sub of subcategories.filter((a) => startsTerm(a.name, value, singularValue)).slice(0, 1)) {
+    const [category, leaf] = sub.id.split(":");
+    items.push({ id: "aisle:" + sub.id, kind: "Aisle", label: sub.name, to: route({ category, aisle: leaf }) });
+  }
+  for (const category of categories.filter((c) => startsTerm(c.name, value, singularValue)).slice(0, 1))
+    items.push({ id: "category:" + category.id, kind: "Department", label: category.name, to: route({ category: category.id }) });
+  return items;
+}
+/// Brands as the app finds them (CatalogStore.suggestions): the name or one
+/// of its words starts with what's typed, or the name run together does
+/// ("fearofgod" is Fear of God); then, for two or more words, brands whose
+/// name holds every word in any order ("aqua water" finds Aqua Equity Water).
+function brandItems(brandKeys, value, imageOf) {
+  const squashed = squash(value);
+  const exact = brandKeys.filter(
+    (b) => b.name.startsWith(value) || b.name.includes(" " + value) || (squashed.length >= 3 && b.squashed.startsWith(squashed)),
+  );
+  const typedWords = value.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2);
+  const exactIds = new Set(exact.map((b) => b.brand.id));
+  const wordBrands =
+    typedWords.length < 2
+      ? []
+      : brandKeys.filter((b) => !exactIds.has(b.brand.id) && typedWords.every((w) => b.words.some((n) => n.startsWith(w))));
+  return [...exact, ...wordBrands].slice(0, 2).map(({ brand }) => ({
+    id: "brand:" + brand.id,
+    kind: "Brand",
+    label: brand.name,
+    image: imageOf(brand.id),
+    to: route({ brand: brand.id }),
+  }));
+}
+function productItem(product, brandMap) {
+  return {
+    id: "product:" + product.id,
+    kind: brandMap.get(product.brand)?.name || "Product",
+    label: product.title,
+    image: product.images?.[0],
+    price: product.price,
+    currency: product.currency,
+    to: "/product?id=" + encodeURIComponent(product.id),
+  };
+}
+
+// --- While the catalog downloads ------------------------------------------
+// The full catalog is ~12 MB and the suggestion index is built from it, so on
+// a first visit the panel said "Loading the catalog…" for seconds (owner,
+// 2026-11-19). Until the index is ready, the panel offers what needs no
+// catalog: the aisles, departments and brands the words start, as suggest()
+// does, then the first products from the server's own search
+// (/api/query, server/query.js, which the shop page already uses meanwhile).
+
+/// What serverSuggestions() needs: built from the catalog's head alone.
+export function liteIndex(brands, categories, subcategories = []) {
+  return { brandKeys: brandKeysFor(brands), brandMap: new Map(brands.map((b) => [b.id, b])), categories, subcategories };
+}
+/// Suggestions for `query` from `lite` and an /api/query answer `found`
+/// ({ products, total }, or null while it is on its way).
+export function serverSuggestions(lite, query, found) {
+  const value = fold(query).trim();
+  if (!value) return { items: [], categories: [], count: 0 };
+  const items = [
+    ...placeItems(lite.categories, lite.subcategories, value, singularPhrase(value)),
+    ...brandItems(lite.brandKeys, value, () => undefined),
+  ];
+  items.splice(7);
+  for (const product of (found?.products || []).slice(0, Math.min(4, 10 - items.length)))
+    items.push(productItem(product, lite.brandMap));
+  // No count: the server's counts colourways as one card, the panel counts
+  // every match, so "See all" would change number as the catalog lands.
+  return { items, categories: [], count: 0 };
+}
+/// The /api/query string for a suggestion panel's products.
+export const suggestQuery = (query) => "/api/query?" + new URLSearchParams({ q: query.trim(), limit: "4" });

@@ -15,6 +15,9 @@ test("typing shows real suggestions, keyboard selection searches, and Escape dis
   await expect(page.getByRole("option").first()).toContainText(/laundry/i);
   await expect(page.locator(".suggestion-image img").first()).toBeVisible();
   await expect(page.locator(".search-backdrop")).toBeVisible();
+  // The full list, which leads with words finished from real titles (the
+  // server's list, shown while the catalog loads, leads with the aisle).
+  await expect(page.locator(".suggestion-kind").first()).toHaveText("Search", { timeout: 30000 });
   await input.press("ArrowDown");
   await expect(input).toHaveAttribute("aria-activedescendant", "suggestion-0");
   await expect(page.getByRole("option").first()).toHaveAttribute(
@@ -105,4 +108,19 @@ test("a search with a word no product uses shows the rest instead of a dead end"
   await expect(page.locator(".shop-top h1")).toHaveText("Results for “t shirts”", { timeout: 30000 });
   await expect(page.locator(".shop-top p")).toContainText("Showing");
   await expect(page.locator(".shop-top p")).not.toContainText("No results");
+});
+
+test("suggestions show while the catalog is still downloading (owner, 2026-11-19)", async ({ page }) => {
+  // A slow connection: the full catalog never arrives during this test.
+  await page.route("**/api/catalog**", () => {});
+  const input = await openSearch(page);
+  await input.pressSequentially("fear of god", { delay: 30 });
+  await expect(page.locator(".suggestion-heading")).toHaveText("Suggestions");
+  const kinds = page.locator(".suggestion-kind");
+  await expect(kinds.first()).toHaveText("Brand");
+  await expect(page.locator(".suggestion-price").first()).toBeVisible();
+  // Arrow keys and Enter open the highlighted row.
+  await input.press("ArrowDown");
+  await input.press("Enter");
+  await expect(page).toHaveURL(/brand=fear-of-god|\/b\/fear-of-god/);
 });

@@ -557,6 +557,31 @@ struct OrderDetailView: View {
 
             section(String(localized: "Help", comment: "Order details section"))
             VStack(spacing: 0) {
+                // Manage your order (owner, 2026-11-19, after Shop's own
+                // button): cancelling, changing the address or starting a
+                // return happen on the brand's order page, which signs the
+                // shopper in by the order's email. A Marracat order email is
+                // copied first, as that's the address to type there; the sign-in
+                // code it sends is forwarded to the shopper's inbox.
+                if let managePage = Self.managePage(tracked: tracked, brand: brand) {
+                    Button {
+                        if viaRelay, let email = extras?.email { UIPasteboard.general.string = email }
+                        web = IdentifiedURL(url: managePage)
+                    } label: {
+                        listRow {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Label("Manage your order", systemImage: "slider.horizontal.3")
+                                Text(viaRelay
+                                     ? "Cancel, change or return it at \(brandName). Sign in with your Marracat order email (we copy it for you); the code arrives in your inbox."
+                                     : "Cancel, change or return it at \(brandName).")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        } trailing: { Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Theme.textSecondary) }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("orderManage")
+                    rowDivider
+                }
                 // Returns and shipping problems are the brand's to handle.
                 if let brand {
                     Button { web = IdentifiedURL(url: brand.storeURL) } label: {
@@ -801,6 +826,15 @@ struct OrderDetailView: View {
             }
             .padding(.top, 8)
         }
+    }
+
+    /// Where "Manage your order" goes: the brand's own page for this order
+    /// (the link its emails carry), else a Shopify brand's account page,
+    /// which lists the shopper's orders there once they sign in.
+    static func managePage(tracked: TrackedOrder?, brand: Brand?) -> URL? {
+        if let page = tracked?.statusPage { return page }
+        guard let brand, brand.isShopify else { return nil }
+        return brand.storeURL.appending(path: "account")
     }
 
     private func copy(_ text: String, _ toast: String) {

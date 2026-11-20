@@ -554,6 +554,10 @@ final class MarracatUITests: MarracatUITestCase {
         XCTAssertTrue(any("orderStatus").label.localizedCaseInsensitiveContains("shipped"), any("orderStatus").label)
         XCTAssertTrue(any("orderTracking").exists, "the tracking number should show")
         XCTAssertTrue(any("orderTrackPackage").exists, "Track package should open the brand's status page")
+        // Manage your order leads Help: the brand's page for this order (owner, 2026-11-19).
+        let manage = any("orderManage")
+        XCTAssertTrue(manage.exists, "Order details should offer Manage your order")
+        XCTAssertTrue(manage.label.contains("Manage your order"), manage.label)
         // The actions are round buttons on one line (owner, 2026-11-13), not
         // pills that wrap; VoiceOver still hears each one's full name.
         let actions = ["orderTrackPackage", "orderViewProduct", "orderViewStore", "orderLateShipment"].map { any($0) }
