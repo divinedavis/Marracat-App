@@ -1357,8 +1357,11 @@ final class MarracatUITests2: MarracatUITestCase {
         any("searchInput").typeText("candle\n")
         let add = app.buttons["Add to cart"].firstMatch
         XCTAssertTrue(add.appears(timeout: 5), "no in-stock candle")
-        add.tap()
-        XCTAssertTrue(app.buttons["Added"].firstMatch.appears(timeout: 5))
+        // The first candles can all need an option picked, which leaves the
+        // first "Add to cart" under the tab bar (2026-11-20: the tap landed on
+        // the Cart tab and nothing was added).
+        tapClearOfTabBar(add)
+        XCTAssertTrue(app.buttons["Added"].firstMatch.appears(timeout: 5), "the tap on Add to cart added nothing")
         tapTab("Cart")
         let line = any("cartLine")
         XCTAssertTrue(line.appears(timeout: 5), "the item isn't in the cart")
