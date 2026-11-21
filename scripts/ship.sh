@@ -227,6 +227,14 @@ if [[ "${SHIP_SKIP_TESTS:-0}" != "1" ]]; then SMOKE_ACTION=build-for-testing ./s
 if [[ "${SHIP_SKIP_TESTS:-0}" != "1" ]]; then
     stage "UI tests"
     guard 6 "the UI tests"
+    # The guard can wait 20 minutes with nothing using the simulator, and the
+    # close-simulators hook or the cleanup job may shut it down meanwhile.
+    # xcodebuild then boots it itself and every launch is refused ("Application
+    # failed preflight checks"): all 121 tests failed that way on 2026-11-16
+    # and twice on 2026-11-20, each time after the simulator went down during
+    # the wait. Booted and settled by hand first, the same tests pass.
+    xcrun simctl boot "$SIM_UDID" 2>/dev/null || true
+    xcrun simctl bootstatus "$SIM_UDID" -b >/dev/null
     # A UI test that fails once is retried once: the suite flakes on a loaded
     # machine (a different three failed each run on 2026-09-22, every one of
     # them passing on its own). A test that is actually broken fails twice.
