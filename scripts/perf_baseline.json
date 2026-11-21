@@ -1,91 +1,97 @@
 {
+  "PerformanceTests/testFirstTabSwitchAfterLaunch() :: First tab switch longest stall": {
+    "history": [
+      217.6
+    ],
+    "unit": "ms"
+  },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home fling hitch ratio": {
     "history": [
-      57.47,
       59.7,
       57.24,
       55.85,
-      68.51
+      68.51,
+      68.26
     ],
     "unit": "ms/s"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home longest main-thread stall": {
     "history": [
-      137.9,
       146.4,
       149.8,
       141.4,
-      153.9
+      153.9,
+      158.9
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Launch to interactive Home": {
     "history": [
-      1941,
       2075,
       2081,
       2078,
-      1825
+      1825,
+      1875
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeScroll() :: Absolute Memory Physical (marracat)": {
     "history": [
-      479988.376,
       481397.4,
       481315.504,
       484067.992,
-      502794.928
+      502794.928,
+      506055.344
     ],
     "unit": "kB"
   },
   "PerformanceTests/testHomeScroll() :: Duration (Scroll_Deceleration)": {
     "history": [
       2.417,
-      2.417,
       2.4171,
       2.417,
-      2.4171
+      2.4171,
+      2.4172
     ],
     "unit": "s"
   },
   "PerformanceTests/testHomeScroll() :: Memory Peak Physical (marracat)": {
     "history": [
-      480266.904,
       481675.928,
       481610.416,
       484428.44,
-      503220.912
+      503220.912,
+      506448.56
     ],
     "unit": "kB"
   },
   "PerformanceTests/testHomeScroll() :: Memory Physical (marracat)": {
     "history": [
       0,
-      0,
       16.384,
       -16.384,
-      0
+      0,
+      16.384
     ],
     "unit": "kB"
   },
   "PerformanceTests/testLaunch() :: Duration (ApplicationFirstFramePresentationResponsive)": {
     "history": [
-      1.3767,
       1.4088,
       1.4108,
       1.4314,
-      1.8687
+      1.8687,
+      1.8706
     ],
     "unit": "s"
   },
   "PerformanceTests/testLaunchToHomeProducts() :: Clock Monotonic Time": {
     "history": [
-      4.226,
       4.2314,
       4.231,
       4.2989,
-      5.0183
+      5.0183,
+      5.057
     ],
     "unit": "s"
   }
