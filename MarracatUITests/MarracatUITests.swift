@@ -1419,10 +1419,10 @@ final class MarracatUITests2: MarracatUITestCase {
         XCTAssertTrue(button.appears(timeout: 5), "the product page should show the badge")
         // One seal per badge (owner, 2026-10-31), and only the seal (owner,
         // 2026-11-20: "we only need to have the badges we don't need the
-        // text", "then center the badges"): side by side on one line, in the
-        // middle of the page, with no words beside them.
-        XCTAssertGreaterThanOrEqual(button.frame.height, 56, "the badge should be a seal, not the old one-line badge")
-        XCTAssertEqual(button.frame.width, button.frame.height, accuracy: 2, "a seal alone, no text beside it: \(button.frame)")
+        // text"), on the price's row and across from it ("put the badge on
+        // the same row as the price but on the opposite side").
+        XCTAssertGreaterThanOrEqual(button.frame.height, 44, "the seal is big enough to tap: \(button.frame)")
+        XCTAssertLessThan(button.frame.width, 80, "a seal alone, no text beside it: \(button.frame)")
         XCTAssertTrue(button.label.hasPrefix("Marracat Clean"), "VoiceOver still hears the badge's name: \(button.label)")
         XCTAssertFalse(app.staticTexts["What this means"].exists, "the words beside the seal are gone")
         let badges = app.buttons.matching(NSPredicate(format: "identifier ENDSWITH 'BadgeButton'"))
@@ -1430,8 +1430,12 @@ final class MarracatUITests2: MarracatUITestCase {
         for (a, b) in zip(badges, badges.dropFirst()) {
             XCTAssertEqual(a.midY, b.midY, accuracy: 2, "badges on the product page sit on one line")
         }
-        let page = app.windows.firstMatch.frame
-        XCTAssertEqual((badges.first!.minX + badges.last!.maxX) / 2, page.midX, accuracy: 4, "the badges are centred")
+        let page = app.windows.firstMatch.frame, price = any("productPrice").frame
+        XCTAssertTrue(any("productPrice").exists, "the price should be on the page")
+        XCTAssertEqual(button.frame.midY, price.midY, accuracy: 6, "the badge sits on the price's row: \(button.frame) vs \(price)")
+        XCTAssertLessThan(price.maxX, badges.first!.minX, "the price on one side, the badges on the other")
+        XCTAssertLessThan(price.minX, page.width * 0.1, "the price keeps the leading edge")
+        XCTAssertGreaterThan(badges.last!.maxX, page.width * 0.9, "the badges reach the trailing edge: \(badges)")
         snap("product-badge-seals")
         button.tap()
         XCTAssertTrue(any("cleanStandardSheet").appears(timeout: 5),

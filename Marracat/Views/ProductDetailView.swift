@@ -199,57 +199,29 @@ struct ProductDetailView: View {
                     .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).maxY < 8 } action: { gone in
                         withAnimation(.easeInOut(duration: 0.2)) { titleInBar = gone }
                     }
-                // One seal per badge (owner, 2026-10-31, from the B3 preview),
-                // side by side and centred, with no text beside them (owner,
-                // 2026-11-20); each seal is the button to that badge's standard.
-                if p.isCertifiedOrganic || p.isMarracatClean || p.isMarracatTrueMetal
-                    || !QualityLabelBadge.Label.all(for: p).isEmpty {
-                    HStack(spacing: 14) {
-                        if p.isCertifiedOrganic {
-                            BadgeSealMark(color: Theme.organic, symbol: "leaf.fill", name: "Certified organic",
-                                          summary: "Certified organic by the brand\u{2019}s certifier.", explains: false)
-                                .accessibilityIdentifier("organicSeal")
-                        }
-                        if p.isMarracatClean {
-                            Button { showCleanStandard = true } label: {
-                                BadgeSealMark(color: Theme.clean, symbol: "checkmark.shield.fill", name: "Marracat Clean",
-                                              summary: "Its ingredient list is published, with nothing on it banned in any major market.")
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("cleanBadgeButton")
-                        }
-                        if p.isMarracatTrueMetal {
-                            Button { showTrueMetalStandard = true } label: {
-                                BadgeSealMark(color: Theme.metal, symbol: "checkmark.seal.fill", name: "Marracat True Metal",
-                                              tier: p.isEthicallySourced ? "Ethically Sourced" : nil,
-                                              summary: String(localized: "Every metal the brand names is the real thing, and it\u{2019}s safe on skin."))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("trueMetalBadgeButton")
-                        }
-                        ForEach(QualityLabelBadge.Label.all(for: p), id: \.self) { label in
-                            let parts = label.title.components(separatedBy: " · ")
-                            Button { labelStandard = label } label: {
-                                BadgeSealMark(color: label.color, symbol: label.icon, name: parts[0],
-                                              tier: parts.count > 1 ? parts[1] : nil, summary: label.summary)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("\(label.id)BadgeButton")
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 2)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityIdentifier("badgeSeals")
-                }
-
                 ImagePager(images: images(p), productID: p.id, openGallery: {
                     gallery = GalleryStart(index: $0)
                     Analytics.shared.track("gallery_open", ["product": .string(p.id)])
                 }, show: variantImage(p))
                     .frame(height: sizeClass == .regular ? 560 : 380)
 
-                priceBlock(price: price, compare: compare, currency: p.currencyCode)
+                // The price, and across from it the product's badges (owner,
+                // 2026-11-20: "put the badge on the same row as the price but
+                // on the opposite side"; they sat under the name, centred,
+                // for an hour that day and in rows of text before it).
+                HStack(alignment: .center, spacing: 12) {
+                    priceBlock(price: price, compare: compare, currency: p.currencyCode)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("productPrice")
+                        .layoutPriority(1)
+                    Spacer(minLength: 0)
+                    // Smaller when a product carries more than fit beside its price.
+                    ViewThatFits(in: .horizontal) {
+                        badgeSeals(p, size: 52)
+                        badgeSeals(p, size: 44)
+                        badgeSeals(p, size: 34)
+                    }
+                }
                 if let origin = brand.shipsFromLabel {
                     Label(origin, systemImage: "airplane").font(.subheadline).foregroundStyle(.secondary)
                         .accessibilityIdentifier("shipsFrom")
@@ -516,6 +488,53 @@ struct ProductDetailView: View {
             }
         case .all:
             Task { try? await Task.sleep(for: .milliseconds(250)); saveToList = true }
+        }
+    }
+
+    /// One seal per badge (owner, 2026-10-31, from the B3 preview), side by
+    /// side with no text beside them (owner, 2026-11-20: "we only need to
+    /// have the badges we don't need the text. When someone clicks on the
+    /// badge it'll show them what the badge means"); each seal is the button
+    /// to that badge's standard.
+    @ViewBuilder
+    private func badgeSeals(_ p: Product, size: CGFloat) -> some View {
+        if p.isCertifiedOrganic || p.isMarracatClean || p.isMarracatTrueMetal
+            || !QualityLabelBadge.Label.all(for: p).isEmpty {
+            HStack(spacing: size * 0.18) {
+                if p.isCertifiedOrganic {
+                    BadgeSealMark(color: Theme.organic, symbol: "leaf.fill", name: "Certified organic",
+                                  summary: "Certified organic by the brand\u{2019}s certifier.", explains: false, size: size)
+                        .accessibilityIdentifier("organicSeal")
+                }
+                if p.isMarracatClean {
+                    Button { showCleanStandard = true } label: {
+                        BadgeSealMark(color: Theme.clean, symbol: "checkmark.shield.fill", name: "Marracat Clean",
+                                      summary: "Its ingredient list is published, with nothing on it banned in any major market.", size: size)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("cleanBadgeButton")
+                }
+                if p.isMarracatTrueMetal {
+                    Button { showTrueMetalStandard = true } label: {
+                        BadgeSealMark(color: Theme.metal, symbol: "checkmark.seal.fill", name: "Marracat True Metal",
+                                      tier: p.isEthicallySourced ? "Ethically Sourced" : nil,
+                                      summary: String(localized: "Every metal the brand names is the real thing, and it\u{2019}s safe on skin."), size: size)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("trueMetalBadgeButton")
+                }
+                ForEach(QualityLabelBadge.Label.all(for: p), id: \.self) { label in
+                    let parts = label.title.components(separatedBy: " · ")
+                    Button { labelStandard = label } label: {
+                        BadgeSealMark(color: label.color, symbol: label.icon, name: parts[0],
+                                      tier: parts.count > 1 ? parts[1] : nil, summary: label.summary, size: size)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("\(label.id)BadgeButton")
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("badgeSeals")
         }
     }
 

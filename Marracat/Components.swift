@@ -386,12 +386,13 @@ struct BadgeSealMark: View {
     let summary: String
     /// Tapping it opens the badge's standard.
     var explains = true
-
-    static let size: CGFloat = 64
+    var size: CGFloat = 52
 
     var body: some View {
-        ZStack { BadgeSeal(color: color, ring: Self.ring(for: name), symbol: symbol, size: Self.size) }
-            .contentShape(Circle())
+        // Never a smaller target than 44 pt, however small the seal is drawn.
+        ZStack { BadgeSeal(color: color, ring: Self.ring(for: name), symbol: symbol, size: size) }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: tier.map { "\(name) · \($0)" } ?? name))
             .accessibilityValue(Text(summary))
