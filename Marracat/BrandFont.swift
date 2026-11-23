@@ -1,16 +1,17 @@
 import SwiftUI
 import UIKit
 
-/// The app's type: Futura, the typeface of the MARRACAT wordmark (owner,
-/// 2026-11-22: "use our logo's font throughout the app for all text").
-/// iOS ships Futura in two upright weights, Medium and Bold, so regular and
-/// medium text is Futura Medium and semibold and heavier is Futura Bold.
+/// The app's type: the system's own face, San Francisco, and never bold.
+///
+/// Owner, 2026-11-22, on the build that set everything in Futura, the
+/// wordmark's typeface: "I don't want bold and switch our font back." So the
+/// face is the system's again, and the heaviest any text goes is medium:
+/// what a view asks for as semibold, bold, heavy or black is drawn medium,
+/// here, in one place. The wordmark itself stays Futura (LaunchAnimationView).
 ///
 /// Views set type with `.brandFont(.subheadline.bold())` in place of
-/// `.font(...)`: the same text-style names and modifiers as `Font`, sized
-/// from the same points and still scaling with Dynamic Type. Receipts keep
-/// their monospaced print face, and codes asked for as `.monospaced()` keep
-/// the system's.
+/// `.font(...)`: the same text-style names and modifiers as `Font`, so the
+/// weight rule holds everywhere and the face can change in this file alone.
 struct BrandFont: Equatable {
     enum Size: Equatable { case style(Font.TextStyle), fixed(CGFloat) }
 
@@ -19,13 +20,15 @@ struct BrandFont: Equatable {
     var isItalic = false
     var isMonospaced = false
 
-    static let medium = "Futura-Medium", bold = "Futura-Bold", mediumItalic = "Futura-MediumItalic"
+    /// The heaviest weight the app draws.
+    static let heaviest = Font.Weight.medium
 
     static let largeTitle = BrandFont(size: .style(.largeTitle))
     static let title = BrandFont(size: .style(.title))
     static let title2 = BrandFont(size: .style(.title2))
     static let title3 = BrandFont(size: .style(.title3))
-    /// A headline is semibold, as the system's is.
+    /// A headline is semibold to the system; here that is medium, as all
+    /// emphasis is.
     static let headline = BrandFont(size: .style(.headline), weight: .semibold)
     static let subheadline = BrandFont(size: .style(.subheadline))
     static let body = BrandFont(size: .style(.body))
@@ -44,49 +47,28 @@ struct BrandFont: Equatable {
     func italic() -> BrandFont { var f = self; f.isItalic = true; return f }
     func monospaced() -> BrandFont { var f = self; f.isMonospaced = true; return f }
 
-    /// The points each text style has at the default text size (Apple's
-    /// Large), which `Font.custom(_:size:relativeTo:)` scales from.
-    static func points(_ style: Font.TextStyle) -> CGFloat {
-        switch style {
-        case .largeTitle: 34
-        case .title: 28
-        case .title2: 22
-        case .title3: 20
-        case .headline, .body: 17
-        case .callout: 16
-        case .subheadline: 15
-        case .footnote: 13
-        case .caption: 12
-        case .caption2: 11
-        @unknown default: 17
-        }
-    }
-
-    /// Semibold and heavier is Futura Bold; everything lighter is Futura Medium.
+    /// Asked for as semibold or heavier: emphasis, drawn at `heaviest`.
     var isHeavy: Bool { [Font.Weight.semibold, .bold, .heavy, .black].contains(weight) }
 
-    var face: String { isHeavy ? Self.bold : isItalic ? Self.mediumItalic : Self.medium }
+    /// The weight the text is drawn at: never above `heaviest`.
+    var shownWeight: Font.Weight { isHeavy ? Self.heaviest : weight }
 
     var font: Font {
-        if isMonospaced {
-            switch size {
-            case .style(let style): return Font.system(style, design: .monospaced).weight(weight)
-            case .fixed(let points): return Font.system(size: points, weight: weight, design: .monospaced)
-            }
+        let design: Font.Design = isMonospaced ? .monospaced : .default
+        let font: Font = switch size {
+        case .style(let style): .system(style, design: design, weight: shownWeight)
+        case .fixed(let points): .system(size: points, weight: shownWeight, design: design)
         }
-        switch size {
-        case .style(let style): return Font.custom(face, size: Self.points(style), relativeTo: style)
-        case .fixed(let points): return Font.custom(face, fixedSize: points)
-        }
+        return isItalic ? font.italic() : font
     }
 
-    /// The same face for UIKit's own bars and controls.
+    /// The same rule for UIKit's own bars and controls.
     static func ui(_ points: CGFloat, heavy: Bool = false) -> UIFont {
-        UIFont(name: heavy ? bold : medium, size: points) ?? .systemFont(ofSize: points, weight: heavy ? .bold : .regular)
+        .systemFont(ofSize: points, weight: heavy ? .medium : .regular)
     }
 
-    /// Navigation titles and segmented controls are UIKit's: give them the
-    /// face too. Once, at launch.
+    /// Navigation titles and segmented controls are UIKit's, and bold or
+    /// semibold by default: give them the app's weight too. Once, at launch.
     @MainActor static func applyToSystemControls() {
         let bar = UINavigationBar.appearance()
         bar.titleTextAttributes = (bar.titleTextAttributes ?? [:]).merging([.font: ui(17, heavy: true)]) { $1 }
@@ -94,12 +76,11 @@ struct BrandFont: Equatable {
         let segments = UISegmentedControl.appearance()
         segments.setTitleTextAttributes([.font: ui(13)], for: .normal)
         segments.setTitleTextAttributes([.font: ui(13, heavy: true)], for: .selected)
-        UIBarButtonItem.appearance().setTitleTextAttributes([.font: ui(17)], for: .normal)
     }
 }
 
 extension View {
-    /// The app's typeface at a text style or size (`BrandFont`).
+    /// The app's type at a text style or size (`BrandFont`).
     func brandFont(_ font: BrandFont) -> some View { self.font(font.font) }
 }
 
@@ -108,18 +89,19 @@ extension Text {
     func brandFont(_ font: BrandFont) -> Text { self.font(font.font) }
 }
 
-/// A screen's title in the top bar, in the app's typeface. Use it in place
-/// of `navigationTitle`.
+/// A screen's title in the top bar, at the app's weight. Use it in place of
+/// `navigationTitle`.
 ///
-/// The bar draws a `navigationTitle` itself, and from iOS 26 it does so in
-/// the system face whatever the bar's appearance asks for: the search term
-/// over a page of results, "Filters" and "Account settings" all stayed in
-/// San Francisco. So the title is also given to the bar as a view, which
-/// takes the system title's place (leading beside the back button, or
-/// centred on a sheet). The plain title stays for the back button's menu,
-/// the UI tests and VoiceOver, which still reads the bar's own title: the
-/// view is hidden from it, or it would say every title twice. Before iOS 26
-/// the bar takes its face from `BrandFont.applyToSystemControls`.
+/// The bar draws a `navigationTitle` itself, semibold, and from iOS 26 it
+/// does so whatever the bar's appearance asks for (found when the app's text
+/// was Futura: the search term over a page of results, "Filters" and
+/// "Account settings" all stayed as the system drew them). So the title is
+/// also given to the bar as a view, which takes the system title's place
+/// (leading beside the back button, or centred on a sheet). The plain title
+/// stays for the back button's menu, the UI tests and VoiceOver, which still
+/// reads the bar's own title: the view is hidden from it, or it would say
+/// every title twice. Before iOS 26 the bar takes its weight from
+/// `BrandFont.applyToSystemControls`.
 private struct BarTitle: ViewModifier {
     let text: Text
     let isEmpty: Bool

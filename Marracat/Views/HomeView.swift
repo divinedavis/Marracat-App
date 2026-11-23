@@ -60,7 +60,12 @@ struct HomeView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
-                    CategoryChips().id("homeTop")
+                    // Someone with no account is offered one, above everything.
+                    VStack(spacing: 0) {
+                        SignUpBanner()
+                        CategoryChips()
+                    }
+                    .id("homeTop")
                     HeroCarousel(mix: mix)
                     // A holiday's banner and rows while its event runs.
                     HolidayEventRows()
@@ -117,6 +122,9 @@ struct HomeView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { feedWidth = $0 }
+            // Home's rows of products are cards, two high (ProductRow); the
+            // holiday rows too. Screens pushed from Home keep their tiles.
+            .environment(\.productRowCards, true)
             .task { if page.categories.isEmpty { rebuild(why: "first") } }
             // The launch cover waits for this (HomeSettle).
             .onChange(of: page.complete, initial: true) { if page.complete { HomeSettle.shared.pageBuiltFromWholeCatalog() } }
@@ -673,27 +681,25 @@ private struct RowPlaceholder: View {
                 if let title { SectionHeader(title: title) } else { SectionHeader(title: String(localized: "Inspired by your search", comment: "Home row title: products like a past search")).redacted(reason: .placeholder) }
             }
             .padding(.horizontal, 12)
-            // In a disabled horizontal ScrollView, as ProductRow lays its tiles
+            // In a disabled horizontal ScrollView, as ProductRow lays its cards
             // out: the row then takes the width it's offered. A bare HStack of
-            // three 150-pt tiles reports 498 pt, wider than any iPhone, and
+            // cards reports its whole width, wider than any iPhone, and
             // Home laid out past the screen's edges until the rows landed
             // (owner, build 131 first launch).
             ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: ProductRow.spacing) {
                 ForEach(0..<3, id: \.self) { _ in
-                    VStack(alignment: .leading, spacing: 4) {
-                        RoundedRectangle(cornerRadius: 6).fill(Theme.tile)
-                            .frame(width: ProductRow.tileWidth, height: ProductRow.tileWidth)
-                        Group {
-                            Text("Product name on two lines").brandFont(.subheadline).lineLimit(2)
-                            Text("Brand").brandFont(.caption)
+                    VStack(spacing: ProductRow.spacing) {
+                        ForEach(0..<2, id: \.self) { _ in
+                            ProductCardShell {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.tile)
+                            } price: {
+                                Text(verbatim: "$00.00").brandFont(.subheadline).redacted(reason: .placeholder)
+                            } note: {
+                                Text(verbatim: "Brand").brandFont(.footnote).redacted(reason: .placeholder)
+                            }
                         }
-                        .redacted(reason: .placeholder)
-                        // A badge's height: most rows carry one (BadgeIconRow).
-                        Circle().fill(Theme.tile).frame(width: 20, height: 20)
-                        Text("$00.00").brandFont(.system(size: 20)).redacted(reason: .placeholder)
                     }
-                    .frame(width: ProductRow.tileWidth, alignment: .leading)
                 }
             }
             .padding(.horizontal, 12)
@@ -701,7 +707,7 @@ private struct RowPlaceholder: View {
             .scrollDisabled(true)
         }
         .padding(.vertical, 14)
-        .background(Theme.surface)
+        .background(Theme.canvas)
         // One element, so VoiceOver reads a single "Loading" (and UI tests
         // can measure the row) instead of the redacted stand-in text.
         .accessibilityElement(children: .ignore)

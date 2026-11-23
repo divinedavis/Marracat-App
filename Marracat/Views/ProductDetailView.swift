@@ -233,7 +233,7 @@ struct ProductDetailView: View {
 
                 if p.hasOptions {
                     VStack(alignment: .leading, spacing: 8) {
-                        (Text(optionLabel(p)).foregroundStyle(Theme.secondary) + Text(v?.title ?? "").bold())
+                        (Text(optionLabel(p)).foregroundStyle(Theme.secondary) + Text(v?.title ?? "").fontWeight(BrandFont.heaviest))
                             .brandFont(.subheadline)
                         if variantID == nil, let v, let usual = usualSize(p, variants(p)), usual.id == v.id,
                            let size = SizeMemory.size(in: v.title, optionNames: details.detail(p.id)?.optionNames) {

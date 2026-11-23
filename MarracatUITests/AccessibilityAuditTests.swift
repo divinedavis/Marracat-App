@@ -61,6 +61,11 @@ final class AccessibilityAuditTests: XCTestCase {
         if e.label.contains("Sign in with Apple") || e.label == "Legal" || e.elementType == .map { return true }
         let kb = app.keyboards.firstMatch
         if kb.exists, e.frame.minY >= kb.frame.minY - 50 { return true }
+        // A hero page's value is its product's name, in the brand's own
+        // words. "Value duplicates traits" fired on Fenty Beauty's page
+        // (2026-11-23; a name such as "Gloss Bomb Key Chain" holds a word the
+        // audit takes for a trait) and not on the next round's product.
+        if issue.auditType.contains(.trait), e.identifier == "heroBrand" { return true }
         // "Partially unsupported" lands on text the layout keeps to a line or
         // inside a merged VoiceOver element; testTheLargestTextSizeStillWorks
         // checks the app stays usable at AX5. "Unsupported" (a fixed font

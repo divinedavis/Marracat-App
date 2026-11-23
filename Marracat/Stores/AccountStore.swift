@@ -47,6 +47,14 @@ final class AccountStore {
     var message: String?
     private(set) var lastSynced: Date?
     var needsAuthentication: Bool { token == nil }
+    /// The saved session has been looked for: until then nobody is a guest
+    /// yet, so nothing offers an account to someone who has one.
+    private(set) var restored = false
+    /// No account on this phone: Home offers one (SignUpBanner).
+    var isGuest: Bool { restored && user == nil }
+    /// Whether the last launch ended as a guest, for the launch outline,
+    /// which draws before the session is read (LaunchSkeleton).
+    static let guestKey = "account.guest"
     @ObservationIgnored private var token: String?
     @ObservationIgnored private weak var shopper: ShopperStore?
     @ObservationIgnored private weak var cart: CartStore?
@@ -74,9 +82,15 @@ final class AccountStore {
         if !ProcessInfo.processInfo.arguments.contains("-UITEST_RESET"),
            let data = SecureSession.read(), let saved = try? JSONDecoder().decode(SavedSession.self, from: data) {
             token = saved.token; user = saved.user; shopper.activate(saved.user.storageID); cart.activate(saved.user.storageID); buyer?.activate(saved.user.storageID)
+            noteRestored()
             await foreground()
             await RestockStore.shared.refresh()
         }
+        noteRestored()
+    }
+    private func noteRestored() {
+        restored = true
+        defaults.set(user == nil, forKey: Self.guestKey)
     }
     private struct SavedSession: Codable { let token: String; let user: AccountUser }
     private struct TokenBody: Encodable { let idToken: String }
@@ -119,6 +133,7 @@ final class AccountStore {
         }
         try SecureSession.save(JSONEncoder().encode(SavedSession(token: token, user: user)))
         generation = UUID(); self.token = token; self.user = user
+        defaults.set(false, forKey: Self.guestKey)
         let guestCart = importGuest ? (cart?.lines ?? []) : []
         shopper?.activate(user.storageID); cart?.activate(user.storageID); buyer?.activate(user.storageID); shopper?.accept(reply.profile)
         if importGuest { shopper?.importGuestActivity() }
@@ -279,6 +294,7 @@ final class AccountStore {
         generation = UUID(); scheduled?.cancel()
         SecureSession.remove(); GIDSignIn.sharedInstance.signOut()
         token = nil; user = nil; lastSynced = nil; message = nil
+        defaults.set(true, forKey: Self.guestKey)
         RelayStore.shared.clear()
         RestockStore.shared.signedOut()
         DealAlertStore.shared.signedOut()

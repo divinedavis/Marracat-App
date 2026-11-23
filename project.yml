@@ -15,8 +15,8 @@ packages:
 settings:
   base:
     DEVELOPMENT_TEAM: CG89RY4W6R
-    MARKETING_VERSION: "1.14"
-    CURRENT_PROJECT_VERSION: "195"
+    MARKETING_VERSION: "1.15"
+    CURRENT_PROJECT_VERSION: "196"
     SWIFT_VERSION: "5.0"
     ENABLE_DEBUG_DYLIB: NO
     # Localization (2026-10-14): one String Catalog, Shared/Localizable.xcstrings,

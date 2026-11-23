@@ -1011,6 +1011,115 @@ struct ProductTile: View {
     }
 }
 
+/// A product in one of Home's sideways rows: its photo in a white well set
+/// into a bordered card, the price under it, then the brand (owner,
+/// 2026-11-22, with a recording of a big retailer's home page: "let's use
+/// this size and style cards", then "I only want to change the Home Screen
+/// tile layout"). Larger than the 150-pt tile rows elsewhere keep, and with
+/// the product's name left to the photo and the product page; VoiceOver
+/// still reads it.
+///
+/// Every card is the same height: one price line and one line under it,
+/// whatever the product carries. A sale is the regular price struck through
+/// beside the price and "Sale" on the line below; the badge icons sit on the
+/// photo (see TileHeightTests for why nothing may add a line).
+struct ProductCard: View {
+    @Environment(CatalogStore.self) private var catalog
+    let product: Product
+
+    static let width: CGFloat = 195
+    static let inset: CGFloat = 11
+    /// The photo's square.
+    static let photo: CGFloat = width - inset * 2
+
+    var body: some View {
+        // Price and stock as fresh as this phone has them (FreshCatalog).
+        let product = FreshCatalog.shared.current(self.product)
+        NavigationLink(value: Route.product(product.id)) {
+            ProductCardShell {
+                Color.white
+                    .overlay { RemoteImage(url: product.images.first, width: 400).padding(8) }
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    // The name the card no longer prints, first in what the
+                    // card says aloud.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(product.title)
+                    .overlay(alignment: .bottomLeading) { BadgeIconRow(product: product).padding(6) }
+                    .modifier(ProductZoomSource(id: product.id, cornerRadius: 8))
+            } price: {
+                Self.price(product)
+            } note: {
+                Self.note(product, brand: catalog.brand(product.brand)?.name)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("productTile")
+    }
+
+    /// On sale: marked down by the brand, and still in stock.
+    static func onSale(_ product: Product) -> Bool { product.percentOff != nil && product.available }
+
+    /// "$139.99 reg $349.99", or dollars first and the brand's own amount
+    /// beside them for a brand that charges in another currency (PriceView).
+    static func price(_ product: Product) -> some View {
+        let code = product.currencyCode
+        let usd = PriceView.approxUSD(product.price, currency: code)
+        var line = Text(Money.string(usd ?? product.price, currency: usd == nil ? code : "USD"))
+            .fontWeight(BrandFont.heaviest).foregroundStyle(onSale(product) ? Theme.deal : Color.primary)
+        var spoken = usd.map { "About \(Money.spoken($0)), charged as \(Money.spoken(product.price, currency: code))" }
+            ?? Money.spoken(product.price, currency: code)
+        if usd != nil {
+            line = line + Text(verbatim: " " + Money.string(product.price, currency: code)).foregroundStyle(Theme.secondary)
+        } else if onSale(product), let was = product.compareAt {
+            line = line + Text(" reg ", comment: "Between a sale price and the regular price it replaces, as in $12 reg $20").foregroundStyle(Theme.secondary)
+                + Text(Money.string(was, currency: code)).strikethrough().foregroundStyle(Theme.secondary)
+            spoken += ", regular price \(Money.spoken(was, currency: code))"
+        }
+        return line.brandFont(.subheadline).lineLimit(1).minimumScaleFactor(0.75)
+            .accessibilityLabel(spoken)
+            .accessibilityIdentifier("cardPrice")
+    }
+
+    /// "Sale" or "Sold out", then the brand.
+    static func note(_ product: Product, brand: String?) -> some View {
+        var parts: [Text] = []
+        if !product.available {
+            parts.append(Text("Sold out").foregroundStyle(Theme.deal))
+        } else if onSale(product) {
+            parts.append(Text("Sale").fontWeight(BrandFont.heaviest).foregroundStyle(Theme.deal))
+        }
+        if let brand, !brand.isEmpty { parts.append(Text(verbatim: brand).foregroundStyle(Theme.secondary)) }
+        let dot = Text(verbatim: " · ").foregroundStyle(Theme.secondary)
+        let line = parts.dropFirst().reduce(parts.first ?? Text(verbatim: " ")) { $0 + dot + $1 }
+        return line.brandFont(.footnote).lineLimit(1)
+    }
+}
+
+/// The card's shape, shared with the placeholders that hold a row's place
+/// (RowPlaceholder), so both come out the same height.
+struct ProductCardShell<Photo: View, Price: View, Note: View>: View {
+    @ViewBuilder var photo: Photo
+    @ViewBuilder var price: Price
+    @ViewBuilder var note: Note
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            photo.frame(width: ProductCard.photo, height: ProductCard.photo)
+            VStack(alignment: .leading, spacing: 2) {
+                // Each line is as tall as its type at full size, even when a
+                // long price is shrunk to fit.
+                ZStack(alignment: .leading) { Text(verbatim: "$0").brandFont(.subheadline).hidden().accessibilityHidden(true); price }
+                ZStack(alignment: .leading) { Text(verbatim: "M").brandFont(.footnote).hidden().accessibilityHidden(true); note }
+            }
+            .frame(width: ProductCard.photo, alignment: .leading)
+        }
+        .padding(ProductCard.inset)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
+    }
+}
+
 struct SectionHeader: View {
     let title: String
     var route: Route?
@@ -1119,9 +1228,20 @@ private struct TileTextProbe: View {
     }
 }
 
+extension EnvironmentValues {
+    /// Home's rows of products are drawn as cards (`ProductCard`), two high.
+    /// Only Home's (owner, 2026-11-22: "I only want to change the Home
+    /// Screen tile layout"): a row on a product page, the cart or Profile
+    /// keeps the tiles it had.
+    @Entry var productRowCards = false
+}
+
 struct ProductRow: View {
-    /// Every card in every row is this wide, photo included.
+    /// Off Home, every tile in every row is this wide, photo included.
     static let tileWidth: CGFloat = 150
+    /// The gap between Home's cards, across and down.
+    static let spacing: CGFloat = 9
+    @Environment(\.productRowCards) private var cards
     let title: String
     let products: [Product]
     var route: Route?
@@ -1132,27 +1252,53 @@ struct ProductRow: View {
     var reserved: Set<String> = []
     var accent: Color? = nil
 
+    /// Home's cards in columns, top to bottom then on to the next column, so
+    /// the first products are the ones on screen before any sideways scroll.
+    /// A row too short to fill two lines stays on one.
+    static func columns(_ count: Int, lines: Int = 2) -> [Range<Int>] {
+        let per = lines > 1 && count >= lines * 2 ? lines : 1
+        return stride(from: 0, to: count, by: per).map { $0..<min($0 + per, count) }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: title, route: route, accent: accent).padding(.horizontal, 12)
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 12) {
-                    ForEach(Array(products.enumerated()), id: \.element.id) { index, product in
-                        ProductTile(product: product, imageSide: Self.tileWidth).frame(width: Self.tileWidth)
-                            .simultaneousGesture(TapGesture().onEnded {
-                                guard let track else { return }
-                                Analytics.shared.tapped(row: reserved.contains(product.id) ? "dept_mix" : track,
-                                                        product: product, position: index)
-                            })
+                if cards {
+                    LazyHStack(alignment: .top, spacing: Self.spacing) {
+                        ForEach(Self.columns(products.count), id: \.lowerBound) { column in
+                            VStack(spacing: Self.spacing) {
+                                ForEach(column, id: \.self) { index in
+                                    ProductCard(product: products[index]).simultaneousGesture(tap(index))
+                                }
+                            }
+                        }
                     }
+                    .padding(.horizontal, 12)
+                } else {
+                    LazyHStack(alignment: .top, spacing: 12) {
+                        ForEach(Array(products.enumerated()), id: \.element.id) { index, product in
+                            ProductTile(product: product, imageSide: Self.tileWidth).frame(width: Self.tileWidth)
+                                .simultaneousGesture(tap(index))
+                        }
+                    }
+                    .modifier(TileRowHeight(products: products, width: Self.tileWidth))
+                    .padding(.horizontal, 12)
                 }
-                .modifier(TileRowHeight(products: products, width: Self.tileWidth))
-                .padding(.horizontal, 12)
             }
         }
         .padding(.vertical, 14)
-        .background(Theme.surface)
+        // Home's cards sit on the page's own ground, so they read as cards.
+        .background(cards ? Theme.canvas : Theme.surface)
         .modifier(RecRowTracking(row: track, first: products.first))
+    }
+
+    private func tap(_ index: Int) -> some Gesture {
+        TapGesture().onEnded {
+            guard let track else { return }
+            let product = products[index]
+            Analytics.shared.tapped(row: reserved.contains(product.id) ? "dept_mix" : track, product: product, position: index)
+        }
     }
 }
 

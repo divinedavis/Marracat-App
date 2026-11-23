@@ -2249,10 +2249,51 @@ final class MarracatUITests2: MarracatUITestCase {
         // Each frame is read once: reading it again re-resolves the element,
         // and a Home still settling had swapped some tiles out in between, so
         // the check failed while its message listed only 150s (2026-10-14).
-        let widths = app.descendants(matching: .any).matching(identifier: "productTile")
-            .allElementsBoundByIndex.prefix(14).map(\.frame.width).filter { $0 > 0 }
-        XCTAssertGreaterThan(widths.count, 5, "expected several cards on Home")
-        XCTAssertTrue(widths.allSatisfy { $0 == 150 }, "cards should all be 150pt wide, got \(widths)")
+        let frames = app.descendants(matching: .any).matching(identifier: "productTile")
+            .allElementsBoundByIndex.prefix(14).map(\.frame).filter { $0.width > 0 }
+        XCTAssertGreaterThan(frames.count, 5, "expected several cards on Home")
+        // The size the owner pointed to (2026-11-22, "this size and style cards").
+        XCTAssertTrue(frames.allSatisfy { $0.width == 195 }, "cards should all be 195pt wide, got \(frames.map(\.width))")
+        XCTAssertEqual(Set(frames.map { $0.height.rounded() }).count, 1, "cards should all be one height, got \(frames.map(\.height))")
+        // And Home's rows are two cards high: some card sits right under another.
+        let stacked = frames.contains { a in frames.contains { b in b.minX == a.minX && b.minY > a.maxY && b.minY - a.maxY < 20 } }
+        XCTAssertTrue(stacked, "no card under another: Home's rows should be two high, got \(frames)")
+    }
+
+    /// Owner, 2026-11-22: "if someone isn't signed up put a sign up banner at
+    /// the top of the app", then "I like #5 member card". Above everything on
+    /// Home, and a tap away from the sign-in buttons. (Tests run signed out;
+    /// someone with an account never sees it: AccountGuestTests.)
+    func testAGuestIsOfferedAnAccountAtTheTopOfHome() {
+        let banner = any("signUpBanner")
+        XCTAssertTrue(banner.appears(timeout: 20), "no sign-up card on a guest's Home")
+        XCTAssertTrue(any("homeChips").exists)
+        XCTAssertLessThan(banner.frame.maxY, any("homeChips").frame.minY + 1, "the card should sit above the department chips")
+        XCTAssertLessThan(banner.frame.minY, 140, "the card should be at the top of the screen")
+        for words in ["Make Marracat yours", "Likes", "Orders", "Price drops", "Sign up"] {
+            XCTAssertTrue(banner.label.contains(words), "the card should say \(words): \(banner.label)")
+        }
+        snap("signUpBanner")
+        banner.tap()
+        XCTAssertTrue(app.buttons["appleSignIn"].appears(timeout: 5), "the card should open the sign-in buttons")
+        XCTAssertTrue(app.buttons["googleSignIn"].exists)
+    }
+
+    /// The card has a close. Closed, it stays away while the shopper moves
+    /// about the app (and for a week of launches: SignUpBannerTests).
+    func testTheSignUpCardCanBeClosed() {
+        XCTAssertTrue(any("signUpBanner").appears(timeout: 20), "no sign-up card on a guest's Home")
+        let chipsBefore = any("homeChips").frame.minY
+        app.buttons["signUpBannerClose"].tap()
+        XCTAssertTrue(any("signUpBanner").disappears(timeout: 5), "the close left the card up")
+        XCTAssertLessThan(any("homeChips").frame.minY, chipsBefore - 50, "Home should move up into the card's place")
+        XCTAssertFalse(app.buttons["appleSignIn"].exists, "the close opened the sign-in buttons")
+
+        app.buttons["tab.you"].tap()
+        XCTAssertTrue(any("profileCard").appears(timeout: 15))
+        tapTab("Home")
+        XCTAssertTrue(any("homeChips").appears(timeout: 5))
+        XCTAssertFalse(any("signUpBanner").exists, "the card came back")
     }
 }
 

@@ -133,7 +133,7 @@ struct YourTasteScreen: View {
                     HStack {
                         Text(catalog.categoriesByID[d]?.name ?? d.capitalized)
                         Spacer()
-                        Text(sizes.byDepartment[d] ?? "").bold()
+                        Text(sizes.byDepartment[d] ?? "").fontWeight(BrandFont.heaviest)
                         Button("Forget") {
                             sizes.forget(department: d)
                             sizes.save()

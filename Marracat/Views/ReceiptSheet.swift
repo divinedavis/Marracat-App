@@ -312,7 +312,7 @@ private struct ReceiptPaper: View {
                 Spacer()
                 Text(receipt.brand.uppercased()).lineLimit(1).truncationMode(.tail)
             }
-            .font(mono(11).bold())
+            .font(mono(11).weight(BrandFont.heaviest))
             .padding(.horizontal, 6).padding(.vertical, 5)
             .background(Color(red: 0.937, green: 0.937, blue: 0.925))
             .padding(.horizontal, -6).padding(.top, 12).padding(.bottom, 8)
@@ -342,7 +342,7 @@ private struct ReceiptPaper: View {
             if let total = receipt.total {
                 Rectangle().fill(Color(white: 0.85)).frame(height: 1).padding(.top, 6)
                 HStack { Text("GRAND TOTAL", comment: "Receipt total row"); Spacer(); Text(receipt.money(total)) }
-                    .font(mono(12).bold()).padding(.top, 8)
+                    .font(mono(12).weight(BrandFont.heaviest)).padding(.top, 8)
             }
             Text("THANK YOU FOR SHOPPING \(receipt.brand.uppercased()) ON MARRACAT", comment: "Receipt footer; the brand's name")
                 .font(mono(9.5)).tracking(0.5).foregroundStyle(Color(red: 0.27, green: 0.27, blue: 0.29))
@@ -362,7 +362,7 @@ private struct ReceiptPaper: View {
         .overlay(alignment: .topTrailing) {
             VStack(spacing: 1) {
                 Text("PAID", comment: "Stamp on a receipt").brandFont(.system(size: 19, weight: .heavy)).tracking(1.5)
-                Text(receipt.date.formatted(date: .abbreviated, time: .omitted).uppercased()).font(mono(8).bold())
+                Text(receipt.date.formatted(date: .abbreviated, time: .omitted).uppercased()).font(mono(8).weight(BrandFont.heaviest))
             }
             .foregroundStyle(Color(red: 0.82, green: 0.14, blue: 0.16))
             .padding(.horizontal, 9).padding(.vertical, 4)

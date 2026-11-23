@@ -56,6 +56,10 @@ struct LaunchSkeleton: View {
         // 402-pt-wide iPhone: chips, the hero (0.63 of its width tall) and
         // its page dots, the two big square-grid cards, then "Shop by brand".
         VStack(alignment: .leading, spacing: 14) {
+            // The sign-up card a guest's Home opens with (SignUpBanner).
+            if SignUpBanner.expected() {
+                block(width: w - 24, height: SignUpBanner.outlineHeight, radius: 18).padding(.bottom, 4)
+            }
             chips
             block(width: w - 24, height: (w - 24) * 0.63, radius: 14)
             block(width: 150, height: 12, radius: 6).frame(maxWidth: .infinity)

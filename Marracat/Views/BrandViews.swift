@@ -695,7 +695,7 @@ struct DropWatchSheet: View {
                             if await store.watchDrops(brand.id, categories: order, account: account) { dismiss() }
                         }
                     }
-                    .bold()
+                    .fontWeight(BrandFont.heaviest)
                     .disabled(store.busy.contains(brand.id))
                     .accessibilityIdentifier("dropWatchSave")
                 }
@@ -717,7 +717,7 @@ struct DropWatchSheet: View {
             HStack {
                 Text(title).foregroundStyle(.primary)
                 Spacer()
-                if on { Image(systemName: "checkmark").foregroundStyle(Theme.gold).fontWeight(.semibold) }
+                if on { Image(systemName: "checkmark").foregroundStyle(Theme.gold).fontWeight(BrandFont.heaviest) }
             }
             .contentShape(Rectangle())
         }
