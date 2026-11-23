@@ -140,7 +140,7 @@ struct CheckoutsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Your Orders").font(.title2.bold()).padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
+                Text("Your Orders").brandFont(.title2.bold()).padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
                 filterBar
                 Divider().overlay(Theme.hairline)
 
@@ -161,7 +161,7 @@ struct CheckoutsView: View {
                         Divider().overlay(Theme.hairline)
                     }
 
-                    Text("Purchase history").font(.title3.bold())
+                    Text("Purchase history").brandFont(.title3.bold())
                         .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 10)
 
                     LazyVStack(spacing: 10) {
@@ -178,16 +178,16 @@ struct CheckoutsView: View {
                     if shown.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(query.isEmpty ? range.emptyMessage : String(localized: "No orders match “\(query)”.", comment: "Orders search found nothing; the argument is what the shopper typed"))
-                                .font(.subheadline).foregroundStyle(.secondary)
+                                .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                             if range != .all {
-                                Button("See all orders") { range = .all }.font(.subheadline.bold())
+                                Button("See all orders") { range = .all }.brandFont(.subheadline.bold())
                             }
                         }
                         .padding(.horizontal, 16)
                     }
 
                     Text("Orders are placed on each brand's own store. Shipping updates and returns come from the brand.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                         .padding(16)
                 }
             }
@@ -199,7 +199,7 @@ struct CheckoutsView: View {
             // Someone whose orders are all older than three months shouldn't land on an empty list.
             if range == .threeMonths, !shopper.checkouts.contains(where: { OrderRange.threeMonths.contains($0.date) }) { range = .all }
         }
-        .navigationTitle("Your Orders")
+        .barTitle("Your Orders")
         // The bar searches your orders here, not the store (owner, 2026-10-02);
         // it replaced the "Search all orders" field that sat under the title.
         .marracatChrome(localSearch: LocalSearch(text: $query, prompt: String(localized: "Search orders", comment: "Search field placeholder on the Orders screen"), identifier: "ordersSearch"))
@@ -207,7 +207,7 @@ struct CheckoutsView: View {
 
     private var filterBar: some View {
         HStack(spacing: 0) {
-            Text(range.title).font(.subheadline).foregroundStyle(.secondary)
+            Text(range.title).brandFont(.subheadline).foregroundStyle(Theme.secondary)
                 .padding(.horizontal, 16).padding(.vertical, 12)
             Spacer()
             Menu {
@@ -217,7 +217,7 @@ struct CheckoutsView: View {
             } label: {
                 HStack(spacing: 6) {
                     Text("Filter")
-                    Image(systemName: "chevron.right").font(.caption.bold())
+                    Image(systemName: "chevron.right").brandFont(.caption.bold())
                 }
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)
@@ -234,7 +234,7 @@ private struct OrdersQuad: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline).lineLimit(2, reservesSpace: true)
+            Text(title).brandFont(.headline).lineLimit(2, reservesSpace: true)
             LazyVGrid(columns: [GridItem(.fixed(74), spacing: 6), GridItem(.fixed(74), spacing: 6)], spacing: 6) {
                 ForEach(products.prefix(4)) { p in
                     NavigationLink(value: Route.product(p.id)) {
@@ -276,15 +276,15 @@ private struct OrderItemRow: View {
                 .accessibilityIdentifier("orderProductImage")
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.quantity > 1 ? "\(item.title) (×\(item.quantity))" : item.title)
-                    .font(.subheadline.weight(.semibold)).lineLimit(1)
+                    .brandFont(.subheadline.weight(.semibold)).lineLimit(1)
                 Text(status)
-                    .font(.subheadline).foregroundStyle(Theme.stock)
+                    .brandFont(.subheadline).foregroundStyle(Theme.stock)
                 Text(catalog.brand(item.record.brandID)?.name ?? String(localized: "Brand", comment: "Fallback when a brand name is unknown"))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .brandFont(.caption).foregroundStyle(Theme.secondary).lineLimit(1)
             }
             .padding(.horizontal, 12)
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(Theme.textSecondary).padding(.trailing, 12)
+            Image(systemName: "chevron.right").brandFont(.caption.bold()).foregroundStyle(Theme.textSecondary).padding(.trailing, 12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
@@ -329,7 +329,7 @@ struct OrderDetailView: View {
         // wherever the button was tapped.
         .overlay(alignment: .bottom) {
             if let added {
-                Text(added).font(.subheadline.bold()).foregroundStyle(.black)
+                Text(added).brandFont(.subheadline.bold()).foregroundStyle(Theme.onGold)
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Theme.gold, in: Capsule())
                     .padding(.bottom, 80)
@@ -355,7 +355,7 @@ struct OrderDetailView: View {
             if let receipt { ReceiptSheet(receipt: receipt).presentationDragIndicator(.visible).presentationBackground(Theme.surface) }
         }
         .task { pushAllowed = await RestockStore.shared.orderUpdatesAllowed; await relay.refresh(); await OrderTrackingStore.shared.refresh() }
-        .navigationTitle("Order details")
+        .barTitle("Order details")
         .marracatChrome()
     }
 
@@ -388,13 +388,13 @@ struct OrderDetailView: View {
                 Text(items.count > 1
                      ? String(localized: "\(items.count) items from \(brandName)", comment: "Order details title for an order of several products; arguments: count, brand")
                      : lead?.title ?? brandName)
-                    .font(.title2.bold()).lineLimit(2)
+                    .brandFont(.title2.bold()).lineLimit(2)
                 Text(subtitle(lead, items: items, record: record, extras: extras, brandName: brandName))
-                    .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                    .brandFont(.subheadline).foregroundStyle(Theme.textSecondary)
                 Text(viaRelay ? "Updates from \(brandName) show here and arrive in your inbox."
                      : tracked != nil ? "Updates from \(brandName)'s order page show here."
                      : extras?.email.map { "\(brandName) emails shipping updates to \($0)" } ?? "\(brandName) emails shipping updates.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .brandFont(.caption).foregroundStyle(Theme.secondary)
                     .padding(.top, 2)
                     .accessibilityIdentifier("orderShippingNote")
             }
@@ -404,7 +404,7 @@ struct OrderDetailView: View {
 
             if step < 3, let day = events.compactMap(\.estDelivery).last, let label = Self.arrivalLabel(day) {
                 Label(label, systemImage: "calendar")
-                    .font(.subheadline.bold())
+                    .brandFont(.subheadline.bold())
                     .padding(.top, 10)
                     .accessibilityIdentifier("orderArrival")
             }
@@ -413,11 +413,11 @@ struct OrderDetailView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "shippingbox")
                         Text("\(Self.carrierName(tracking.carrier)) tracking \(number)").lineLimit(1).truncationMode(.middle)
-                            .font(.caption.monospaced())
+                            .brandFont(.caption.monospaced())
                         Spacer()
-                        Text("Copy", comment: "Copies the tracking number").font(.caption.bold()).foregroundStyle(Theme.clean)
+                        Text("Copy", comment: "Copies the tracking number").brandFont(.caption.bold()).foregroundStyle(Theme.ink(Theme.clean))
                     }
-                    .font(.caption).foregroundStyle(.secondary)
+                    .brandFont(.caption).foregroundStyle(Theme.secondary)
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     .background(Theme.field, in: RoundedRectangle(cornerRadius: 12))
                     .contentShape(Rectangle())
@@ -513,7 +513,7 @@ struct OrderDetailView: View {
                 // The receipt, printed in a sheet (ReceiptSheet; owner, 2026-10-23).
                 Button { receipt = OrderReceipt(record: record, brand: brandName, extras: extras, items: items, orderName: orderName) } label: {
                     listRow { Label { Text("Receipt", comment: "Button on Order details: opens the order's receipt") } icon: { Image(systemName: "receipt") } }
-                        trailing: { Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(Theme.textSecondary) }
+                        trailing: { Image(systemName: "chevron.right").brandFont(.caption.bold()).foregroundStyle(Theme.textSecondary) }
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("orderReceipt")
@@ -544,10 +544,10 @@ struct OrderDetailView: View {
                                 Text(email).lineLimit(1).truncationMode(.middle)
                                 if viaRelay {
                                     Text("\(brandName) knows you by this Marracat address. Give it to them if you contact them about this order.")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                                 }
                             }
-                        } trailing: { Image(systemName: "doc.on.doc").font(.caption).foregroundStyle(Theme.textSecondary) }
+                        } trailing: { Image(systemName: "doc.on.doc").brandFont(.caption).foregroundStyle(Theme.textSecondary) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("orderEmail")
@@ -574,9 +574,9 @@ struct OrderDetailView: View {
                                 Text(viaRelay
                                      ? "Cancel, change or return it at \(brandName). Sign in with your Marracat order email (we copy it for you); the code arrives in your inbox."
                                      : "Cancel, change or return it at \(brandName).")
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .brandFont(.caption).foregroundStyle(Theme.secondary)
                             }
-                        } trailing: { Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Theme.textSecondary) }
+                        } trailing: { Image(systemName: "arrow.up.right").brandFont(.caption).foregroundStyle(Theme.textSecondary) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("orderManage")
@@ -586,7 +586,7 @@ struct OrderDetailView: View {
                 if let brand {
                     Button { web = IdentifiedURL(url: brand.storeURL) } label: {
                         listRow { Label("Get help from \(brand.name)", systemImage: "questionmark.circle") }
-                            trailing: { Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Theme.textSecondary) }
+                            trailing: { Image(systemName: "arrow.up.right").brandFont(.caption).foregroundStyle(Theme.textSecondary) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("orderContactBrand")
@@ -642,7 +642,7 @@ struct OrderDetailView: View {
                 } icon: {
                     Image(systemName: step >= 3 ? "checkmark.circle.fill" : step >= 1 ? "shippingbox.fill" : "bag.fill")
                 }
-                .font(.subheadline.bold())
+                .brandFont(.subheadline.bold())
                 .foregroundStyle(.black)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(step >= 3 ? Theme.delivered : Color.white, in: Capsule())
@@ -664,7 +664,7 @@ struct OrderDetailView: View {
 
     private func section(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.caption.weight(.semibold)).tracking(0.6)
+            .brandFont(.caption.weight(.semibold)).tracking(0.6)
             .foregroundStyle(Theme.textSecondary)
             .padding(.horizontal, 4).padding(.top, 24).padding(.bottom, 8)
     }
@@ -677,7 +677,7 @@ struct OrderDetailView: View {
             Spacer(minLength: 8)
             trailing()
         }
-        .font(.subheadline)
+        .brandFont(.subheadline)
         .foregroundStyle(.primary)
         .padding(.horizontal, 16).padding(.vertical, 13)
         .contentShape(Rectangle())
@@ -690,11 +690,11 @@ struct OrderDetailView: View {
         if items.count == 1, let item = items.first, let product = item.product {
             Button { buyAgain(item, product: product) } label: {
                 Text(item.line?.price.map { "Buy it again · \($0.formatted(.currency(code: item.line?.currency ?? record.currencyCode)))" } ?? String(localized: "Buy it again", comment: "Order details button"))
-                    .font(.headline)
+                    .brandFont(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .foregroundStyle(.black)
-                    .background(Color.white, in: Capsule())
+                    .foregroundStyle(Theme.onGold)
+                    .background(Theme.inverse, in: Capsule())
                     .shadow(color: .black.opacity(0.45), radius: 12, y: 6)
             }
             .buttonStyle(.plain)
@@ -736,7 +736,7 @@ struct OrderDetailView: View {
     private func lateShipmentNote(_ record: CheckoutRecord) -> some View {
         if LateShipmentStore.shared.isReported(record) {
             Text("Thanks. This helps Marracat see which brands ship late. Tap again to undo.")
-                .font(.caption).foregroundStyle(.secondary)
+                .brandFont(.caption).foregroundStyle(Theme.secondary)
                 .accessibilityIdentifier("orderLateShipmentNote")
         }
     }
@@ -746,23 +746,23 @@ struct OrderDetailView: View {
             HStack(alignment: .top, spacing: 12) {
                 ProductImageWell(url: item.image, width: 240, padding: 4).frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title).font(.subheadline.weight(.semibold)).lineLimit(2)
+                    Text(item.title).brandFont(.subheadline.weight(.semibold)).lineLimit(2)
                     if let brand {
                         HStack(spacing: 4) {
-                            Text("Sold by:").foregroundStyle(.secondary)
-                            NavigationLink(value: Route.brand(brand.id)) { Text(brand.name).foregroundStyle(Theme.clean) }
+                            Text("Sold by:").foregroundStyle(Theme.secondary)
+                            NavigationLink(value: Route.brand(brand.id)) { Text(brand.name).foregroundStyle(Theme.ink(Theme.clean)) }
                                 .buttonStyle(.plain)
                         }
-                        .font(.caption)
+                        .brandFont(.caption)
                     }
                     if let option = item.line?.option ?? item.product.flatMap({ p in
                         item.line?.variantID.flatMap { id in p.variants.first { $0.id == id } }.flatMap { $0.isDefault ? nil : $0.title }
                     }) {
-                        Text(option).font(.caption).foregroundStyle(.secondary)
+                        Text(option).brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
-                    Text("Qty: \(item.quantity)").font(.caption).foregroundStyle(.secondary)
+                    Text("Qty: \(item.quantity)").brandFont(.caption).foregroundStyle(Theme.secondary)
                     if let price = item.line?.price {
-                        Text(price.formatted(.currency(code: item.line?.currency ?? record.currencyCode))).font(.subheadline)
+                        Text(price.formatted(.currency(code: item.line?.currency ?? record.currencyCode))).brandFont(.subheadline)
                     }
                 }
             }
@@ -790,13 +790,13 @@ struct OrderDetailView: View {
         let subtotal = extras?.subtotal ?? record.subtotal
         let total = extras?.total ?? record.total
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Order placed \(record.date.formatted(date: .long, time: .omitted))").font(.subheadline)
+            Text("Order placed \(record.date.formatted(date: .long, time: .omitted))").brandFont(.subheadline)
             if let orderName {
-                Text("Order \(orderName)").font(.subheadline).textSelection(.enabled).accessibilityIdentifier("orderName")
+                Text("Order \(orderName)").brandFont(.subheadline).textSelection(.enabled).accessibilityIdentifier("orderName")
             }
             if let number = ShopifyIDs.number(record.orderID) {
                 // Shopify's internal id, not the "#1042" in the brand's email.
-                Text("Shopify order ID \(number)").font(orderName == nil ? .subheadline : .caption)
+                Text("Shopify order ID \(number)").brandFont(orderName == nil ? .subheadline : .caption)
                     .foregroundStyle(orderName == nil ? Color.primary : Theme.textSecondary)
                     .textSelection(.enabled).accessibilityIdentifier("orderNumber")
             }
@@ -822,7 +822,7 @@ struct OrderDetailView: View {
             Spacer()
             Text(value)
         }
-        .font(bold ? .subheadline.bold() : .subheadline)
+        .brandFont(bold ? .subheadline.bold() : .subheadline)
     }
 
     @ViewBuilder
@@ -830,7 +830,7 @@ struct OrderDetailView: View {
         let picks = catalog.products(for: record.brandID).filter { $0.available && !bought.contains($0.id) }.prefix(10)
         if let brand, !picks.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("More from \(brand.name)").font(.title3.bold())
+                Text("More from \(brand.name)").brandFont(.title3.bold())
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 12) {
                         ForEach(Array(picks)) { p in ProductTile(product: p, imageSide: 140).frame(width: 140) }
@@ -944,8 +944,8 @@ private struct OrderTracker: View {
             HStack(alignment: .top) {
                 ForEach(steps.indices, id: \.self) { i in
                     Text(steps[i])
-                        .font(.caption2)
-                        .foregroundStyle(i == step ? (step >= 3 ? Theme.delivered : Color.primary) : i < step ? Color.primary : Theme.textSecondary)
+                        .brandFont(.caption2)
+                        .foregroundStyle(i == step ? (step >= 3 ? Theme.ink(Theme.delivered) : Color.primary) : i < step ? Color.primary : Theme.textSecondary)
                         .fontWeight(i == step ? .semibold : .regular)
                         .multilineTextAlignment(i == 0 ? .leading : i == steps.count - 1 ? .trailing : .center)
                         .frame(maxWidth: .infinity, alignment: i == 0 ? .leading : i == steps.count - 1 ? .trailing : .center)
@@ -990,12 +990,12 @@ private struct OrderAction: ButtonStyle {
         func makeBody(configuration: Configuration) -> some View {
             VStack(spacing: 7) {
                 configuration.icon
-                    .font(.system(size: 20, weight: .medium))
+                    .brandFont(.system(size: 20, weight: .medium))
                     .frame(width: 56, height: 56)
                     .background(Theme.surface, in: Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.09), lineWidth: 1))
+                    .overlay(Circle().stroke(Color.primary.opacity(0.09), lineWidth: 1))
                 configuration.title
-                    .font(.caption.weight(.medium))
+                    .brandFont(.caption.weight(.medium))
                     .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
             }
             .foregroundStyle(Color.primary)
@@ -1008,8 +1008,8 @@ private struct OrderPill: ButtonStyle {
     var primary = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.subheadline)
-            .foregroundStyle(primary ? Color.black : Color.primary)
+            .brandFont(.subheadline)
+            .foregroundStyle(primary ? Theme.onGold : Color.primary)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Capsule().fill(primary ? Theme.gold : Theme.surface))
             .overlay(Capsule().stroke(primary ? Color.clear : Theme.amber, lineWidth: 1))
@@ -1102,17 +1102,17 @@ struct DeliveryProblemPanel: View {
                 if let said = problem.carrierSaid {
                     Text("\(OrderDetailView.carrierName(problem.carrier)) said: “\(said)”",
                          comment: "Delivery problem: the carrier's own message; the arguments are the carrier and its words")
-                        .font(.subheadline.italic())
+                        .brandFont(.subheadline.italic())
                         .accessibilityIdentifier("deliveryProblemCarrier")
                 }
-                Text(problem.meaning).font(.subheadline)
-                Text(problem.whatToDo).font(.subheadline.weight(.semibold))
+                Text(problem.meaning).brandFont(.subheadline)
+                Text(problem.whatToDo).brandFont(.subheadline.weight(.semibold))
             }
             .padding(.top, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
             Label(problem.title, systemImage: "exclamationmark.triangle.fill")
-                .font(.subheadline.bold())
+                .brandFont(.subheadline.bold())
                 .foregroundStyle(Theme.deal)
                 // On the heading, not the group: a group's id hides what's inside.
                 .accessibilityIdentifier("deliveryProblem")

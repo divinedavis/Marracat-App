@@ -27,10 +27,10 @@ struct SavedView: View {
                 } else {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text("Saved").font(.largeTitle.bold())
+                        Text("Saved").brandFont(.largeTitle.bold())
                         Spacer()
                         Button(editing ? "Done" : "Edit") { withAnimation { editing.toggle() } }
-                            .font(.subheadline.bold())
+                            .brandFont(.subheadline.bold())
                             .accessibilityIdentifier("savedEdit")
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14, alignment: .top)], spacing: 22) {
@@ -65,7 +65,7 @@ struct SavedView: View {
                                         Button("Delete", role: .destructive) { deleting = list }
                                     } label: {
                                         Image(systemName: "ellipsis.circle.fill")
-                                            .font(.title2).foregroundStyle(.white, Color.black.opacity(0.6))
+                                            .brandFont(.title2).foregroundStyle(.white, Color.black.opacity(0.6))
                                             .padding(8)
                                     }
                                     .accessibilityIdentifier("savedFolderMenu")
@@ -77,9 +77,9 @@ struct SavedView: View {
                                 RoundedRectangle(cornerRadius: 16)
                                     .strokeBorder(Theme.hairline, style: StrokeStyle(lineWidth: 1.5, dash: [6]))
                                     .aspectRatio(1, contentMode: .fit)
-                                    .overlay { Image(systemName: "plus").font(.title).foregroundStyle(.secondary) }
-                                Text("New list").font(.subheadline.bold())
-                                Text("Group what you save").font(.caption).foregroundStyle(.secondary)
+                                    .overlay { Image(systemName: "plus").brandFont(.title).foregroundStyle(Theme.secondary) }
+                                Text("New list").brandFont(.subheadline.bold())
+                                Text("Group what you save").brandFont(.caption).foregroundStyle(Theme.secondary)
                             }
                         }
                         .buttonStyle(.plain)
@@ -110,12 +110,12 @@ struct SavedView: View {
         return VStack(alignment: .leading, spacing: 14) {
             if found.lists.isEmpty && found.products.isEmpty {
                 Text("Nothing saved matches “\(query)”.", comment: "Saved search found nothing; the argument is what the shopper typed")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                     .padding(16)
                     .accessibilityIdentifier("savedSearchEmpty")
             }
             if !found.lists.isEmpty {
-                Text("Lists", comment: "Saved search results heading").font(.headline).padding(.horizontal, 16)
+                Text("Lists", comment: "Saved search results heading").brandFont(.headline).padding(.horizontal, 16)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14, alignment: .top)], spacing: 22) {
                     ForEach(found.lists) { list in
                         NavigationLink(value: Route.savedFolder(list.id)) {
@@ -130,7 +130,7 @@ struct SavedView: View {
                 .padding(.horizontal, 16)
             }
             if !found.products.isEmpty {
-                Text("Items", comment: "Saved search results heading").font(.headline).padding(.horizontal, 16)
+                Text("Items", comment: "Saved search results heading").brandFont(.headline).padding(.horizontal, 16)
                 ProductGrid(products: found.products)
             }
         }
@@ -140,10 +140,10 @@ struct SavedView: View {
     private var empty: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Image(systemName: "heart").font(.system(size: 44)).foregroundStyle(Theme.amber)
-                Text("Don't lose your finds").font(.title3.bold()).accessibilityIdentifier("savedEmpty")
+                Image(systemName: "heart").brandFont(.system(size: 44)).foregroundStyle(Theme.amber)
+                Text("Don't lose your finds").brandFont(.title3.bold()).accessibilityIdentifier("savedEmpty")
                 Text("Tap “Add to List” on any item to save it here, so it's easy to come back to.")
-                    .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
                 Button("Start shopping") { nav.tab = .home }
                     .buttonStyle(PillButtonStyle(color: Theme.gold)).frame(maxWidth: 260).padding(.top, 6)
             }
@@ -199,18 +199,18 @@ struct FolderCard: View {
                     } else if let first = urls.first {
                         RemoteImage(url: first, width: 400).padding(10)
                     } else {
-                        Image(systemName: "heart").font(.system(size: 40)).foregroundStyle(Color.black.opacity(0.35))
+                        Image(systemName: "heart").brandFont(.system(size: 40)).foregroundStyle(Color.black.opacity(0.35))
                     }
                 }
             }
             .aspectRatio(1, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.hairline, lineWidth: 0.5))
-            Text(name).font(.subheadline.bold()).lineLimit(1)
+            Text(name).brandFont(.subheadline.bold()).lineLimit(1)
             if let subtitle {
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                Text(subtitle).brandFont(.caption).foregroundStyle(Theme.secondary)
             } else if let count {
-                Text(count == 0 ? "Nothing saved yet" : "\(count) saved").font(.caption).foregroundStyle(.secondary)
+                Text(count == 0 ? "Nothing saved yet" : "\(count) saved").brandFont(.caption).foregroundStyle(Theme.secondary)
             }
         }
         .contentShape(Rectangle())
@@ -260,10 +260,10 @@ struct FolderView: View {
                         .frame(width: 72, height: 72)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(list.name).font(.title2.bold()).lineLimit(2)
-                            Text(products.isEmpty ? "Nothing saved yet" : "\(products.count) saved").font(.subheadline).foregroundStyle(.secondary)
+                            Text(list.name).brandFont(.title2.bold()).lineLimit(2)
+                            Text(products.isEmpty ? "Nothing saved yet" : "\(products.count) saved").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                             Button("Change cover") { choosingCover = true }
-                                .font(.subheadline.bold())
+                                .brandFont(.subheadline.bold())
                                 .disabled(products.isEmpty)
                                 .accessibilityIdentifier("changeCover")
                         }
@@ -272,7 +272,7 @@ struct FolderView: View {
                     .padding(12)
                     if products.isEmpty {
                         Text("Save something to this list from any product page: “Save to a list”.")
-                            .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 12)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary).padding(.horizontal, 12)
                     } else {
                         ProductGrid(products: products)
                     }
@@ -322,7 +322,7 @@ struct CoverPickerSheet: View {
                     }
                     .buttonStyle(PillButtonStyle(color: Theme.gold))
                     .accessibilityIdentifier("coverFromPhotos")
-                    Text("Or a photo from this list").font(.subheadline.bold())
+                    Text("Or a photo from this list").brandFont(.subheadline.bold())
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                         ForEach(list.items.compactMap(catalog.product)) { p in
                             Button {
@@ -351,13 +351,13 @@ struct CoverPickerSheet: View {
                             shopper.setCover(nil, for: list.id)
                             dismiss()
                         }
-                        .font(.subheadline)
+                        .brandFont(.subheadline)
                     }
                 }
                 .padding(16)
             }
             .background(Theme.canvas)
-            .navigationTitle("Cover photo")
+            .barTitle("Cover photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onChange(of: picked) { _, item in
@@ -403,9 +403,9 @@ struct NewListSheet: View {
                         .submitLabel(.done)
                         .onSubmit(save)
                         .accessibilityIdentifier("listNameField")
-                } footer: { Text("Up to 40 characters.") }
+                } footer: { Text("Up to 40 characters.").foregroundStyle(Theme.secondary) }
             }
-            .navigationTitle(renaming == nil ? "New list" : "Rename list")
+            .barTitle(renaming == nil ? "New list" : "Rename list")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -439,12 +439,12 @@ struct SaveToListSheet: View {
             List {
                 Section {
                     Button { creating = true } label: {
-                        Label("New list", systemImage: "plus.circle").font(.subheadline.bold())
+                        Label("New list", systemImage: "plus.circle").brandFont(.subheadline.bold())
                     }
                     .accessibilityIdentifier("newListFromProduct")
                 }
                 if !shopper.lists.isEmpty {
-                    Section("Your lists") {
+                    TitledSection("Your lists") {
                         ForEach(shopper.lists) { list in
                             let inList = list.items.contains(productID)
                             Button {
@@ -453,7 +453,7 @@ struct SaveToListSheet: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(list.name).foregroundStyle(.primary)
-                                        Text(list.items.isEmpty ? "Nothing saved yet" : "\(list.items.count) saved").font(.caption).foregroundStyle(.secondary)
+                                        Text(list.items.isEmpty ? "Nothing saved yet" : "\(list.items.count) saved").brandFont(.caption).foregroundStyle(Theme.secondary)
                                     }
                                     Spacer()
                                     Image(systemName: inList ? "checkmark.circle.fill" : "circle").foregroundStyle(.primary)
@@ -465,7 +465,7 @@ struct SaveToListSheet: View {
                     }
                 }
             }
-            .navigationTitle("Save to a list")
+            .barTitle("Save to a list")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier("saveToListDone") } }
             .sheet(isPresented: $creating) {

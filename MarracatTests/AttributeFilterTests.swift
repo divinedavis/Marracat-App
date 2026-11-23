@@ -4,7 +4,8 @@ import Testing
 
 /// Skincare and hair filters from what the brand says (catalog/attributes.py;
 /// owner, 2026-11-04: "only have filters that reflect skincare in the skincare
-/// category and the ones for hair in the hair category").
+/// category and the ones for hair in the hair category"; 2026-11-22: the
+/// who-is-it-for groups also show on a page of several departments).
 @MainActor
 struct AttributeFilterTests {
     private func product(_ id: String, _ category: String, attrs: [String: [String]]? = nil) -> Product {
@@ -37,16 +38,59 @@ struct AttributeFilterTests {
         #expect(facets.options[.preferences]?.map(\.id).sorted() == ["oil", "vegan"])
         #expect(!facets.groups.contains(.hairType))
 
-        // A search across departments shows none of them…
+        // Picking a department shows that department's groups alone.
         let mixed = skin + [product("h", "hair", attrs: ["hair": ["4c"], "free": ["sulfate"]])]
-        let wide = FilterFacets(products: mixed, filters: ProductFilters(), brandName: { _ in nil })
-        #expect(!wide.groups.contains(where: { $0.attrField != nil }))
-        // …until the shopper picks a department.
         var hairOnly = ProductFilters(); hairOnly.categories = ["hair"]
         let hair = FilterFacets(products: mixed, filters: hairOnly, brandName: { _ in nil })
         #expect(hair.groups.contains(.hairType))
         #expect(!hair.groups.contains(.skinType))
         #expect(hair.options[.preferences]?.map(\.id) == ["sulfate"], "oil-free is a skin preference only")
+    }
+
+    /// A brand's store or a wide search spans departments (owner, 2026-11-22,
+    /// on a brand selling hair, skin and makeup, where these were hidden): the
+    /// who-is-it-for groups show for the departments on the page, each counted
+    /// from its own department's products; the rest wait for one department.
+    @Test func aPageOfSeveralDepartmentsShowsWhoAProductIsFor() {
+        let ps = [product("s1", "skincare", attrs: ["skin": ["eczema", "sensitive"], "skintype": ["sensitive"], "free": ["fragrance", "oil"],
+                                                    "ingredient": ["ceramides"], "form": ["cream"], "spf": ["high"]]),
+                  product("s2", "skincare", attrs: ["skin": ["acne"]]),
+                  product("h1", "hair", attrs: ["hair": ["4c", "fine"], "hairneed": ["sensitive_scalp", "dandruff"], "free": ["sulfate"]]),
+                  product("m1", "makeup"),
+                  product("t1", "clothing", attrs: ["skin": ["eczema"]])]   // a stray tag outside its department is not counted
+        let wide = FilterFacets(products: ps, filters: ProductFilters(), brandName: { _ in nil })
+        for g in [FilterGroup.hairType, .hairConcern, .skinConcern, .skinType, .preferences] {
+            #expect(wide.groups.contains(g), "\(g) should show on a mixed page")
+        }
+        for g in [FilterGroup.ingredient, .formulation, .sunProtection, .pack] {
+            #expect(!wide.groups.contains(g), "\(g) waits for a single department")
+        }
+        let count = { (g: FilterGroup, id: String) in wide.options[g]?.first { $0.id == id }?.count }
+        #expect(count(.skinConcern, "eczema") == 1)
+        #expect(count(.hairConcern, "sensitive_scalp") == 1)
+        #expect(count(.hairType, "fine") == 1)
+        #expect(Set(wide.options[.preferences]?.map(\.id) ?? []) == ["fragrance", "oil", "sulfate"])
+
+        var f = ProductFilters(); f.attrs = ["skin": ["eczema"]]
+        #expect(f.apply(ps).map(\.id).contains("s1"))
+        var scalp = ProductFilters(); scalp.attrs = ["hairneed": ["sensitive_scalp"]]
+        #expect(scalp.apply(ps).map(\.id) == ["h1"])
+
+        // A page with no hair or skin products shows none of them.
+        let clothes = FilterFacets(products: [product("a", "clothing"), product("b", "bags")], filters: ProductFilters(), brandName: { _ in nil })
+        #expect(!clothes.groups.contains(where: { $0.attrField != nil }))
+    }
+
+    /// Baby products carry the skin concerns a parent shops by, and free-of.
+    @Test func babyShowsSkinConcernsAndPreferences() {
+        let ps = [product("b1", "baby", attrs: ["skin": ["eczema", "sensitive"], "free": ["fragrance"]]), product("b2", "baby")]
+        let facets = FilterFacets(products: ps, filters: ProductFilters(), brandName: { _ in nil })
+        #expect(facets.groups.contains(.skinConcern))
+        #expect(facets.options[.skinConcern]?.map(\.id).sorted() == ["eczema", "sensitive"])
+        #expect(facets.options[.preferences]?.map(\.id) == ["fragrance"])
+        #expect(AttrFilter.label("hairneed", "sensitive_scalp") == "Sensitive scalp")
+        #expect(AttrFilter.label("hair", "low_porosity") == "Low porosity")
+        #expect(AttrFilter.label("skin", "razor_bumps") == "Razor bumps & ingrowns")
     }
 
     @Test func aChoiceNarrowsAndKeepsItsOwnGroupsCounts() {

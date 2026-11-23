@@ -41,7 +41,7 @@ struct YourTasteScreen: View {
                     Button(role: .destructive) { confirmStartOver = true } label: { Text("Start over") }
                         .accessibilityIdentifier("startOverTaste")
                 } footer: {
-                    Text("Learned from what you look at, save and buy, on this iPhone only. Start over clears all of it.")
+                    Text("Learned from what you look at, save and buy, on this iPhone only. Start over clears all of it.").foregroundStyle(Theme.secondary)
                 }
             }
         }
@@ -54,7 +54,7 @@ struct YourTasteScreen: View {
             Text("Your styles, interests, sizes and price ranges will be forgotten. Saved items and orders stay.")
         }
         .task(id: taste.revision) { await reload() }
-        .navigationTitle("Your taste")
+        .barTitle("Your taste")
         .marracatChrome()
     }
 
@@ -69,7 +69,7 @@ struct YourTasteScreen: View {
                     HStack {
                         NavigationLink(value: Route.style(s.style.id)) { Text(s.style.name) }
                         Button("Not me") { taste.setNotMe(s.style.id, true) }
-                            .buttonStyle(.borderless).font(.subheadline)
+                            .buttonStyle(.borderless).brandFont(.subheadline)
                             .accessibilityIdentifier("notMeStyle")
                     }
                     .accessibilityIdentifier("tasteStyle")
@@ -77,18 +77,18 @@ struct YourTasteScreen: View {
                 ForEach(taste.notMeStyles, id: \.self) { id in
                     if let style = ShopStyle.all.first(where: { $0.id == id }) {
                         HStack {
-                            Text(style.name).foregroundStyle(.secondary).strikethrough()
+                            Text(style.name).foregroundStyle(Theme.secondary).strikethrough()
                             Spacer()
                             Button("Bring back") { taste.setNotMe(id, false) }
-                                .buttonStyle(.borderless).font(.subheadline)
+                                .buttonStyle(.borderless).brandFont(.subheadline)
                                 .accessibilityIdentifier("bringBackStyle")
                         }
                     }
                 }
             } header: {
-                Text("Your styles")
+                Text("Your styles").foregroundStyle(Theme.secondary)
             } footer: {
-                Text("Not me keeps a style out of your picks and moves it to the end of Shop by style.")
+                Text("Not me keeps a style out of your picks and moves it to the end of Shop by style.").foregroundStyle(Theme.secondary)
             }
         }
     }
@@ -100,9 +100,9 @@ struct YourTasteScreen: View {
                     let item = interests[i]
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text(item.label).font(.headline)
+                            Text(item.label).brandFont(.headline)
                             Spacer()
-                            Text("\(Int((item.interest.share * 100).rounded()))%").foregroundStyle(.secondary).font(.subheadline)
+                            Text("\(Int((item.interest.share * 100).rounded()))%").foregroundStyle(Theme.secondary).brandFont(.subheadline)
                         }
                         HStack(spacing: 8) {
                             ForEach(item.products.prefix(4)) { p in
@@ -110,7 +110,7 @@ struct YourTasteScreen: View {
                             }
                         }
                         Button("Less of this") { taste.mute(item.interest.products) }
-                            .buttonStyle(.borderless).font(.subheadline)
+                            .buttonStyle(.borderless).brandFont(.subheadline)
                             .accessibilityIdentifier("muteInterest")
                     }
                     .padding(.vertical, 4)
@@ -118,9 +118,9 @@ struct YourTasteScreen: View {
                     .accessibilityIdentifier("tasteInterest")
                 }
             } header: {
-                Text("What you're into")
+                Text("What you're into").foregroundStyle(Theme.secondary)
             } footer: {
-                Text("Picked for you takes turns between these, so one doesn't crowd out the other.")
+                Text("Picked for you takes turns between these, so one doesn't crowd out the other.").foregroundStyle(Theme.secondary)
             }
         }
     }
@@ -138,16 +138,16 @@ struct YourTasteScreen: View {
                             sizes.forget(department: d)
                             sizes.save()
                         }
-                        .buttonStyle(.borderless).font(.subheadline)
+                        .buttonStyle(.borderless).brandFont(.subheadline)
                         .accessibilityIdentifier("forgetSize")
                     }
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("tasteSize")
                 }
             } header: {
-                Text("Your sizes")
+                Text("Your sizes").foregroundStyle(Theme.secondary)
             } footer: {
-                Text("Product pages start on your size when it's in stock. A brand you've bought a different size from keeps its own.")
+                Text("Product pages start on your size when it's in stock. A brand you've bought a different size from keeps its own.").foregroundStyle(Theme.secondary)
             }
         }
     }
@@ -161,15 +161,15 @@ struct YourTasteScreen: View {
                         Text(catalog.categoriesByID[d]?.name ?? d.capitalized)
                         Spacer()
                         Text("\(Money.string(band.lowerBound, currency: "USD"))–\(Money.string(band.upperBound, currency: "USD"))")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondary)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("tastePrice")
                 }
             } header: {
-                Text("Your price range")
+                Text("Your price range").foregroundStyle(Theme.secondary)
             } footer: {
-                Text("From what you look at and buy in each department. Picks above it come after the ones inside it.")
+                Text("From what you look at and buy in each department. Picks above it come after the ones inside it.").foregroundStyle(Theme.secondary)
             }
         }
     }
@@ -181,11 +181,11 @@ struct YourTasteScreen: View {
                     Text(lean == "women" ? "Clothing and shoes: Women" : "Clothing and shoes: Men")
                     Spacer()
                     Button("Forget") { GenderLean.clear(); self.lean = nil }
-                        .buttonStyle(.borderless).font(.subheadline)
+                        .buttonStyle(.borderless).brandFont(.subheadline)
                         .accessibilityIdentifier("forgetLean")
                 }
             } footer: {
-                Text("From the Women or Men filter you keep choosing. Picks leave out the other side's clothing and shoes.")
+                Text("From the Women or Men filter you keep choosing. Picks leave out the other side's clothing and shoes.").foregroundStyle(Theme.secondary)
             }
         }
     }

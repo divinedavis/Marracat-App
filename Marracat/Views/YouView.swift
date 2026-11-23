@@ -22,7 +22,7 @@ struct YouView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Profile").font(.largeTitle.bold()).padding(.horizontal, 16).padding(.top, 8)
+                Text("Profile").brandFont(.largeTitle.bold()).padding(.horizontal, 16).padding(.top, 8)
                 if query.trimmingCharacters(in: .whitespaces).isEmpty {
                     identityCard
                     tiles
@@ -51,7 +51,7 @@ struct YouView: View {
         let found = YouSearch.matches(query, signedIn: account.user != nil, social: social.signedIn)
         if found.isEmpty {
             Text("Nothing matches “\(query)”.", comment: "You-tab search found nothing; the argument is what the shopper typed")
-                .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 16)
+                .brandFont(.subheadline).foregroundStyle(Theme.secondary).padding(.horizontal, 16)
                 .accessibilityIdentifier("youSearchEmpty")
         } else {
             VStack(spacing: 0) {
@@ -71,11 +71,11 @@ struct YouView: View {
         let label = HStack(spacing: 14) {
             Image(systemName: e.icon).frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
-                Text(e.title).font(.subheadline)
-                if let place = e.place { Text(place).font(.caption).foregroundStyle(.secondary) }
+                Text(e.title).brandFont(.subheadline)
+                if let place = e.place { Text(place).brandFont(.caption).foregroundStyle(Theme.secondary) }
             }
             Spacer()
-            Image(systemName: e.target == .help ? "arrow.up.right" : "chevron.right").font(.caption).foregroundStyle(.secondary)
+            Image(systemName: e.target == .help ? "arrow.up.right" : "chevron.right").brandFont(.caption).foregroundStyle(Theme.secondary)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .contentShape(Rectangle())
@@ -111,16 +111,16 @@ struct YouView: View {
             VStack(spacing: 8) {
                 ZStack(alignment: .bottomTrailing) {
                     Circle().fill(Theme.field).frame(width: 84, height: 84)
-                        .overlay { Text(initials).font(.title.bold()) }
+                        .overlay { Text(initials).brandFont(.title.bold()) }
                     if account.user != nil {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.title3).foregroundStyle(.black, Theme.gold)
+                            .brandFont(.title3).foregroundStyle(Theme.onGold, Theme.gold)
                             .offset(x: 2, y: 2)
                     }
                 }
-                Text(displayName).font(.headline).lineLimit(1)
+                Text(displayName).brandFont(.headline).lineLimit(1)
                 Text(account.user == nil ? "Shopping as a guest" : (social.me.map { "@\($0.profile.handle)" } ?? "Member"))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .brandFont(.caption).foregroundStyle(Theme.secondary)
             }
             .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: 0) {
@@ -141,8 +141,8 @@ struct YouView: View {
 
     private func stat(_ n: Int, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text("\(n)").font(.title2.bold())
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text("\(n)").brandFont(.title2.bold())
+            Text(label).brandFont(.caption).foregroundStyle(Theme.secondary)
         }
         .padding(.vertical, 8)
     }
@@ -161,10 +161,10 @@ struct YouView: View {
     private func tile(_ title: String, systemImage: String, route: Route, id: String) -> some View {
         NavigationLink(value: route) {
             VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: systemImage).font(.title2)
+                Image(systemName: systemImage).brandFont(.title2)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(Theme.field))
-                Text(title).font(.subheadline.bold())
+                Text(title).brandFont(.subheadline.bold())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
@@ -178,14 +178,14 @@ struct YouView: View {
     private var signInCard: some View {
         NavigationLink(value: Route.accountSettings) {
             HStack(spacing: 14) {
-                Image(systemName: "person.crop.circle.badge.plus").font(.title)
+                Image(systemName: "person.crop.circle.badge.plus").brandFont(.title)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Make Marracat yours").font(.subheadline.bold())
+                    Text("Make Marracat yours").brandFont(.subheadline.bold())
                     Text("Sign in to keep your lists, orders and history across devices.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                Image(systemName: "chevron.right").foregroundStyle(Theme.secondary)
             }
             .padding(14)
             .background(RoundedRectangle(cornerRadius: 16).fill(Theme.surface))
@@ -205,6 +205,8 @@ struct YouView: View {
             Divider().padding(.leading, 52)
             NavigationLink(value: Route.accountSettings) { row(String(localized: "Account settings", comment: "Row in the You tab menu"), "gearshape") }
                 .buttonStyle(.plain).accessibilityIdentifier("accountSettings")
+            Divider().padding(.leading, 52)
+            AppearanceRow()
             Divider().padding(.leading, 52)
             Link(destination: URL(string: "https://marracat.com/#/support")!) { row(String(localized: "Get help", comment: "Row in the You tab menu"), "questionmark.circle", external: true) }
                 .buttonStyle(.plain).foregroundStyle(.primary)
@@ -256,9 +258,9 @@ struct YouView: View {
     private func row(_ title: String, _ systemImage: String, external: Bool = false) -> some View {
         HStack(spacing: 14) {
             Image(systemName: systemImage).frame(width: 24)
-            Text(title).font(.subheadline)
+            Text(title).brandFont(.subheadline)
             Spacer()
-            Image(systemName: external ? "arrow.up.right" : "chevron.right").font(.caption).foregroundStyle(.secondary)
+            Image(systemName: external ? "arrow.up.right" : "chevron.right").brandFont(.caption).foregroundStyle(Theme.secondary)
         }
         .padding(.horizontal, 14).padding(.vertical, 14)
         .contentShape(Rectangle())
@@ -280,7 +282,7 @@ struct AccountSettingsScreen: View {
             AccountPanel().padding(.bottom, 24).readableWidth()
         }
         .background(Theme.canvas)
-        .navigationTitle("Account settings")
+        .barTitle("Account settings")
         .navigationBarTitleDisplayMode(.inline)
         .marracatChrome()
     }
@@ -293,7 +295,7 @@ struct ConnectionsScreen: View {
             SocialPanel().padding(.top, 12).padding(.bottom, 24).readableWidth()
         }
         .background(Theme.canvas)
-        .navigationTitle("Connect")
+        .barTitle("Connect")
         .navigationBarTitleDisplayMode(.inline)
         .marracatChrome()
     }
@@ -305,15 +307,15 @@ struct CheckoutCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(catalog.brand(record.brandID)?.name ?? String(localized: "Brand", comment: "Fallback when a brand name is unknown")).font(.subheadline.bold())
-            Text(record.date.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundStyle(.secondary)
+            Text(catalog.brand(record.brandID)?.name ?? String(localized: "Brand", comment: "Fallback when a brand name is unknown")).brandFont(.subheadline.bold())
+            Text(record.date.formatted(date: .abbreviated, time: .omitted)).brandFont(.caption).foregroundStyle(Theme.secondary)
             ProductImageWell(url: record.productIDs.first.flatMap(catalog.product)?.images.first, width: 240).frame(width: 110)
                 .accessibilityLabel("Purchased item image")
             if let item = record.items?.first {
-                Label(item.title, systemImage: "bag").font(.caption).lineLimit(3)
+                Label(item.title, systemImage: "bag").brandFont(.caption).lineLimit(3)
             }
             Text("\(record.itemCount) items · \(record.subtotal.formatted(.currency(code: record.subtotalCurrency ?? record.currency ?? "USD")))", comment: "Order summary: item count (plural variations in the catalog) and subtotal")
-                .font(.caption)
+                .brandFont(.caption)
         }
         .padding(10)
         .frame(width: 140, alignment: .leading)
@@ -335,24 +337,24 @@ struct PriceAlertsView: View {
     var body: some View {
         List {
             if !store.prices.isEmpty {
-                Section("Tracking the price") {
+                TitledSection("Tracking the price") {
                     ForEach(store.prices.sorted(), id: \.self) { id in
                         let p = catalog.product(id)
                         NavigationLink(value: Route.product(id)) {
                             HStack(spacing: 12) {
                                 ProductImageWell(url: p?.images.first, width: 240).frame(width: 64, height: 64)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(p?.title ?? String(localized: "Item no longer listed", comment: "Shown when an ordered product left the catalog")).font(.subheadline).lineLimit(2)
+                                    Text(p?.title ?? String(localized: "Item no longer listed", comment: "Shown when an ordered product left the catalog")).brandFont(.subheadline).lineLimit(2)
                                     if let brand = p.flatMap({ catalog.brand($0.brand) }) {
-                                        Text(brand.name).font(.caption).foregroundStyle(.secondary)
+                                        Text(brand.name).brandFont(.caption).foregroundStyle(Theme.secondary)
                                     }
                                     if let p {
                                         let code = catalog.brand(p.brand)?.currencyCode ?? "USD"
                                         HStack(spacing: 6) {
-                                            Text(p.price, format: .currency(code: code)).font(.caption.bold())
+                                            Text(p.price, format: .currency(code: code)).brandFont(.caption.bold())
                                             if let was = store.trackedAt[id], abs(was - p.price) > 0.009 {
                                                 Text("tracked at \(was.formatted(.currency(code: code)))")
-                                                    .font(.caption).foregroundStyle(.secondary)
+                                                    .brandFont(.caption).foregroundStyle(Theme.secondary)
                                             }
                                         }
                                     }
@@ -367,10 +369,10 @@ struct PriceAlertsView: View {
                 }
             }
             if !store.brands.isEmpty {
-                Section("Brand sales") {
+                TitledSection("Brand sales") {
                     ForEach(store.brands.sorted(), id: \.self) { id in
                         NavigationLink(value: Route.brand(id)) {
-                            Label(catalog.brand(id)?.name ?? id, systemImage: "bell.fill").font(.subheadline)
+                            Label(catalog.brand(id)?.name ?? id, systemImage: "bell.fill").brandFont(.subheadline)
                         }
                         .swipeActions {
                             Button(role: .destructive) { Task { await store.toggleBrand(id, account: account) } } label: { Label("Stop", systemImage: "bell.slash") }
@@ -380,14 +382,14 @@ struct PriceAlertsView: View {
                 }
             }
             if !store.drops.isEmpty {
-                Section("New drops") {
+                TitledSection("New drops") {
                     ForEach(store.drops.keys.sorted(), id: \.self) { id in
                         NavigationLink(value: Route.brand(id)) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Label(catalog.brand(id)?.name ?? id, systemImage: "sparkles").font(.subheadline)
+                                Label(catalog.brand(id)?.name ?? id, systemImage: "sparkles").brandFont(.subheadline)
                                 let cats = (store.drops[id] ?? []).compactMap { catalog.category($0)?.name }
                                 Text(cats.isEmpty ? String(localized: "Everything new", comment: "Watch drops: every department") : cats.joined(separator: ", "))
-                                    .font(.caption).foregroundStyle(.secondary).padding(.leading, 30)
+                                    .brandFont(.caption).foregroundStyle(Theme.secondary).padding(.leading, 30)
                             }
                         }
                         .swipeActions {
@@ -399,7 +401,7 @@ struct PriceAlertsView: View {
             }
             if !store.prices.isEmpty || !store.brands.isEmpty || !store.drops.isEmpty {
                 Section {} footer: {
-                    Text("We check prices every 15 minutes and new products every 3 hours. A drop of 5% or more, a brand marking down 3 or more items, or a watched brand's new drop gets you an email and a notification on each iPhone you're signed in on. Swipe left to stop one.")
+                    Text("We check prices every 15 minutes and new products every 3 hours. A drop of 5% or more, a brand marking down 3 or more items, or a watched brand's new drop gets you an email and a notification on each iPhone you're signed in on. Swipe left to stop one.").foregroundStyle(Theme.secondary)
                 }
             }
         }
@@ -411,7 +413,7 @@ struct PriceAlertsView: View {
                     Text("Price and sale alerts are for Marracat accounts.")
                 } actions: {
                     NavigationLink("Sign in", value: Route.accountSettings)
-                        .buttonStyle(PillButtonStyle(color: Theme.gold, text: .black))
+                        .buttonStyle(PillButtonStyle(color: Theme.gold, text: Theme.onGold))
                 }
             } else if store.prices.isEmpty && store.brands.isEmpty && store.drops.isEmpty {
                 ContentUnavailableView("No price or sale alerts", systemImage: "tag",
@@ -422,7 +424,7 @@ struct PriceAlertsView: View {
         .alert("Price alerts", isPresented: Binding(get: { store.message != nil }, set: { if !$0 { store.message = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(store.message ?? "") }
-        .navigationTitle("Price & sale alerts")
+        .barTitle("Price & sale alerts")
         .marracatChrome()
     }
 }
@@ -441,12 +443,12 @@ struct RestockAlertsView: View {
                         HStack(spacing: 12) {
                             ProductImageWell(url: p?.images.first, width: 240).frame(width: 64, height: 64)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(p?.title ?? String(localized: "Item no longer listed", comment: "Shown when an ordered product left the catalog")).font(.subheadline).lineLimit(2)
+                                Text(p?.title ?? String(localized: "Item no longer listed", comment: "Shown when an ordered product left the catalog")).brandFont(.subheadline).lineLimit(2)
                                 if let v = alert.variantID, let option = p?.variants.first(where: { String($0.id) == v })?.title {
-                                    Text(option).font(.caption).foregroundStyle(.secondary)
+                                    Text(option).brandFont(.caption).foregroundStyle(Theme.secondary)
                                 }
                                 if let brand = p.flatMap({ catalog.brand($0.brand) }) {
-                                    Text(brand.name).font(.caption).foregroundStyle(.secondary)
+                                    Text(brand.name).brandFont(.caption).foregroundStyle(Theme.secondary)
                                 }
                             }
                         }
@@ -458,7 +460,7 @@ struct RestockAlertsView: View {
                 }
             } footer: {
                 if !restock.alerts.isEmpty {
-                    Text("We check each brand's store every few minutes. When an item is back we email you once and notify each iPhone you're signed in on. Swipe left to stop an alert.")
+                    Text("We check each brand's store every few minutes. When an item is back we email you once and notify each iPhone you're signed in on. Swipe left to stop an alert.").foregroundStyle(Theme.secondary)
                 }
             }
         }
@@ -470,7 +472,7 @@ struct RestockAlertsView: View {
                     Text("Restock alerts are for Marracat accounts. Sign in, then tap “Notify me when it's back” on a sold-out item.")
                 } actions: {
                     NavigationLink("Sign in", value: Route.accountSettings)
-                        .buttonStyle(PillButtonStyle(color: Theme.gold, text: .black))
+                        .buttonStyle(PillButtonStyle(color: Theme.gold, text: Theme.onGold))
                         .accessibilityIdentifier("restockAlertsSignIn")
                 }
             } else if restock.alerts.isEmpty {
@@ -483,7 +485,7 @@ struct RestockAlertsView: View {
         .alert("Restock alert", isPresented: Binding(get: { restock.message != nil }, set: { if !$0 { restock.message = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(restock.message ?? "") }
-        .navigationTitle("Restock alerts")
+        .barTitle("Restock alerts")
         .marracatChrome()
     }
 }

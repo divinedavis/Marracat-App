@@ -21,16 +21,24 @@ struct FloatingTabBar: View {
     /// How far the bar's top edge comes down when compact (it scales from the bottom).
     static let compactDrop: CGFloat = height * (1 - compactScale) + compactOffset
 
-    // Instagram's dark frost (owner, 2026-10-22, from a screenshot): sampled
-    // off the 3x image, the body is ~#2E3236 over a light photo, so a dark
-    // tint (#282C30) about 85% strong; a light rim runs along the top edge;
-    // the selected pill is a lighter frosted grey.
-    private static let ink = Color(red: 40 / 255, green: 44 / 255, blue: 48 / 255)
+    // Dark: Instagram's dark frost (owner, 2026-10-22, from a screenshot):
+    // sampled off the 3x image, the body is ~#2E3236 over a light photo, so a
+    // dark tint (#282C30) about 85% strong; a light rim runs along the top
+    // edge; the selected pill is a lighter frosted grey. Light (2026-11-22):
+    // the same glass in pale grey with black glyphs and a darker pill.
+    private static let ink = Theme.pair(light: UIColor(red: 236 / 255, green: 236 / 255, blue: 240 / 255, alpha: 1),
+                                        dark: UIColor(red: 40 / 255, green: 44 / 255, blue: 48 / 255, alpha: 1))
+    /// Icons and the Marracat M: white on the dark bar, black on the light one.
+    static let glyph = Theme.grey(light: 0.09, dark: 1)
+    private static let rimTop = Theme.pair(light: UIColor(white: 1, alpha: 0.9), dark: UIColor(white: 1, alpha: 0.24))
+    private static let rimBottom = Theme.pair(light: UIColor(white: 0, alpha: 0.06), dark: UIColor(white: 1, alpha: 0.05))
     /// Light along the top edge, fading down: the glass catching light.
-    private static let rim = LinearGradient(colors: [.white.opacity(0.24), .white.opacity(0.05)],
-                                            startPoint: .top, endPoint: .bottom)
+    private static let rim = LinearGradient(colors: [rimTop, rimBottom], startPoint: .top, endPoint: .bottom)
+    private static let pillTop = Theme.pair(light: UIColor(white: 0, alpha: 0.13), dark: UIColor(white: 1, alpha: 0.20))
+    private static let pillBottom = Theme.pair(light: UIColor(white: 0, alpha: 0.09), dark: UIColor(white: 1, alpha: 0.13))
+    private static let shadow = Theme.pair(light: UIColor(white: 0, alpha: 0.5), dark: UIColor(white: 0, alpha: 1))
     private static let disc = Color(red: 213 / 255, green: 214 / 255, blue: 215 / 255)
-    private static let badge = Color.white   // monochrome app: no colour accents
+    private static let badge = Theme.inverse   // monochrome app: no colour accents
     /// Space scroll content keeps clear so the last row isn't under the bar.
     static let clearance: CGFloat = height + 10
 
@@ -54,7 +62,7 @@ struct FloatingTabBar: View {
                                     holidayPill(holiday)
                                 } else {
                                     Capsule()
-                                        .fill(LinearGradient(colors: [.white.opacity(0.20), .white.opacity(0.13)],
+                                        .fill(LinearGradient(colors: [Self.pillTop, Self.pillBottom],
                                                              startPoint: .top, endPoint: .bottom))
                                         .overlay(Capsule().strokeBorder(Self.rim, lineWidth: 1))
                                         .matchedGeometryEffect(id: "pill", in: pill)
@@ -82,7 +90,7 @@ struct FloatingTabBar: View {
         .padding(5)
         .frame(height: Self.height)
         .modifier(BarSurface(ink: Self.ink, rim: Self.rim))
-        .shadow(color: .black.opacity(nav.tabBarCompact ? 0.25 : 0.35), radius: 14, y: 6)
+        .shadow(color: Self.shadow.opacity(nav.tabBarCompact ? 0.25 : 0.35), radius: 14, y: 6)
         // Five icons don't need a 13-inch bar.
         .frame(maxWidth: 480)
         .padding(.horizontal, 20)
@@ -141,7 +149,7 @@ struct FloatingTabBar: View {
             // Just the Marracat M, stroked at the same weight as the other
             // glyphs — the wordmark was unreadable at tab-bar size.
             MarracatMark()
-                .stroke(Color.white.opacity(selected ? 1 : 0.94),
+                .stroke(glyph.opacity(selected ? 1 : 0.94),
                         style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
                 .frame(width: 24, height: 22)
         case .browse:
@@ -153,9 +161,9 @@ struct FloatingTabBar: View {
                         Text("\(min(cartCount, 99))")
                             // Scales with the text size, capped so the
                             // badge stays a badge on the 21 pt bag.
-                            .font(.caption2.weight(.bold))
+                            .brandFont(.caption2.weight(.bold))
                             .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Theme.onGold)
                             .padding(.horizontal, 4)
                             .frame(minWidth: 16, minHeight: 16)
                             .background(Capsule().fill(Self.badge))
@@ -172,9 +180,9 @@ struct FloatingTabBar: View {
 
     private static func symbol(_ name: String, selected: Bool) -> some View {
         Image(systemName: name)
-            .font(.system(size: 21, weight: .regular))
-            // White in both states, like ASOS — selection is shown by the pill alone.
-            .foregroundStyle(Color.white.opacity(selected ? 1 : 0.94))
+            .brandFont(.system(size: 21, weight: .regular))
+            // One colour in both states, like ASOS — selection is shown by the pill alone.
+            .foregroundStyle(glyph.opacity(selected ? 1 : 0.94))
     }
 }
 
@@ -209,7 +217,6 @@ private struct BarSurface: ViewModifier {
                     Capsule().fill(.ultraThinMaterial)
                     Capsule().fill(ink.opacity(0.6))
                 }
-                .environment(\.colorScheme, .dark)
             }
             .overlay(Capsule().strokeBorder(rim, lineWidth: 1))
     }

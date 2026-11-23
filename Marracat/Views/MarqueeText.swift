@@ -9,7 +9,7 @@ import SwiftUI
 /// Reduce Motion, which shows the usual truncated line.
 struct MarqueeText: View {
     let text: String
-    var font: Font = .headline
+    var font: BrandFont = .headline
 
     static let pause: TimeInterval = 1.5
     static let speed: CGFloat = 32
@@ -44,14 +44,14 @@ struct MarqueeText: View {
         // name moves it's see-through and the moving copies, drawn over it
         // and clipped to it, are hidden from accessibility (their frame ran
         // to 1,012 points and failed the centred-title check, 2026-11-04).
-        Text(text).font(font).lineLimit(1)
+        Text(text).brandFont(font).lineLimit(1)
             // Clear, not transparent: a see-through view drops out of
             // accessibility, and a parent combining its children (the bar
             // title) lost the name.
             .foregroundStyle(moving ? AnyShapeStyle(Color.clear) : AnyShapeStyle(.primary))
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             .background {
-                Text(text).font(font).lineLimit(1).fixedSize()
+                Text(text).brandFont(font).lineLimit(1).fixedSize()
                     .hidden()
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fullWidth = $0 }
             }
@@ -64,7 +64,7 @@ struct MarqueeText: View {
                         TimelineView(.animation(minimumInterval: 1 / 60)) { tl in
                             let x = Self.offset(elapsed: tl.date.timeIntervalSince(start), textWidth: fullWidth)
                             Canvas { ctx, size in
-                                let line = ctx.resolve(Text(text).font(font).foregroundStyle(.primary))
+                                let line = ctx.resolve(Text(text).brandFont(font).foregroundStyle(.primary))
                                 for copy in 0..<2 {
                                     ctx.draw(line, at: CGPoint(x: x + CGFloat(copy) * (fullWidth + Self.gap), y: size.height / 2),
                                              anchor: .leading)

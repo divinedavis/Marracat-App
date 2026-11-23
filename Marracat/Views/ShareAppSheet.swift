@@ -105,10 +105,10 @@ struct ShareAppSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             Text("Get Marracat", comment: "Title of the Share Marracat sheet with the App Store QR code")
-                .font(.title3.bold())
+                .brandFont(.title3.bold())
                 .padding(.top, 28)
             Text("Point a phone's camera here to open Marracat on the App Store.", comment: "Under the title of the Share Marracat QR sheet")
-                .font(.subheadline).foregroundStyle(note)
+                .brandFont(.subheadline).foregroundStyle(note)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
@@ -161,7 +161,7 @@ struct ShareAppSheet: View {
 
     private func label(_ title: String, _ icon: String) -> some View {
         Label(title, systemImage: icon)
-            .font(.subheadline.weight(.semibold))
+            .brandFont(.subheadline.weight(.semibold))
             .lineLimit(1).minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity, minHeight: 50)
             .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))

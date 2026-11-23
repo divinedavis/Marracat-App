@@ -54,7 +54,7 @@ struct ProductDetailView: View {
                                 CenteredBarTitle {
                                     VStack(spacing: 1) {
                                         MarqueeText(text: p.title)
-                                        Text(brand.name).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                        Text(brand.name).brandFont(.caption2).foregroundStyle(Theme.secondary).lineLimit(1)
                                     }
                                 }
                                 .transition(.opacity)
@@ -195,7 +195,7 @@ struct ProductDetailView: View {
                 NavigationLink(value: Route.brand(brand.id)) { StoreCard(brand: brand) }
                     .buttonStyle(ActionChipStyle())
                     .accessibilityIdentifier("visitStore")
-                Text(p.title).font(.body)
+                Text(p.title).brandFont(.body)
                     .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).maxY < 8 } action: { gone in
                         withAnimation(.easeInOut(duration: 0.2)) { titleInBar = gone }
                     }
@@ -223,23 +223,23 @@ struct ProductDetailView: View {
                     }
                 }
                 if let origin = brand.shipsFromLabel {
-                    Label(origin, systemImage: "airplane").font(.subheadline).foregroundStyle(.secondary)
+                    Label(origin, systemImage: "airplane").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                         .accessibilityIdentifier("shipsFrom")
                 }
                 if p.currencyCode != "USD" {
                     Text("Store prices in \(p.currencyCode). Final currency and shipping are confirmed at checkout.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
 
                 if p.hasOptions {
                     VStack(alignment: .leading, spacing: 8) {
-                        (Text(optionLabel(p)).foregroundStyle(.secondary) + Text(v?.title ?? "").bold())
-                            .font(.subheadline)
+                        (Text(optionLabel(p)).foregroundStyle(Theme.secondary) + Text(v?.title ?? "").bold())
+                            .brandFont(.subheadline)
                         if variantID == nil, let v, let usual = usualSize(p, variants(p)), usual.id == v.id,
                            let size = SizeMemory.size(in: v.title, optionNames: details.detail(p.id)?.optionNames) {
                             Label(String(localized: "Your usual size, \(size)", comment: "Product page: the shopper's remembered size was picked for them; the argument is a size"),
                                   systemImage: "ruler")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .brandFont(.caption).foregroundStyle(Theme.secondary)
                                 .accessibilityIdentifier("usualSize")
                         }
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -247,9 +247,9 @@ struct ProductDetailView: View {
                                 ForEach(variants(p)) { opt in
                                     Button { variantID = opt.id } label: {
                                         Text(opt.title)
-                                            .font(.subheadline)
+                                            .brandFont(.subheadline)
                                             .strikethrough(!opt.available)
-                                            .foregroundStyle(opt.available ? Color.primary : Color.secondary)
+                                            .foregroundStyle(opt.available ? Color.primary : Theme.secondary)
                                             .padding(.horizontal, 12).padding(.vertical, 8)
                                             .background(RoundedRectangle(cornerRadius: 8).fill(Theme.surface))
                                             .overlay(RoundedRectangle(cornerRadius: 8)
@@ -266,13 +266,13 @@ struct ProductDetailView: View {
 
                 Group {
                     if checkingStock(p) {
-                        Text("Checking availability…").foregroundStyle(.secondary)
+                        Text("Checking availability…").foregroundStyle(Theme.secondary)
                     } else {
                         Text(inStock ? "In Stock" : "Currently unavailable")
                             .foregroundStyle(inStock ? Theme.stock : Theme.deal)
                     }
                 }
-                .font(.title3)
+                .brandFont(.title3)
                 .accessibilityIdentifier("stockStatus")
 
                 // Sold out: the shopper can ask to hear when it's back. Only
@@ -290,7 +290,7 @@ struct ProductDetailView: View {
                     } label: {
                         HStack {
                             Text("Quantity: \(quantity)").foregroundStyle(.primary)
-                            Image(systemName: "chevron.down").font(.caption).foregroundStyle(.secondary)
+                            Image(systemName: "chevron.down").brandFont(.caption).foregroundStyle(Theme.secondary)
                         }
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.field))
@@ -326,12 +326,12 @@ struct ProductDetailView: View {
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        if buyBusy { ProgressView().tint(.white) }
+                        if buyBusy { ProgressView().tint(Color.primary) }
                         Text(buyBusy ? "Opening checkout…" : brand.usesMarracatCart || brand.checksOutByUCP ? "Buy Now" : "Buy at \(brand.name)")
                     }
                 }
                     .disabled(buyBusy)
-                    .buttonStyle(PillButtonStyle(color: Theme.orange, text: .white))
+                    .buttonStyle(PillButtonStyle(color: Theme.orange, text: .primary))
                     .disabled(!inStock)
                     .accessibilityIdentifier("buyNow")
 
@@ -385,13 +385,13 @@ struct ProductDetailView: View {
 
                 if let d = p.description ?? details.detail(p.id)?.description, !d.isEmpty {
                     Divider()
-                    Text("About this item").font(.headline)
-                    Text(d).font(.subheadline)
+                    Text("About this item").brandFont(.headline)
+                    Text(d).brandFont(.subheadline)
                 }
 
                 if let url = p.productURL {
                     Button { browser = IdentifiedURL(url: url) } label: {
-                        Label("View on \(brand.domain)", systemImage: "safari").font(.subheadline)
+                        Label("View on \(brand.domain)", systemImage: "safari").brandFont(.subheadline)
                     }
                 }
 
@@ -544,10 +544,10 @@ struct ProductDetailView: View {
             let off = Int(((c - price) / c * 100).rounded())
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("-\(off)%").font(.title.weight(.light)).foregroundStyle(Theme.deal)
+                    Text("-\(off)%").brandFont(.title.weight(.light)).foregroundStyle(Theme.deal)
                     PriceView(price, currency: currency, size: 30)
                 }
-                Text("List: \(Text(Money.leading(c, currency: currency)).strikethrough())").font(.caption).foregroundStyle(.secondary)
+                Text("List: \(Text(Money.leading(c, currency: currency)).strikethrough())").brandFont(.caption).foregroundStyle(Theme.secondary)
             }
         } else {
             PriceView(price, currency: currency, size: 30)
@@ -577,10 +577,10 @@ private struct RestockButton: View {
                     Text("Sign in to get restock alerts")
                 }
             }
-            .buttonStyle(PillButtonStyle(color: Theme.gold, text: .black))
+            .buttonStyle(PillButtonStyle(color: Theme.gold, text: Theme.onGold))
             .accessibilityIdentifier("notifyRestockSignIn")
             Text("We'll email you, and notify this iPhone, when it's back.")
-                .font(.caption).foregroundStyle(.secondary)
+                .brandFont(.caption).foregroundStyle(Theme.secondary)
         }
     }
 
@@ -597,7 +597,7 @@ private struct RestockButton: View {
                 Text(watching ? "We'll notify you" : "Notify me when it's back")
             }
         }
-        .buttonStyle(PillButtonStyle(color: watching ? Theme.surface : Theme.gold, text: watching ? .primary : .black))
+        .buttonStyle(PillButtonStyle(color: watching ? Theme.surface : Theme.gold, text: watching ? .primary : Theme.onGold))
         .disabled(restock.busy.contains(key))
         .accessibilityIdentifier("notifyRestock")
         .accessibilityHint(watching ? "Stops the alert" : "Emails you and sends a notification when this is back in stock")
@@ -609,7 +609,7 @@ private struct RestockButton: View {
         } message: { Text(restock.message ?? "") }
         if watching {
             Text(Self.restockNote(push: restock.pushOn, option: option))
-                .font(.caption).foregroundStyle(.secondary)
+                .brandFont(.caption).foregroundStyle(Theme.secondary)
         }
     }
 }
@@ -734,12 +734,12 @@ private struct ProductGallery: View {
             HStack {
                 // The identifier sits on the title, not the container: an
                 // identifier on a container hides its children's.
-                Text("Product gallery").font(.headline)
+                Text("Product gallery").brandFont(.headline)
                     .accessibilityIdentifier("productGallery")
                 Spacer()
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
+                        .brandFont(.body.weight(.semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
@@ -882,11 +882,11 @@ private struct AddedToast: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.stock).font(.title3)
-            Text("Added to Cart").font(.subheadline.bold())
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.stock).brandFont(.title3)
+            Text("Added to Cart").brandFont(.subheadline.bold())
             Spacer()
             Button("Go to Cart", action: goToCart)
-                .font(.subheadline.bold())
+                .brandFont(.subheadline.bold())
                 .accessibilityIdentifier("goToCart")
         }
         .padding(14)
@@ -961,12 +961,12 @@ private struct StoreCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(brand.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
+                Text(brand.name).brandFont(.headline).foregroundStyle(.primary).lineLimit(1)
                 Text("Visit the store · \(products.count) items", comment: "Under the brand's name on a product page; the argument is how many products the brand has")
-                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    .brandFont(.subheadline).foregroundStyle(Theme.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            Image(systemName: "chevron.right").brandFont(.subheadline.weight(.semibold)).foregroundStyle(Theme.secondary)
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.field))

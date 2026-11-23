@@ -131,16 +131,16 @@ struct SidebarRail: View {
                         FloatingTabBar.icon(item.tab, selected: selected, cartCount: cart.itemCount)
                             .frame(height: 26)
                         Text(item.tab.title)
-                            .font(.caption2.weight(selected ? .semibold : .regular))
+                            .brandFont(.caption2.weight(selected ? .semibold : .regular))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
-                            .foregroundStyle(Color.white.opacity(selected ? 1 : 0.8))
+                            .foregroundStyle(Color.primary.opacity(selected ? 1 : 0.8))
                     }
                     .frame(width: AdaptiveLayout.sidebarWidth - 16)
                     .frame(minHeight: 60)
                     .background {
                         if selected {
-                            RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.12))
+                            RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.12))
                         }
                     }
                     .contentShape(RoundedRectangle(cornerRadius: 14))
@@ -158,8 +158,7 @@ struct SidebarRail: View {
         .frame(width: AdaptiveLayout.sidebarWidth)
         .frame(maxHeight: .infinity)
         .background(Theme.header.ignoresSafeArea())
-        .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1).ignoresSafeArea() }
-        .environment(\.colorScheme, .dark)
+        .overlay(alignment: .trailing) { Rectangle().fill(Color.primary.opacity(0.08)).frame(width: 1).ignoresSafeArea() }
         .sensoryFeedback(.selection, trigger: nav.tab)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("sidebar")

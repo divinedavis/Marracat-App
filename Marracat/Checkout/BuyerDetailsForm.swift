@@ -43,17 +43,17 @@ struct BuyerDetailsForm: View {
                     // the header, not a row: a row above pushed the street's
                     // Apple Maps suggestions under the keyboard.
                     HStack {
-                        Text("Contact")
+                        Text("Contact").foregroundStyle(Theme.secondary)
                         Spacer()
                         Button { pickingContact = true } label: {
                             Label("Fill from Contacts", systemImage: "person.crop.circle")
                         }
-                        .font(.subheadline)
+                        .brandFont(.subheadline)
                         .textCase(nil)
                         .accessibilityIdentifier("buyerFillFromContacts")
                     }
                 }
-                Section("Shipping address") {
+                TitledSection("Shipping address") {
                     TextField("Street address", text: $d.street).textContentType(.streetAddressLine1).accessibilityIdentifier("buyerStreet")
                         .focused($focus, equals: .street)
                         // Return closes the suggestions and moves on, as when
@@ -78,7 +78,7 @@ struct BuyerDetailsForm: View {
                             } label: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(s.title).foregroundStyle(.primary)
-                                    if !s.subtitle.isEmpty { Text(s.subtitle).font(.footnote).foregroundStyle(.secondary) }
+                                    if !s.subtitle.isEmpty { Text(s.subtitle).brandFont(.footnote).foregroundStyle(Theme.secondary) }
                                 }
                             }
                             .accessibilityIdentifier("addressSuggestion")
@@ -89,11 +89,11 @@ struct BuyerDetailsForm: View {
                     TextField("City", text: $d.city).textContentType(.addressCity).accessibilityIdentifier("buyerCity")
                     TextField("State", text: $d.region).textContentType(.addressState).accessibilityIdentifier("buyerRegion")
                     TextField("ZIP", text: $d.postalCode).textContentType(.postalCode).keyboardType(.numbersAndPunctuation).accessibilityIdentifier("buyerPostal")
-                    Text("United States").foregroundStyle(.secondary)
+                    Text("United States").foregroundStyle(Theme.secondary)
                 }
                 Section {
                     Text("Saved on this phone only, from your first order or typed here. Each brand's store receives it when its checkout is built, as it would from its own form.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .brandFont(.footnote).foregroundStyle(Theme.secondary)
                 }
                 if buyer.details != nil {
                     Section {
@@ -104,7 +104,7 @@ struct BuyerDetailsForm: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(ContactPicker(isPresented: $pickingContact) { d = d.filling(contact: $0) })
-            .navigationTitle("Your details")
+            .barTitle("Your details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

@@ -106,10 +106,10 @@ struct BoostLink: View {
         } else if BoostStore.shared.enabled {
             Button { open = true } label: {
                 Label("Boost", systemImage: "flame")
-                    .font(compact ? .footnote.bold() : .subheadline)
-                    .foregroundStyle(compact ? .black : .primary)
+                    .brandFont(compact ? .footnote.bold() : .subheadline)
+                    .foregroundStyle(compact ? Theme.onGold : Color.primary)
                     .padding(.horizontal, compact ? 12 : 0).padding(.vertical, compact ? 6 : 0)
-                    .background { if compact { Capsule().fill(.white) } }
+                    .background { if compact { Capsule().fill(Theme.inverse) } }
             }
             .accessibilityHint("Promote this on Marracat's Home")
             .accessibilityIdentifier("boostLink")

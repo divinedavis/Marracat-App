@@ -167,13 +167,13 @@ struct BrandCheckout: ViewModifier {
             VStack(spacing: 16) {
                 // The id sits on the title, not the VStack: an identifier on a
                 // container overrides its children's, which hid the button's.
-                Text("Checkout · \(req.brand.name)").font(.headline)
+                Text("Checkout · \(req.brand.name)").brandFont(.headline)
                     .accessibilityIdentifier("checkoutSheet")
                 // What a brand's checkout would open filled in with: the cart
                 // link's shipping fields read back out of the URL (so UI tests
                 // see them survive encoding), or the UCP checkout built for it.
                 if let filled = Self.prefillSummary(req.url) {
-                    Text(filled).font(.footnote).multilineTextAlignment(.center)
+                    Text(filled).brandFont(.footnote).multilineTextAlignment(.center)
                         .accessibilityIdentifier("checkoutPrefill")
                 }
                 Button("Simulate order placed") {

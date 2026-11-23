@@ -505,6 +505,7 @@ export function filterProducts(
     // Shopper filters (src/attrs.js): one allow-listed value each, or "".
     gender = "",
     hair = "",
+    hairneed = "",
     skin = "",
     free = "",
     skintype = "",
@@ -559,6 +560,7 @@ export function filterProducts(
       (!home || Boolean(p.home)) &&
       (!gender || Boolean(p.attrs?.gender?.includes(gender))) &&
       (!hair || Boolean(p.attrs?.hair?.includes(hair))) &&
+      (!hairneed || Boolean(p.attrs?.hairneed?.includes(hairneed))) &&
       (!skin || Boolean(p.attrs?.skin?.includes(skin))) &&
       (!free || Boolean(p.attrs?.free?.includes(free))) &&
       (!skintype || Boolean(p.attrs?.skintype?.includes(skintype))) &&

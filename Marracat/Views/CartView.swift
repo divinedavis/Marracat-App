@@ -64,7 +64,7 @@ struct CartView: View {
                 ContinueCard(order: placed, busy: opening == next.brandID, onContinue: continueToNext, onLater: later)
             } else if let placed {
                 Label(placed.title, systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.bold())
+                    .brandFont(.subheadline.bold())
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(Capsule().fill(Theme.surface))
                     .overlay(Capsule().stroke(Theme.hairline))
@@ -215,10 +215,10 @@ struct CartView: View {
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(t.items) items: Total", comment: "Bag summary; the argument is the item count (plural variations in the catalog)")
-                    .font(.subheadline)
+                    .brandFont(.subheadline)
                 Spacer()
                 if t.loading { ProgressView().controlSize(.small) }
-                Text(money(total)).font(.title3.bold())
+                Text(money(total)).brandFont(.title3.bold())
                     .accessibilityLabel(spoken(total))
             }
             .accessibilityElement(children: .combine)
@@ -230,14 +230,14 @@ struct CartView: View {
                     .accessibilityLabel(t.shipping.isEmpty || t.shipping.values.allSatisfy { $0 == 0 }
                                         ? shippingText(t, brands: groups.count) : spoken(t.shipping))
             }
-            .font(.footnote).foregroundStyle(.secondary)
+            .brandFont(.footnote).foregroundStyle(Theme.secondary)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("cartShipping")
             zipRow
             Text(groups.count > 1
                  ? "Checkout pays one brand at a time on its own checkout, where you can pick faster delivery."
                  : "You can pick faster delivery at checkout.")
-                .font(.caption).foregroundStyle(.secondary)
+                .brandFont(.caption).foregroundStyle(Theme.secondary)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,15 +250,15 @@ struct CartView: View {
     @ViewBuilder private var zipRow: some View {
         if let details = buyer.details, ShippingQuoteStore.isZIP(details.postalCode) {
             Text("Shipping to \(Self.address(details))", comment: "Bag: the address shipping is priced to")
-                .font(.caption).foregroundStyle(.secondary)
+                .brandFont(.caption).foregroundStyle(Theme.secondary)
                 .accessibilityIdentifier("cartShipTo")
         } else {
             @Bindable var quotes = quotes
             HStack(spacing: 8) {
-                Text("Ship to ZIP").font(.caption).foregroundStyle(.secondary)
+                Text("Ship to ZIP").brandFont(.caption).foregroundStyle(Theme.secondary)
                 TextField("ZIP", text: $quotes.typedZIP)
                     .keyboardType(.numberPad).textContentType(.postalCode)
-                    .font(.footnote)
+                    .brandFont(.footnote)
                     .padding(.horizontal, 10).frame(width: 96, height: 36)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.field))
                     .accessibilityIdentifier("cartZIP")
@@ -285,14 +285,14 @@ struct CartView: View {
         return Button { Task { await payNext() } } label: {
             VStack(spacing: 2) {
                 HStack(spacing: 8) {
-                    if opening != nil { ProgressView().tint(.black) }
+                    if opening != nil { ProgressView().tint(Theme.onGold) }
                     Text(total.map { String(localized: "Checkout · \($0)", comment: "Bag button; the argument is the total") }
                          ?? String(localized: "Checkout", comment: "Bag button"))
-                        .font(.headline)
+                        .brandFont(.headline)
                 }
                 if groups.count > 1, let first = groups.first {
                     Text("\(first.brand.name) first, then \(groups.count - 1) more", comment: "Under the bag's Checkout: the first brand paid, then how many brands follow")
-                        .font(.caption)
+                        .brandFont(.caption)
                 }
             }
         }
@@ -308,13 +308,13 @@ struct CartView: View {
     private var empty: some View {
         VStack(spacing: 12) {
             HStack(spacing: 16) {
-                Image(systemName: "cart").font(.system(size: 60)).foregroundStyle(Theme.amber)
+                Image(systemName: "cart").brandFont(.system(size: 60)).foregroundStyle(Theme.amber)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Your Marracat Cart is empty").font(.title3.bold())
-                    Text("Good stuff goes in here").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Your Marracat Cart is empty").brandFont(.title3.bold())
+                    Text("Good stuff goes in here").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                     Button { nav.tab = .home } label: {
                         Text("Continue shopping").frame(minHeight: 44).contentShape(Rectangle())   // 44 pt target
-                    }.font(.subheadline)
+                    }.brandFont(.subheadline)
                 }
             }
             .padding(16)
@@ -342,15 +342,15 @@ private struct BrandCartSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 NavigationLink(value: Route.brand(brand.id)) {
-                    Label(brand.name, systemImage: "storefront").font(.headline).foregroundStyle(.primary)
+                    Label(brand.name, systemImage: "storefront").brandFont(.headline).foregroundStyle(.primary)
                 }
                 Spacer()
-                Text(Money.string(subtotal, currency: brand.currencyCode)).font(.subheadline.bold())
+                Text(Money.string(subtotal, currency: brand.currencyCode)).brandFont(.subheadline.bold())
                     .accessibilityLabel(Money.spoken(subtotal, currency: brand.currencyCode))
             }
             shippingLine
             if let origin = brand.shipsFromLabel {
-                Label(origin, systemImage: "airplane").font(.caption).foregroundStyle(.secondary)
+                Label(origin, systemImage: "airplane").brandFont(.caption).foregroundStyle(Theme.secondary)
                     .accessibilityIdentifier("cartBrandShipsFrom")
             }
             ForEach(lines) { line in
@@ -382,7 +382,7 @@ private struct BrandCartSection: View {
                 EmptyView()
             }
         }
-        .font(.caption).foregroundStyle(.secondary)
+        .brandFont(.caption).foregroundStyle(Theme.secondary)
         .accessibilityIdentifier("cartBrandShipping")
     }
 }
@@ -428,18 +428,18 @@ private struct CartLineRow: View {
                     .accessibilityAddTraits(.isButton)
                     .accessibilityLabel(p.title)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(p.title).font(.subheadline).lineLimit(2)
+                    Text(p.title).brandFont(.subheadline).lineLimit(2)
                         .multilineTextAlignment(.leading).foregroundStyle(.primary)
                         .contentShape(Rectangle())
                         .onTapGesture { open(p.id) }
                         .accessibilityAddTraits(.isButton)
                     PriceView(unit, currency: line.currency ?? p.currencyCode, size: 18)
                     if !option.isEmpty {
-                        Text(option).font(.caption).foregroundStyle(.secondary)
+                        Text(option).brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                     let inStock = isInStock(p, v)
                     Text(inStockText(p, v))
-                        .font(.caption)
+                        .brandFont(.caption)
                         .foregroundStyle(inStock ? Theme.stock : Theme.deal)
                     QuantityPill(quantity: line.quantity) { cart.setQuantity($0, for: line) }
                         .padding(.top, 4)

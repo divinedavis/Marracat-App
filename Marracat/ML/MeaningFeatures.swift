@@ -372,7 +372,7 @@ struct ShopByStyleRow: View {
         Group {
             if !boards.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(Self.title).font(.title3.bold()).padding(.horizontal, 12)
+                    Text(Self.title).brandFont(.title3.bold()).padding(.horizontal, 12)
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 12) {
                             ForEach(boards, id: \.style.id) { b in
@@ -386,7 +386,7 @@ struct ShopByStyleRow: View {
                 }
             } else if holding {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(Self.title).font(.title3.bold()).padding(.horizontal, 12)
+                    Text(Self.title).brandFont(.title3.bold()).padding(.horizontal, 12)
                     HStack(spacing: 12) {
                         ForEach(0..<2, id: \.self) { _ in
                             RoundedRectangle(cornerRadius: 12).fill(Theme.field)
@@ -463,7 +463,7 @@ struct StyleCollage: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            Text(style.name).font(.headline).foregroundStyle(.white)
+            Text(style.name).brandFont(.headline).foregroundStyle(.white)
                 .padding(.horizontal, 10).padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(LinearGradient(colors: [.black.opacity(0.65), .clear], startPoint: .bottom, endPoint: .top))
@@ -484,7 +484,7 @@ struct StyleScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if let style {
-                    Text(style.name).font(.title.bold()).padding(.horizontal, 12).padding(.top, 12)
+                    Text(style.name).brandFont(.title.bold()).padding(.horizontal, 12).padding(.top, 12)
                     if products.count >= 6 {
                         StyleCollage(style: style, products: products).frame(maxWidth: .infinity).padding(.horizontal, 12)
                     }
@@ -494,7 +494,7 @@ struct StyleScreen: View {
         }
         .background(Theme.canvas)
         .task { if let style { products = await style.products(catalog: catalog) } }
-        .navigationTitle(style?.name ?? String(localized: "Style", comment: "Fallback title for a style screen"))
+        .barTitle(style?.name ?? String(localized: "Style", comment: "Fallback title for a style screen"))
         .marracatChrome()
     }
 }

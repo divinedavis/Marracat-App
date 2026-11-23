@@ -69,13 +69,13 @@ struct ContinueCard: View {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.stock).accessibilityHidden(true)
                 Text(order.title).accessibilityIdentifier("continueTitle")
             }
-            .font(.subheadline.bold())
+            .brandFont(.subheadline.bold())
             if let next = order.next {
                 Button(action: onContinue) {
                     HStack(spacing: 8) {
                         if busy { ProgressView() }
                         Text("Continue to \(next.brandName) (\(next.position) of \(next.total))")
-                            .font(.subheadline).multilineTextAlignment(.center)
+                            .brandFont(.subheadline).multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -83,7 +83,7 @@ struct ContinueCard: View {
                 .disabled(busy)
                 .accessibilityIdentifier("continueNext")
                 Button(action: onLater) {
-                    Text("Later").font(.subheadline).frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
+                    Text("Later").brandFont(.subheadline).frame(maxWidth: .infinity, minHeight: 44).contentShape(Rectangle())
                 }
                 .accessibilityHint("Keeps the other brands in your cart")
                 .accessibilityIdentifier("continueLater")

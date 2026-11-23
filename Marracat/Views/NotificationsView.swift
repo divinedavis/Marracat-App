@@ -19,12 +19,12 @@ struct NotificationsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Deliveries arriving today")
                         Text("Live in the Dynamic Island and on the Lock Screen")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .accessibilityIdentifier("liveActivitiesToggle")
             } footer: {
-                Text("When an order is out for delivery or due today, Marracat shows it live. With more than one, tap ‹ › on it to go through them; tap it to open the order. Turn Live Activities off for Marracat in the iPhone's Settings to stop them everywhere.")
+                Text("When an order is out for delivery or due today, Marracat shows it live. With more than one, tap ‹ › on it to go through them; tap it to open the order. Turn Live Activities off for Marracat in the iPhone's Settings to stop them everywhere.").foregroundStyle(Theme.secondary)
             }
             // Shopping alerts (owner, 2026-11-15). The two on-phone ones are
             // promotional: off until turned on here (App Review 4.5.4).
@@ -33,7 +33,7 @@ struct NotificationsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Daily digest")
                         Text("Price drops, sales, new drops and last sizes together at 9 AM")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .disabled(!account.signedIn || deals.busy.contains("digest"))
@@ -42,7 +42,7 @@ struct NotificationsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Sunday picks")
                         Text("New pieces from brands you follow, once a week")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .accessibilityIdentifier("weeklyPicksToggle")
@@ -50,16 +50,16 @@ struct NotificationsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Brands you might like")
                         Text("One brand a week, only in departments you shop")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .accessibilityIdentifier("brandIdeasToggle")
             } header: {
-                Text("Shopping alerts")
+                Text("Shopping alerts").foregroundStyle(Theme.secondary)
             } footer: {
                 Text(account.signedIn
                      ? "Back-in-stock alerts always come right away. Turn any of these off here at any time."
-                     : "Sign in to get the daily digest. Back-in-stock alerts always come right away.")
+                     : "Sign in to get the daily digest. Back-in-stock alerts always come right away.").foregroundStyle(Theme.secondary)
             }
             .onChange(of: picks) { _, on in WeeklyAlerts.picksOn = on; changed(on) }
             .onChange(of: brandIdeas) { _, on in WeeklyAlerts.brandIdeasOn = on; changed(on) }
@@ -76,19 +76,19 @@ struct NotificationsView: View {
                     .disabled(live.demoRunning)
                     .accessibilityIdentifier("liveActivityDemo")
                     if let message = live.message {
-                        Text(message).font(.caption).foregroundStyle(.secondary)
+                        Text(message).brandFont(.caption).foregroundStyle(Theme.secondary)
                             .accessibilityIdentifier("liveActivityDemoMessage")
                     }
                 } header: {
-                    Text("Owner")
+                    Text("Owner").foregroundStyle(Theme.secondary)
                 } footer: {
-                    Text("Starts one on this iPhone with three made-up orders (Ripl Efek, KOBA, Telfar) that go out for delivery, nearby, then delivered over about two minutes.")
+                    Text("Starts one on this iPhone with three made-up orders (Ripl Efek, KOBA, Telfar) that go out for delivery, nearby, then delivered over about two minutes.").foregroundStyle(Theme.secondary)
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.canvas)
-        .navigationTitle("Notifications")
+        .barTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
         .marracatChrome()
         .task { await live.refresh(account: account) }

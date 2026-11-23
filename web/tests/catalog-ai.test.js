@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { setCatalog, querySource } from "../server/catalog.js";
 import { filterProducts } from "../src/catalog.js";
-import { attrOptions, ATTR_FILTERS, attrApplies, attributeRows, departmentOf } from "../src/attrs.js";
+import { attrOptions, ATTR_FILTERS, attrApplies, attributeRows, attrShows, departmentOf, departmentsOf } from "../src/attrs.js";
 import { collapseGroups, groupIndex, dotColor } from "../src/colorways.js";
 import { queryString } from "../src/fast-query.js";
 
@@ -45,10 +45,37 @@ test("each filter group shows only in its own department (owner, 2026-11-04)", (
   assert.equal(departmentOf("", [{ category: "skincare" }, { category: "skincare" }]), "skincare");
   assert.equal(departmentOf("", [{ category: "skincare" }, { category: "hair" }]), null);
   const mixed = [product("h", { attrs: { hair: ["4c"] } }), product("s", { category: "skincare", attrs: { skintype: ["dry"] } })];
-  const none = { gender: "", hair: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
-  assert.deepEqual(attributeRows({ category: "", products: mixed, active: none }), [], "a mixed search shows no department's filters");
+  const none = { gender: "", hair: "", hairneed: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
   assert.deepEqual(attributeRows({ category: "skincare", products: mixed, active: none }).map((r) => r.f), ["skintype"]);
   assert.deepEqual(attributeRows({ category: "hair", products: mixed, active: none }).map((r) => r.f), ["hair"]);
+});
+
+test("a page of several departments shows who a product is for (owner, 2026-11-22)", () => {
+  const none = { gender: "", hair: "", hairneed: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
+  const ps = [
+    product("s", { category: "skincare", attrs: { skin: ["eczema", "sensitive"], skintype: ["sensitive"], free: ["fragrance", "oil"], ingredient: ["ceramides"], form: ["cream"], spf: ["high"] } }),
+    product("h", { category: "hair", attrs: { hair: ["4c", "fine"], hairneed: ["sensitive_scalp", "dandruff"], free: ["sulfate"] } }),
+    product("m", { category: "makeup" }),
+    product("t", { category: "clothing", attrs: { skin: ["acne"] } }), // a stray tag outside its department is not read
+  ];
+  const rows = Object.fromEntries(attributeRows({ category: "", products: ps, active: none }).map((r) => [r.f, r.values]));
+  assert.deepEqual(Object.keys(rows), ["hair", "hairneed", "skin", "skintype", "free"], "ingredient, formulation, SPF and packs wait for one department");
+  assert.deepEqual(rows.skin, ["sensitive", "eczema"]);
+  assert.deepEqual(rows.hairneed, ["sensitive_scalp", "dandruff"]);
+  assert.deepEqual(rows.hair, ["4c", "fine"]);
+  assert.deepEqual(rows.free, ["fragrance", "sulfate", "oil"]);
+  assert.deepEqual(attributeRows({ category: "", products: [product("a", { category: "clothing" }), product("b", { category: "bags" })], active: none }), []);
+  assert.ok(attrShows("skin", departmentsOf("", ps)) && !attrShows("form", departmentsOf("", ps)));
+  assert.ok(attrShows("form", departmentsOf("skincare", ps)), "one department shows all of its groups");
+  // Baby carries skin concerns and free-of; the new values are allow-listed.
+  const baby = [product("b", { category: "baby", attrs: { skin: ["eczema"], free: ["fragrance"] } })];
+  assert.deepEqual(attributeRows({ category: "baby", products: baby, active: none }).map((r) => r.f), ["skin", "free"]);
+  assert.equal(attrOptions(new URLSearchParams("hairneed=sensitive_scalp&hair=low_porosity&skin=razor_bumps")).hairneed, "sensitive_scalp");
+  assert.equal(attrOptions(new URLSearchParams("hair=low_porosity")).hair, "low_porosity");
+  assert.equal(attrOptions(new URLSearchParams("hairneed=baldness")).hairneed, "");
+  assert.deepEqual(filterProducts(ps, brands, { hairneed: "sensitive_scalp" }).map((p) => p.id), ["h"]);
+  assert.deepEqual(filterProducts(ps, brands, { skin: "eczema" }).map((p) => p.id), ["s"]);
+  assert.match(queryString({ hairneed: "dandruff" }), /hairneed=dandruff/);
 });
 
 test("Women / Men on clothing and shoes, across departments (owner, 2026-11-08)", () => {
@@ -58,7 +85,7 @@ test("Women / Men on clothing and shoes, across departments (owner, 2026-11-08)"
   assert.deepEqual(ids({ gender: "women" }), ["u", "w"], "unisex shows under Women");
   assert.deepEqual(ids({ gender: "men" }), ["m", "u"]);
   assert.deepEqual(ids({}), ["bag", "m", "u", "w", "x"]);
-  const none = { gender: "", hair: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
+  const none = { gender: "", hair: "", hairneed: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
   // A search spanning clothing and bags still offers Gender; department filters stay off.
   assert.deepEqual(attributeRows({ category: "", products: ps, active: none }).map((r) => [r.f, r.values]), [["gender", ["women", "men"]]]);
   assert.ok(attrApplies("gender", "women", null) && !attrApplies("gender", "kids", null));
@@ -68,7 +95,7 @@ test("Women / Men on clothing and shoes, across departments (owner, 2026-11-08)"
 });
 
 test("attrOptions takes allow-listed values only", () => {
-  const none = { gender: "", hair: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
+  const none = { gender: "", hair: "", hairneed: "", skin: "", skintype: "", ingredient: "", free: "", form: "", spf: "", pack: "" };
   assert.deepEqual(attrOptions(new URLSearchParams("hair=4c&skin=nope&free=__proto__")), { ...none, hair: "4c" });
   assert.deepEqual(attrOptions({ free: "fragrance", ingredient: "niacinamide" }), { ...none, free: "fragrance", ingredient: "niacinamide" });
   for (const spec of Object.values(ATTR_FILTERS)) for (const label of Object.values(spec.values)) assert.ok(label.length < 30);

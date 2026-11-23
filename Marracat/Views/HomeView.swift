@@ -519,6 +519,16 @@ struct HomeView: View {
             next.complete = true
             if let personal { next.setPersonal(personal) }
             next.categories = categories
+            // The deals row is this shopper's too. The slice's page chose it
+            // by the departments saved at the last build; a shopper who has
+            // touched something since (their first search or like, then a
+            // relaunch) got every department's deals for the whole visit: a
+            // skincare set, a knife and a styling gel, to someone who had
+            // only looked at laundry detergent (2026-11-22).
+            if touched != page.touched {
+                let theirs = catalog.deals.filter { !hidden.contains($0.id) && (touched.isEmpty || touched.contains($0.category)) }
+                next.deals = catalog.spread(theirs, limit: 12, mix: mix)
+            }
             next.touched = touched
             for c in categories.prefix(8) where next.topPicks[c.id] == nil { next.topPicks[c.id] = picks(c, 12) }
             page = next
@@ -608,7 +618,7 @@ struct HomeView: View {
 
     private var discoverMore: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Discover more").font(.title3.bold())
+            Text("Discover more").brandFont(.title3.bold())
             LazyVGrid(columns: [GridItem(.adaptive(minimum: Widths.gridTile), spacing: 12, alignment: .top)], spacing: 16) {
                 ForEach(catalog.discoverRow(mix: mix, hidden: Set(shopper.hidden), limit: 40, departments: page.touched)) { ProductTile(product: $0) }
             }
@@ -675,13 +685,13 @@ private struct RowPlaceholder: View {
                         RoundedRectangle(cornerRadius: 6).fill(Theme.tile)
                             .frame(width: ProductRow.tileWidth, height: ProductRow.tileWidth)
                         Group {
-                            Text("Product name on two lines").font(.subheadline).lineLimit(2)
-                            Text("Brand").font(.caption)
+                            Text("Product name on two lines").brandFont(.subheadline).lineLimit(2)
+                            Text("Brand").brandFont(.caption)
                         }
                         .redacted(reason: .placeholder)
                         // A badge's height: most rows carry one (BadgeIconRow).
                         Circle().fill(Theme.tile).frame(width: 20, height: 20)
-                        Text("$00.00").font(.system(size: 20)).redacted(reason: .placeholder)
+                        Text("$00.00").brandFont(.system(size: 20)).redacted(reason: .placeholder)
                     }
                     .frame(width: ProductRow.tileWidth, alignment: .leading)
                 }
@@ -722,8 +732,8 @@ private struct CategoryChips: View {
     private func chip(_ name: String, color: Color, route: Route) -> some View {
         NavigationLink(value: route) {
             Text(name)
-                .font(.subheadline.bold())
-                .foregroundStyle(.white)
+                .brandFont(.subheadline.bold())
+                .foregroundStyle(.primary)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(Capsule().fill(color))
         }
@@ -803,17 +813,17 @@ struct HeroCarousel: View {
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(item.brand.name)
-                                .font(wide ? .largeTitle.bold() : .title2.bold()).lineLimit(2).minimumScaleFactor(0.75)
+                                .brandFont(wide ? .largeTitle.bold() : .title2.bold()).lineLimit(2).minimumScaleFactor(0.75)
                             if let t = item.brand.tagline {
-                                Text(t).font(.subheadline).foregroundStyle(.white.opacity(0.85)).lineLimit(4)
+                                Text(t).brandFont(.subheadline).foregroundStyle(Color.primary.opacity(0.85)).lineLimit(4)
                             }
                             Spacer(minLength: 0)
                             Text("Shop now")
-                                .font(.footnote.bold()).foregroundStyle(.black)
+                                .brandFont(.footnote.bold()).foregroundStyle(Theme.onGold)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
                                 .background(Capsule().fill(Theme.gold))
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .padding(16)
                         .frame(width: wide ? 280 : 160, alignment: .leading)
                         .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -831,7 +841,7 @@ struct HeroCarousel: View {
                     // Paid placement, said plainly (FTC): top right of the page.
                     .overlay(alignment: .topTrailing) {
                         if item.sponsored != nil {
-                            Text("Sponsored").font(.caption2.bold()).foregroundStyle(.white)
+                            Text("Sponsored").brandFont(.caption2.bold()).foregroundStyle(.white)
                                 .padding(.horizontal, 8).padding(.vertical, 3)
                                 .background(Capsule().fill(.black.opacity(0.7)))
                                 .padding(8)
@@ -906,7 +916,7 @@ struct BrandCircles: View {
                                 }
                                 .frame(width: 76, height: 76)
                                 .clipShape(Circle())
-                                Text(b.name).font(.caption).lineLimit(2).multilineTextAlignment(.center)
+                                Text(b.name).brandFont(.caption).lineLimit(2).multilineTextAlignment(.center)
                             }
                             .frame(width: 84)
                         }

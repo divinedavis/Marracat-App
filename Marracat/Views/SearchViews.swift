@@ -136,12 +136,12 @@ struct SearchOverlay: View {
                     .accessibilityIdentifier("searchInput")
                 if !text.isEmpty {
                     Button { text = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.secondary)
                     }
                     .accessibilityLabel("Clear search")
                 }
             }
-            .font(.body)
+            .brandFont(.body)
             .padding(.horizontal, 16)
             .frame(height: 44)
             .frame(maxWidth: .infinity)
@@ -149,7 +149,7 @@ struct SearchOverlay: View {
             .overlay(Capsule().stroke(Theme.hairline))
             Button { close() } label: {
                 Image(systemName: "xmark")
-                    .font(.body.weight(.semibold))
+                    .brandFont(.body.weight(.semibold))
                     .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(Theme.field))
@@ -170,7 +170,7 @@ struct SearchOverlay: View {
     private var advancedForm: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Type what you're looking for below, then narrow it here.", comment: "Advanced search hint")
-                .font(.subheadline).foregroundStyle(.secondary)
+                .brandFont(.subheadline).foregroundStyle(Theme.secondary)
             group(String(localized: "Department", comment: "Advanced search heading")) {
                 ForEach(catalog.categories) { c in
                     chip(c.name, on: advanced.categories.contains(c.id)) { advanced.categories.formSymmetricDifference([c.id]) }
@@ -192,7 +192,7 @@ struct SearchOverlay: View {
                 }
             }
             Button { submitAdvanced() } label: {
-                Text("Search", comment: "Advanced search button").font(.headline).frame(maxWidth: .infinity).frame(height: 48)
+                Text("Search", comment: "Advanced search button").brandFont(.headline).frame(maxWidth: .infinity).frame(height: 48)
             }
             .buttonStyle(PillButtonStyle(color: Theme.gold))
             .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -203,7 +203,7 @@ struct SearchOverlay: View {
 
     private func group<C: View>(_ title: String, @ViewBuilder _ chips: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.headline)
+            Text(title).brandFont(.headline)
             ChipFlow { chips() }
         }
     }
@@ -211,8 +211,8 @@ struct SearchOverlay: View {
     private func chip(_ title: String, on: Bool, _ toggle: @escaping () -> Void) -> some View {
         Button(action: toggle) {
             Text(title)
-                .font(.subheadline.weight(on ? .semibold : .regular))
-                .foregroundStyle(on ? Color.black : Color.primary)
+                .brandFont(.subheadline.weight(on ? .semibold : .regular))
+                .foregroundStyle(on ? Theme.onGold : Color.primary)
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(Capsule().fill(on ? Theme.gold : Theme.field))
         }
@@ -275,8 +275,8 @@ struct SearchOverlay: View {
                 HStack(spacing: 12) {
                     Button { submit(q, source: "recent") } label: {
                         HStack(spacing: 18) {
-                            Image(systemName: "clock.arrow.circlepath").font(.title3)
-                            Text(q).font(.body.weight(.semibold)).lineLimit(1)
+                            Image(systemName: "clock.arrow.circlepath").brandFont(.title3)
+                            Text(q).brandFont(.body.weight(.semibold)).lineLimit(1)
                             Spacer(minLength: 0)
                         }
                         .foregroundStyle(.primary)
@@ -287,7 +287,7 @@ struct SearchOverlay: View {
                     .accessibilityIdentifier("recentSearch")
                     Button { withAnimation(.snappy) { shopper.removeSearch(q) } } label: {
                         Image(systemName: "xmark")
-                            .font(.subheadline.weight(.bold))
+                            .brandFont(.subheadline.weight(.bold))
                             .foregroundStyle(.primary)
                             .frame(width: 32, height: 32)
                             .overlay(Circle().stroke(.primary, lineWidth: 1.5))
@@ -316,7 +316,7 @@ struct SearchOverlay: View {
                                 // Nothing to show a photo of yet, so say what
                                 // the row does instead of leaving a blank tile.
                                 Image(systemName: "magnifyingglass")
-                                    .font(.headline).foregroundStyle(Color.black.opacity(0.55))
+                                    .brandFont(.headline).foregroundStyle(Color.black.opacity(0.55))
                             } else {
                                 RemoteImage(url: s.image, width: 120).padding(4)
                             }
@@ -326,10 +326,10 @@ struct SearchOverlay: View {
                         Text(highlighted(s.text)).lineLimit(1)
                         if s.trending {
                             Label("Trending", systemImage: "flame.fill")
-                                .font(.caption.weight(.semibold))
+                                .brandFont(.caption.weight(.semibold))
                                 .foregroundStyle(Theme.deal)
                         } else if let subtitle = s.subtitle {
-                            Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            Text(subtitle).brandFont(.caption).foregroundStyle(Theme.secondary).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 0)
@@ -346,7 +346,7 @@ struct SearchOverlay: View {
             if !s.searchesAll {
                 Button { text = s.text + " " } label: {
                     Image(systemName: "plus")
-                        .font(.subheadline.weight(.bold))
+                        .brandFont(.subheadline.weight(.bold))
                         .foregroundStyle(.primary)
                         .frame(width: 32, height: 32)
                         .overlay(Circle().stroke(.primary, lineWidth: 1.5))
@@ -467,15 +467,15 @@ struct SearchResultsView: View {
                     if let showing {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Showing results for “\(showing)”", comment: "Search header when the search as typed found nothing; the argument is what we think was meant")
-                                .font(.subheadline).foregroundStyle(.secondary)
+                                .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                             Text("\(shown.count) results for “\(showing)”", comment: "Search result count (plural variations in the catalog); the argument after is the search")
-                                .font(.subheadline.weight(.semibold))
+                                .brandFont(.subheadline.weight(.semibold))
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("resultsHeader")
                     } else {
                         Text("\(shown.count) results for “\(query)”", comment: "Search result count (plural variations in the catalog); the argument after is the search")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                             .accessibilityIdentifier("resultsHeader")
                     }
                     Spacer()
@@ -487,7 +487,7 @@ struct SearchResultsView: View {
                 FilterBar(products: all, filters: $filters).padding(.bottom, 10)
                 if let picked {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Picked for you", comment: "Heading over one or two search results chosen from what the shopper has been looking at").font(.headline)
+                        Text("Picked for you", comment: "Heading over one or two search results chosen from what the shopper has been looking at").brandFont(.headline)
                         Group {
                             if picked.searched {
                                 Text("Because you searched “\(picked.phrase)”", comment: "Why these were picked; the argument is an earlier search")
@@ -495,7 +495,7 @@ struct SearchResultsView: View {
                                 Text("Because you looked at \(picked.phrase.lowercased())", comment: "Why these were picked; the argument is a kind of product, e.g. keychains")
                             }
                         }
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("personalPicksHeader")
@@ -528,8 +528,8 @@ struct SearchResultsView: View {
                 if !meaning.isEmpty && filters.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(shown.isEmpty ? "Nothing uses those words. These match what you mean:" : "Matches what you mean")
-                            .font(.headline)
-                        Text("Found by meaning, on your iPhone").font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.headline)
+                        Text("Found by meaning, on your iPhone").brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                     .padding(12)
                     .accessibilityIdentifier("meaningHeader")
@@ -597,20 +597,20 @@ struct OwnershipNotice: View {
         let dark = scheme == .dark
         HStack(alignment: compact ? .center : .top, spacing: 12) {
             Image(systemName: "checkmark.seal")
-                .font(.system(size: compact ? 13 : 16, weight: .semibold))
+                .brandFont(.system(size: compact ? 13 : 16, weight: .semibold))
                 .foregroundStyle(dark ? Color(red: 0.11, green: 0.10, blue: 0.09) : Color(red: 0.91, green: 0.78, blue: 0.44))
                 .frame(width: compact ? 26 : 34, height: compact ? 26 : 34)
                 .background(Circle().fill(dark ? Color.white : Color.black))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("You’re in the right place.", comment: "Headline of the notice on a search asking who owns the brands")
-                    .font(.subheadline.weight(.bold))
+                    .brandFont(.subheadline.weight(.bold))
                 if !compact {
-                    body_.font(.footnote).foregroundStyle(dark ? Color(white: 0.73) : Color(red: 0.36, green: 0.34, blue: 0.31))
+                    body_.brandFont(.footnote).foregroundStyle(dark ? Color(white: 0.73) : Color(red: 0.36, green: 0.34, blue: 0.31))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("Every brand on Marracat is independent.", comment: "One-line notice over search suggestions while typing a search asking who owns the brands")
-                        .font(.caption).foregroundStyle(dark ? Color(white: 0.73) : Color(red: 0.36, green: 0.34, blue: 0.31))
+                        .brandFont(.caption).foregroundStyle(dark ? Color(white: 0.73) : Color(red: 0.36, green: 0.34, blue: 0.31))
                 }
             }
             Spacer(minLength: 0)
@@ -631,10 +631,10 @@ struct DidYouMeanRow: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Text("Did you mean", comment: "Before suggested searches").font(.subheadline).foregroundStyle(.secondary)
+                Text("Did you mean", comment: "Before suggested searches").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                 ForEach(guesses, id: \.self) { g in
                     NavigationLink(value: Route.search(g)) {
-                        Text(g).font(.subheadline.weight(.semibold))
+                        Text(g).brandFont(.subheadline.weight(.semibold))
                             .padding(.horizontal, 12).padding(.vertical, 7)
                             .background(Color.primary.opacity(0.06), in: Capsule())
                     }
@@ -663,8 +663,8 @@ struct SearchResultRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 NavigationLink(value: Route.product(product.id)) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(product.title).font(.subheadline).lineLimit(3).multilineTextAlignment(.leading)
-                        Text("by \(catalog.brand(product.brand)?.name ?? "")").font(.caption).foregroundStyle(.secondary)
+                        Text(product.title).brandFont(.subheadline).lineLimit(3).multilineTextAlignment(.leading)
+                        Text("by \(catalog.brand(product.brand)?.name ?? "")").brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                     .foregroundStyle(.primary)
                     // The title and byline form one tap target, including the
@@ -680,13 +680,13 @@ struct SearchResultRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     PriceView(product.price, currency: product.currencyCode, size: 22)
                     if let c = product.compareAt, product.percentOff != nil {
-                        Text(Money.leading(c, currency: product.currencyCode)).font(.caption).strikethrough().foregroundStyle(.secondary)
+                        Text(Money.leading(c, currency: product.currencyCode)).brandFont(.caption).strikethrough().foregroundStyle(Theme.secondary)
                     }
                 }
                 if product.available {
                     actions
                 } else {
-                    Text("Currently unavailable").font(.caption).foregroundStyle(Theme.deal)
+                    Text("Currently unavailable").brandFont(.caption).foregroundStyle(Theme.deal)
                 }
             }
         }

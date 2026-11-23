@@ -131,13 +131,13 @@ struct FeaturedBanner: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Featured")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.black)
+                    .brandFont(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.onGold)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Capsule().fill(Theme.gold))
                 Text(slide.brand.name)
-                    .font(.title3.bold())
-                    .foregroundStyle(.white)
+                    .brandFont(.title3.bold())
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
@@ -145,8 +145,8 @@ struct FeaturedBanner: View {
                     Text("Shop now")
                     Image(systemName: "chevron.right")
                 }
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white)
+                .brandFont(.footnote.weight(.semibold))
+                .foregroundStyle(.primary)
                 if slides.count > 1 { dots(at: i) }
             }
             .padding(14)
@@ -171,7 +171,7 @@ struct FeaturedBanner: View {
         HStack(spacing: 4) {
             ForEach(slides.indices, id: \.self) { j in
                 Circle()
-                    .fill(.white.opacity(j == i ? 1 : 0.4))
+                    .fill(Color.primary.opacity(j == i ? 1 : 0.4))
                     .frame(width: 5, height: 5)
             }
         }

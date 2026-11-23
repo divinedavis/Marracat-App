@@ -54,7 +54,7 @@ enum SponsoredStore {
 struct SponsoredTag: View {
     var body: some View {
         Text("Sponsored")
-            .font(.caption2.bold())
+            .brandFont(.caption2.bold())
             .padding(.horizontal, 7).padding(.vertical, 3)
             .background(Capsule().fill(Color.black.opacity(0.72)))
             .foregroundStyle(.white)
@@ -72,7 +72,7 @@ struct SponsoredProductRow: View {
         let shown = items.compactMap { it in catalog.product(it.productID).map { (it, $0) } }
         if !shown.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Sponsored products").font(.title3.bold()).padding(.horizontal, 12)
+                Text("Sponsored products").brandFont(.title3.bold()).padding(.horizontal, 12)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 12) {
                         ForEach(shown, id: \.0) { it, p in

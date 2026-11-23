@@ -52,6 +52,70 @@ class Rules(unittest.TestCase):
         attrs, _ = A.rules(product("Candle", category="home", description="Poured by hand near a rose garden."))
         self.assertNotIn("scent", attrs)
 
+    # Owner, 2026-11-22: hair and scalp concerns, texture and porosity, and
+    # the skin concerns a parent shops baby products by.
+    def test_hair_and_scalp_concerns_need_the_brands_words(self):
+        attrs, cand = A.rules(product("Scalp Serum", description="Soothes a dry, itchy scalp and prevents breakage."))
+        self.assertEqual(attrs["hairneed"], ["dry_scalp", "damage"])
+        self.assertEqual(cand, [])
+        attrs, _ = A.rules(product("Anti-Dandruff Shampoo", description="For sensitive scalps."))
+        self.assertEqual(attrs["hairneed"], ["sensitive_scalp", "dandruff"])
+        attrs, _ = A.rules(product("Growth Oil", description="Promotes hair growth and fuller edges."))
+        self.assertEqual(attrs["hairneed"], ["thinning"])
+        attrs, _ = A.rules(product("Leave-In", description="Safe for color-treated hair. Fights frizz."))
+        self.assertEqual(sorted(attrs["hairneed"]), ["color_treated", "frizz"])
+
+    def test_a_warning_or_a_passing_mention_is_not_a_concern(self):
+        attrs, cand = A.rules(product("Edge Gel", description="Holds all day with no flakes."))
+        self.assertNotIn("hairneed", attrs)
+        self.assertEqual(cand, [])
+        # A warning names the problem without the product being for it.
+        attrs, cand = A.rules(product("Relaxer", description="Overuse may cause breakage."))
+        self.assertNotIn("hairneed", attrs)
+        self.assertIn(("hairneed", "damage"), cand)
+        # Thinning shears are a tool, not a product for thinning hair.
+        attrs, _ = A.rules(product("Thinning Shears", description="Steel shears."))
+        self.assertNotIn("hairneed", attrs)
+
+    def test_dry_hair_is_a_need_not_an_instruction(self):
+        attrs, cand = A.rules(product("Wide Tooth Comb", description="Glides through wet or dry hair. Apply to dry hair before styling."))
+        self.assertNotIn("hairneed", attrs)
+        self.assertEqual(cand, [])
+        attrs, _ = A.rules(product("Deep Conditioner", description="Quenches dry hair and softens brittle hair."))
+        self.assertEqual(attrs["hairneed"], ["dry_hair"])
+        attrs, _ = A.rules(product("Butter for Dry, Damaged Hair"))
+        self.assertIn("dry_hair", attrs["hairneed"])
+
+    def test_texture_and_porosity_sit_with_the_hair_types(self):
+        attrs, _ = A.rules(product("Leave-In", description="Made for low porosity, fine hair."))
+        self.assertEqual(sorted(attrs["hair"]), ["fine", "low_porosity"])
+        attrs, _ = A.rules(product("Butter", description="Rich enough for thick hair and high-porosity curls."))
+        self.assertIn("thick", attrs["hair"])
+        self.assertIn("high_porosity", attrs["hair"])
+        # "Thinning hair" is a concern, not the fine/thin texture.
+        attrs, _ = A.rules(product("Serum", description="For thinning hair."))
+        self.assertNotIn("hair", attrs)
+        self.assertEqual(attrs["hairneed"], ["thinning"])
+
+    def test_baby_products_carry_the_three_skin_concerns_and_free_of(self):
+        attrs, _ = A.rules(product("Baby Balm", category="baby",
+                                   description="Gentle, fragrance-free care for eczema-prone and sensitive skin. Fades dark spots."))
+        self.assertEqual(attrs["skin"], ["eczema", "sensitive"])
+        self.assertEqual(attrs["free"], ["fragrance"])
+        self.assertNotIn("skintype", attrs)
+        attrs, cand = A.rules(product("Teether", category="baby", description="A toy."))
+        self.assertEqual((attrs, cand), ({}, []))
+
+    def test_razor_bumps_are_a_skin_concern(self):
+        attrs, _ = A.rules(product("Shave Oil", category="skincare", description="Helps prevent razor bumps and ingrown hairs."))
+        self.assertIn("razor_bumps", attrs["skin"])
+
+    def test_every_value_jev_can_be_asked_about_has_a_label(self):
+        for field, table in (("hair", A.HAIR), ("skin", A.SKIN), ("hairneed", A.HAIRNEED)):
+            self.assertIn(field, A.QUESTION)
+            for value in table:
+                self.assertIn(value, A.LABEL, f"{field}:{value}")
+
     def test_no_attrs_outside_their_departments(self):
         attrs, cand = A.rules(product("4C Hair Tee", category="clothing", description="Fragrance-free fun"))
         self.assertNotIn("hair", attrs)

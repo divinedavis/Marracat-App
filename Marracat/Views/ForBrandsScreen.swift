@@ -33,7 +33,7 @@ struct ForBrandsScreen: View {
     var body: some View {
         List {
             if !managed.isEmpty {
-                Section("Brands you manage") {
+                TitledSection("Brands you manage") {
                     ForEach(managed) { m in brandCard(m) }
                 }
             }
@@ -45,7 +45,7 @@ struct ForBrandsScreen: View {
                 if brandID == nil {
                     ForEach(matches) { b in
                         Button { brandID = b.id; query = b.name } label: {
-                            VStack(alignment: .leading) { Text(b.name); Text(b.domain).font(.caption).foregroundStyle(.secondary) }
+                            VStack(alignment: .leading) { Text(b.name); Text(b.domain).brandFont(.caption).foregroundStyle(Theme.secondary) }
                         }
                         .accessibilityIdentifier("claimBrandOption")
                     }
@@ -61,13 +61,13 @@ struct ForBrandsScreen: View {
                     .accessibilityIdentifier("claimSendLink")
                 }
             } header: {
-                Text("Confirm you manage a brand")
+                Text("Confirm you manage a brand").foregroundStyle(Theme.secondary)
             } footer: {
-                Text("We email a one-time link to an address at your brand's own domain. Opening it confirms you're on the team; then you can promote your products on Marracat.")
+                Text("We email a one-time link to an address at your brand's own domain. Opening it confirms you're on the team; then you can promote your products on Marracat.").foregroundStyle(Theme.secondary)
             }
-            if let message { Section { Text(message).font(.subheadline) } }
+            if let message { Section { Text(message).brandFont(.subheadline) } }
         }
-        .navigationTitle("For brands")
+        .barTitle("For brands")
         .marracatChrome()
         .markRefreshable { await load() }
         .task { await load() }
@@ -77,7 +77,7 @@ struct ForBrandsScreen: View {
                 ContentUnavailableView {
                     Label("Sign in first", systemImage: "storefront")
                 } description: { Text("Brands are managed from a Marracat account.") } actions: {
-                    NavigationLink("Sign in", value: Route.accountSettings).buttonStyle(PillButtonStyle(color: Theme.gold, text: .black))
+                    NavigationLink("Sign in", value: Route.accountSettings).buttonStyle(PillButtonStyle(color: Theme.gold, text: Theme.onGold))
                 }
             }
         }
@@ -95,13 +95,13 @@ struct ForBrandsScreen: View {
     @ViewBuilder
     private func brandCard(_ m: Managed) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(m.brand.name).font(.headline)
+            Text(m.brand.name).brandFont(.headline)
             HStack(spacing: 18) {
                 stat("\(m.stats.views)", "views")
                 stat("\(m.stats.taps)", "taps")
                 stat((Double(m.stats.spentCents) / 100).formatted(.currency(code: "USD")), "spent")
             }
-            Text("Last 7 days").font(.caption2).foregroundStyle(.secondary)
+            Text("Last 7 days").brandFont(.caption2).foregroundStyle(Theme.secondary)
             if let c = m.campaign {
                 Button {
                     Task { await setStatus(m.brand.id, c.status == "active" ? "paused" : "active") }
@@ -119,7 +119,7 @@ struct ForBrandsScreen: View {
         .accessibilityIdentifier("managedBrand")
     }
     private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading) { Text(value).font(.title3.bold()); Text(label).font(.caption).foregroundStyle(.secondary) }
+        VStack(alignment: .leading) { Text(value).brandFont(.title3.bold()); Text(label).brandFont(.caption).foregroundStyle(Theme.secondary) }
     }
 
     // MARK: Network

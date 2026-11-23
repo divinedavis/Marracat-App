@@ -26,7 +26,7 @@ struct ActionChipLabel: View {
             if busy { ProgressView().controlSize(.small) }
             else {
                 Image(systemName: symbol)
-                    .font(.title3.weight(.semibold))
+                    .brandFont(.title3.weight(.semibold))
                     .foregroundStyle(tint)
                     .symbolEffect(.bounce, value: on)
             }
@@ -46,12 +46,12 @@ struct ActionChipLabel: View {
             if busy { ProgressView().controlSize(.small) }
             else {
                 Image(systemName: symbol)
-                    .font(.subheadline.weight(.semibold))
+                    .brandFont(.subheadline.weight(.semibold))
                     .foregroundStyle(tint)
                     .symbolEffect(.bounce, value: on)
             }
             Text(title)
-                .font(.footnote.weight(.semibold))
+                .brandFont(.footnote.weight(.semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
         }
@@ -107,10 +107,10 @@ struct ActionToast: View {
 
     var body: some View {
         Label(text, systemImage: symbol)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.black)
+            .brandFont(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.onGold)
             .padding(.horizontal, 16).padding(.vertical, 10)
-            .background(Capsule().fill(Color.white))
+            .background(Capsule().fill(Theme.inverse))
             .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("actionToast")
@@ -158,7 +158,7 @@ struct IconChipLabel<Glyph: View>: View {
             if busy { ProgressView().controlSize(.small) }
             else { glyph().foregroundStyle(tint).symbolEffect(.bounce, value: on) }
         }
-        .font(.body.weight(.semibold))
+        .brandFont(.body.weight(.semibold))
         .frame(maxWidth: .infinity, minHeight: 40)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(on ? tint.opacity(0.18) : Theme.field))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(on ? tint : Theme.hairline, lineWidth: on ? 1.5 : 1))

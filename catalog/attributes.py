@@ -11,6 +11,15 @@ hair in the hair category"):
     {"skintype": ["oily", "combination"], "ingredient": ["niacinamide"],
      "form": ["serum"], "pack": ["mini"], "spf": ["high"]}
 Skin fields are tagged on skincare only, hair on hair only, "free" on both.
+Hair also gets what it needs help with, and baby the three skin concerns a
+parent filters on (owner, 2026-11-22: "a filter for products that are good
+for eczema ... skin sensitivity filters for skin products, hair texture or
+sensitivities for hair products"):
+    hair: {"hairneed": ["sensitive_scalp", "dandruff", "breakage"]}, and
+          "fine", "thick", "low_porosity", "high_porosity" among "hair"
+    baby: {"skin": ["eczema", "sensitive", "dryness"], "free": [...]}
+These are the brand's words about who a product is for, never a claim of
+ours that it treats anything.
 
 A filter must not lie, so each value needs the brand's own words:
 - free: only an explicit "fragrance-free" / "free of sulfates" / "no parabens"
@@ -72,7 +81,31 @@ HAIR = {
     "curls": r"curls|curly|curl (?:cream|custard|gel|defin\w*|enhanc\w*|activator|pudding|milk|smoothie|mousse)",
     "waves": r"wavy|360 waves|waves? (?:pomade|brush|butter|cream)",
     "straight": r"straight hair|relaxed hair|silk press",
+    # Texture and porosity, beside the curl patterns ("thin hair", not "thinning hair").
+    "fine": r"fine hair|thin hair|fine[,/ ]+(?:or |and )?(?:thin|limp|flat) hair",
+    "thick": r"thick hair|coarse hair|thick[,/ ]+(?:or |and )?(?:coarse|dense) hair",
+    "low_porosity": r"low[- ]porosity",
+    "high_porosity": r"high[- ]porosity",
 }
+# What the hair or scalp needs help with ("Hair & scalp concern").
+HAIRNEED = {
+    "sensitive_scalp": r"sensitive scalps?|scalp sensitivity|irritated scalps?",
+    "dandruff": r"dandruff|anti-?dandruff|seborrh?oeic dermatitis|seborrh?eic dermatitis|flaky scalps?|scalp flak(?:es|ing)",
+    "dry_scalp": r"dry scalps?|itchy scalps?|scalp itch(?:ing|iness)?|dry,? itchy scalps?",
+    "damage": r"damaged hair|hair damage|breakage|split ends|bond[- ](?:repair\w*|build\w*)|heat damage",
+    "thinning": r"thinning hair|hair thinning|hair loss|hair growth|regrowth|thin(?:ning)? edges",
+    "frizz": r"frizz(?:y)?|anti-?frizz",
+    # "Dry hair" alone is as often an instruction ("apply to wet or dry
+    # hair") as a need, so this one carries its own claim words.
+    "dry_hair": (r"brittle hair|dry,? (?:brittle|damaged|thirsty|dull|parched|coarse) hair|dry (?:or|and|&) (?:damaged|brittle) hair|"
+                 r"(?:for|hydrat\w+|moisturi[sz]\w+|nourish\w*|quench\w*|reviv\w+|restor\w+|soften\w*|rescu\w+) (?:very |extremely |your )?dry hair|"
+                 r"dry hair (?:types?|shampoo|conditioner|mask|masque|treatment|oil|serum|cream|butter|repair|rescue|remedy|therapy)"),
+    "color_treated": r"colou?r[- ]treated|colou?r[- ]safe|colou?red hair",
+}
+# Values whose pattern already says the product is for it: a mention counts.
+SELF_CLAIMING = {"dry_hair"}
+# What a hair product is said to do about one of those, on top of FOR.
+HAIR_FOR_EXTRA = r"prevents?|repairs?|strengthens?|against|stops?|combats?|relieves?|tames?|controls?|eliminates?|smooths?|restores?|protects?(?: against| from)?|promotes?|supports?|encourages?|stimulates?"
 SKIN = {
     "acne": r"acne|breakouts?|blemish(?:es)?|pimples?",
     "dark_spots": r"hyper-?pigment\w*|dark (?:spots?|marks?)|discolou?ration|uneven (?:skin )?tone|melasma",
@@ -81,7 +114,10 @@ SKIN = {
     "oily": r"oily skin|excess oil|shine control",
     "sensitive": r"sensitive skin|for sensitive",
     "aging": r"anti-?aging|anti-?ageing|fine lines|wrinkles?",
+    "razor_bumps": r"razor bumps?|razor burn|shav(?:e|ing) bumps?|ingrown hairs?|ingrowns?",
 }
+# The skin concerns read on baby products: the ones a parent shops by.
+BABY_SKIN = ("eczema", "sensitive", "dryness")
 SKIN.update({
     "dullness": r"dull(?:ness)?(?: skin| complexion)?|brighten\w*|radiance|lackluster",
     "pores": r"(?:enlarged |visible |clogged )?pores",
@@ -189,6 +225,7 @@ def _word(pat):
 
 
 HAIR_RE = {k: _word(v) for k, v in HAIR.items()}
+HAIRNEED_RE = {k: _word(v) for k, v in HAIRNEED.items()}
 SKIN_RE = {k: _word(v) for k, v in SKIN.items()}
 FREE_RE = {k: _word(v) for k, v in FREE.items()}
 FREE_SKIN_RE = {k: _word(v) for k, v in FREE_SKIN_ONLY.items()}
@@ -196,17 +233,31 @@ INGREDIENT_RE = {k: _word(v) for k, v in INGREDIENT.items()}
 FORM_RE = {k: _word(v) for k, v in FORM.items()}
 PACK_RE = {k: _word(v) for k, v in PACK.items()}
 ALL_TYPES = re.compile(r"all hair (?:types|textures)", re.I)
+HAIR_FOR = FOR[:-1] + "|" + HAIR_FOR_EXTRA + ")"
+# "not for", "may cause", "can lead to": the mention after it is a warning.
+# ("Leads to fewer ingrowns" and "leads to diminishing of dark spots" are claims.)
+NOT_FOR = re.compile(r"(?:\bnot (?:for|recommended|suitable)|\b(?:may|can|could|might) cause|\bcauses?"
+                     r"|\bleads? to(?! (?:diminish\w*|fewer|less|reduc\w*|a reduction|fading|the fading|clearer)))\b[\w ,/&-]{0,25}$", re.I)
 
 
-def _claimed(rx, desc):
+def _claimed(rx, desc, context=None):
     """The description says the product is for it: a FOR word within a few
-    words before the mention, or "<value>-prone" / "<value> hair|skin" after."""
+    words before the mention, or "<value>-prone" / "<value> hair|skin" after.
+    `context` swaps FOR for a wider set of words (HAIR_FOR)."""
+    context = context or FOR
     for m in rx.finditer(desc):
         before = desc[max(0, m.start() - 40):m.start()]
         after = desc[m.end():m.end() + 14]
-        if re.search(FOR + r"\b[\w ,/&-]{0,25}$", before, re.I) or re.match(r"[- ]?(?:prone|hair|skin|types?|textures?)\b", after, re.I):
+        if NOT_FOR.search(before):
+            continue
+        if re.search(context + r"\b[\w ,/&-]{0,25}$", before, re.I) or re.match(r"[- ]?(?:prone|hair|skin|types?|textures?)\b", after, re.I):
             return True
     return False
+
+
+def _stated(rx, desc):
+    """A mention that is not a warning, for patterns that carry their own claim."""
+    return any(not NOT_FOR.search(desc[max(0, m.start() - 40):m.start()]) for m in rx.finditer(desc))
 
 
 def _skintypes(text):
@@ -268,6 +319,24 @@ def rules(p, inci=None):
                 cand.append(("hair", k))
         if hair:
             attrs["hair"] = hair
+        need = []
+        for k, rx in HAIRNEED_RE.items():
+            if rx.search(strong) or _claimed(rx, desc, HAIR_FOR) or (k in SELF_CLAIMING and _stated(rx, desc)):
+                need.append(k)
+            elif rx.search(desc):
+                cand.append(("hairneed", k))
+        if need:
+            attrs["hairneed"] = need
+    if cat == "baby":
+        skin = []
+        for k in BABY_SKIN:
+            rx = SKIN_RE[k]
+            if rx.search(strong) or _claimed(rx, desc):
+                skin.append(k)
+            elif rx.search(desc):
+                cand.append(("skin", k))
+        if skin:
+            attrs["skin"] = skin
     if cat == "skincare":
         skin = []
         for k, rx in SKIN_RE.items():
@@ -312,7 +381,7 @@ def rules(p, inci=None):
         spf = [n for n in spf if 2 <= n <= 100]
         if spf:
             attrs["spf"] = ["high" if max(spf) > 30 else "low"]
-    if cat in ("hair", "skincare"):
+    if cat in ("hair", "skincare", "baby"):
         text = f"{strong} {desc}"
         free = [k for k, rx in FREE_RE.items() if rx.search(text)]
         if cat == "skincare":
@@ -344,6 +413,7 @@ def rules(p, inci=None):
 QUESTION = {
     "hair": "Does the brand say this product is made for {label} hair?",
     "skin": "Does the brand say this product is for {label}?",
+    "hairneed": "Does the brand say this product is for {label}?",
 }
 LABEL = {"3c": "3C", "4a": "4A", "4b": "4B", "4c": "4C", "coils": "coily or kinky", "locs": "locs (dreadlocks)",
          "curls": "curly", "waves": "wavy or 360-wave", "straight": "straight or relaxed",
@@ -351,7 +421,12 @@ LABEL = {"3c": "3C", "4a": "4A", "4b": "4B", "4c": "4C", "coils": "coily or kink
          "eczema": "eczema-prone skin", "dryness": "dry skin", "oily": "oily skin", "sensitive": "sensitive skin",
          "aging": "signs of aging such as fine lines", "dullness": "dull skin (brightening)",
          "pores": "visible or clogged pores", "redness": "redness or irritation", "dark_circles": "dark circles or puffy eyes",
-         "firmness": "loss of firmness", "texture": "uneven skin texture"}
+         "firmness": "loss of firmness", "texture": "uneven skin texture",
+         "razor_bumps": "razor bumps or ingrown hairs",
+         "fine": "fine or thin", "thick": "thick or coarse", "low_porosity": "low-porosity", "high_porosity": "high-porosity",
+         "sensitive_scalp": "a sensitive scalp", "dandruff": "dandruff or a flaky scalp", "dry_scalp": "a dry or itchy scalp",
+         "damage": "damaged hair or breakage", "thinning": "thinning hair or hair growth", "frizz": "frizzy hair",
+         "dry_hair": "dry or brittle hair", "color_treated": "colour-treated hair"}
 
 
 def seen_key(p, field, value):

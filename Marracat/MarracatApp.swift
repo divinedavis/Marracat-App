@@ -115,6 +115,7 @@ struct MarracatApp: App {
         // Siri, Shortcuts and Spotlight read the same stores (AppIntents/).
         IntentRouter.shared.catalog = catalog
         IntentRouter.shared.shopper = shopper
+        BrandFont.applyToSystemControls()
         MetricsReporter.shared.start()
         HitchProbe.shared.start()
         Analytics.shared.start(personalization: { [shopper] in shopper.personalizationEnabled },
@@ -325,6 +326,8 @@ struct MarracatApp: App {
             .onChange(of: AlertTrigger(request: InAppAlerts.shared.request?.id, splash: showSplash)) { carryOutAlert() }
     }
 
+    @AppStorage(Appearance.key) private var appearance = Appearance.light
+
     private var stageContent: some View {
         ZStack {
             RootView()
@@ -338,9 +341,13 @@ struct MarracatApp: App {
                 .environment(nav)
                 .environment(restock)
                 .tint(Theme.link)
-                // Monochrome black-and-grey app (ASOS-style): dark system chrome,
-                // dark keyboard, white status bar over the black header.
-                .preferredColorScheme(.dark)
+                // Type that names no style of its own (a text field, a plain
+                // button) still wears the logo's face.
+                .font(BrandFont.body.font)
+                // The shopper's look (Appearance): light unless they chose
+                // dark in Profile. System chrome, the keyboard and the status
+                // bar follow it.
+                .preferredColorScheme(Appearance.followsSystem ? nil : appearance.scheme)
                 .allowsHitTesting(!showSplash)
                 .accessibilityHidden(showSplash)
                 // A tap outside any text field closes the keyboard (not

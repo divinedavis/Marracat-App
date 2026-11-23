@@ -67,7 +67,7 @@ struct QuickListFan: View {
                 }
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
-                        .font(.title3.weight(.semibold)).foregroundStyle(.white)
+                        .brandFont(.title3.weight(.semibold)).foregroundStyle(.white)
                         .frame(width: 48, height: 48)
                         .background(Circle().fill(Theme.field))
                         .overlay(Circle().stroke(Theme.hairline))
@@ -108,12 +108,12 @@ struct QuickListFan: View {
                         .shadow(color: .black.opacity(0.4), radius: 6, y: 3)
                     if inList {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20)).foregroundStyle(.white, .pink)
+                            .brandFont(.system(size: 20)).foregroundStyle(.white, .pink)
                             .offset(x: 4, y: 4)
                     }
                 }
                 Text(title)
-                    .font(.caption.weight(.semibold)).foregroundStyle(.white)
+                    .brandFont(.caption.weight(.semibold)).foregroundStyle(.white)
                     .lineLimit(2).multilineTextAlignment(.center)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Capsule().fill(Color.black.opacity(0.75)))
@@ -143,7 +143,7 @@ struct QuickListFan: View {
     private func symbol(_ name: String, _ tint: Color) -> some View {
         ZStack {
             Circle().fill(tint)
-            Image(systemName: name).font(.title2.weight(.semibold)).foregroundStyle(.white)
+            Image(systemName: name).brandFont(.title2.weight(.semibold)).foregroundStyle(.white)
         }
     }
 }

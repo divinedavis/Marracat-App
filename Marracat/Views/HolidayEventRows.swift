@@ -76,9 +76,9 @@ struct EventBanner: View {
         NavigationLink(value: route) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(holiday.event?.badge ?? String(localized: "Special Event", comment: "Holiday banner kicker")) · \(days)".uppercased())
-                    .font(.caption2.weight(.bold)).tracking(1.2).opacity(0.9)
-                Text(holiday.event?.name ?? holiday.name).font(.title2.bold())
-                if let short = holiday.event?.short { Text(short).font(.subheadline) }
+                    .brandFont(.caption2.weight(.bold)).tracking(1.2).opacity(0.9)
+                Text(holiday.event?.name ?? holiday.name).brandFont(.title2.bold())
+                if let short = holiday.event?.short { Text(short).brandFont(.subheadline) }
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, alignment: .leading)

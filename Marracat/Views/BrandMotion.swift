@@ -105,11 +105,11 @@ struct BrandNameMarquee: View {
     }
 
     @ViewBuilder private func word(outlined: Bool) -> some View {
-        let text = Text(name.uppercased() + "  ").font(.system(size: Self.size, weight: .black)).tracking(-1)
+        let text = Text(name.uppercased() + "  ").brandFont(.system(size: Self.size, weight: .black)).tracking(-1)
         if outlined {
             // An outline: the page's own colour, edged in the second colour.
             let edge = colors.last ?? PhotoPalette.fallback[1]
-            text.foregroundStyle(Color.black)
+            text.foregroundStyle(Theme.canvas)
                 .shadow(color: edge, radius: 0, x: 1, y: 0).shadow(color: edge, radius: 0, x: -1, y: 0)
                 .shadow(color: edge, radius: 0, x: 0, y: 1).shadow(color: edge, radius: 0, x: 0, y: -1)
                 .opacity(0.75)

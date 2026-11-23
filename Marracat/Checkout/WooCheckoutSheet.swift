@@ -34,10 +34,10 @@ struct WooCheckoutSheet: View {
             .overlay { if loading { ProgressView() } }
             .safeAreaInset(edge: .top, spacing: 0) {
                 HStack(spacing: 6) {
-                    Image(systemName: "lock.fill").font(.caption2)
-                    Text(host ?? request.url.host() ?? "").font(.footnote.monospaced()).lineLimit(1).truncationMode(.middle)
+                    Image(systemName: "lock.fill").brandFont(.caption2)
+                    Text(host ?? request.url.host() ?? "").brandFont(.footnote.monospaced()).lineLimit(1).truncationMode(.middle)
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
                 .background(.bar)
@@ -46,7 +46,7 @@ struct WooCheckoutSheet: View {
                 .accessibilityIdentifier("wooCheckoutHost")
             }
             .ignoresSafeArea(edges: .bottom)
-            .navigationTitle(request.brand.name)
+            .barTitle(request.brand.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

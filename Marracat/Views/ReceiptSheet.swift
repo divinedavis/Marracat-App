@@ -114,8 +114,8 @@ struct ReceiptSheet: View {
             paperWindow
                 .padding(.top, -11)
             VStack(spacing: 4) {
-                Text(title).font(.title3.bold())
-                Text(subtitle).font(.footnote).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+                Text(title).brandFont(.title3.bold())
+                Text(subtitle).brandFont(.footnote).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
             }
             .frame(minHeight: 48)
             .padding(.top, 6)
@@ -129,7 +129,7 @@ struct ReceiptSheet: View {
         .background(Theme.surface)
         .overlay(alignment: .topTrailing) {
             Button { dismiss() } label: {
-                Image(systemName: "xmark").font(.footnote.bold()).foregroundStyle(Theme.textSecondary)
+                Image(systemName: "xmark").brandFont(.footnote.bold()).foregroundStyle(Theme.textSecondary)
                     .frame(width: 32, height: 32).background(Theme.field, in: Circle())
             }
             .buttonStyle(.plain)
@@ -199,7 +199,7 @@ struct ReceiptSheet: View {
             HStack(spacing: 6) { buttons }
             VStack(spacing: 8) { buttons }
         }
-        .font(.footnote.weight(.medium))
+        .brandFont(.footnote.weight(.medium))
         .labelStyle(TightLabel())
         .lineLimit(1)
     }
@@ -300,7 +300,7 @@ private struct ReceiptPaper: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: "MARRACAT").font(.system(size: 15, weight: .bold)).tracking(4.8)
+                    Text(verbatim: "MARRACAT").brandFont(.system(size: 15, weight: .bold)).tracking(4.8)
                     Text("ORDER RECEIPT", comment: "Heading printed on a receipt").font(mono(11)).tracking(0.7).foregroundStyle(Self.faint)
                 }
                 Spacer()
@@ -318,7 +318,7 @@ private struct ReceiptPaper: View {
             .padding(.horizontal, -6).padding(.top, 12).padding(.bottom, 8)
 
             if let total = receipt.total {
-                Text(receipt.money(total)).font(.system(size: 24, weight: .bold, design: .monospaced))
+                Text(receipt.money(total)).brandFont(.system(size: 24, weight: .bold, design: .monospaced))
             }
             Text(([receipt.date.formatted(date: .abbreviated, time: .omitted)] + (receipt.orderName.map { [String(localized: "ORDER \($0)", comment: "Receipt line; the order number")] } ?? [])).joined(separator: " | ").uppercased())
                 .font(mono(9.5)).foregroundStyle(Self.faint)
@@ -361,7 +361,7 @@ private struct ReceiptPaper: View {
         .overlay(alignment: .bottom) { ZigZag().fill(Self.paper).frame(height: 7).offset(y: 7) }
         .overlay(alignment: .topTrailing) {
             VStack(spacing: 1) {
-                Text("PAID", comment: "Stamp on a receipt").font(.system(size: 19, weight: .heavy)).tracking(1.5)
+                Text("PAID", comment: "Stamp on a receipt").brandFont(.system(size: 19, weight: .heavy)).tracking(1.5)
                 Text(receipt.date.formatted(date: .abbreviated, time: .omitted).uppercased()).font(mono(8).bold())
             }
             .foregroundStyle(Color(red: 0.82, green: 0.14, blue: 0.16))
@@ -439,7 +439,7 @@ private struct PillLook: ViewModifier {
     var primary = false
     func body(content: Content) -> some View {
         content
-            .foregroundStyle(primary ? Color.black : Color.primary)
+            .foregroundStyle(primary ? Theme.onGold : Color.primary)
             .fixedSize()
             .padding(.horizontal, 11).padding(.vertical, 8)
             .background(Capsule().fill(primary ? Theme.gold : Theme.surface))

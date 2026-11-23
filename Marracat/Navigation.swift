@@ -285,7 +285,7 @@ struct MarracatChrome: ViewModifier {
                     Color.clear.frame(height: typing ? 0 : tabBarClearance)
                 }
             }
-            .navigationTitle(query ?? "")
+            .barTitle(query ?? "")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarRole(.editor)
             .toolbarBackground(Theme.header, for: .navigationBar)
@@ -418,7 +418,7 @@ struct FloatingSearchBar: View {
                         focused = false
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
+                            .brandFont(.body.weight(.semibold))
                             .foregroundStyle(.primary)
                             .frame(width: Self.height, height: Self.height)
                             .glass(in: Circle())
@@ -469,7 +469,7 @@ struct FloatingSearchBar: View {
             Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary)
             content()
         }
-        .font(.body)
+        .brandFont(.body)
         .padding(.horizontal, 16)
         .frame(height: Self.height)
         .frame(maxWidth: .infinity)

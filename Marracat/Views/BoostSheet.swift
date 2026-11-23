@@ -40,18 +40,18 @@ struct BoostSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Put \(name) in front of more shoppers.")
-                        .font(.title3.bold())
+                        .brandFont(.title3.bold())
                     ForEach(Self.tiers) { t in tierCard(t) }
                     Text("Boosted spots are labeled “Sponsored”. Boosts for the same \(caseName) add up while they run, so friends can boost it together.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    if let error { Text(error).font(.footnote).foregroundStyle(.red).accessibilityIdentifier("boostError") }
+                        .brandFont(.footnote).foregroundStyle(Theme.secondary)
+                    if let error { Text(error).brandFont(.footnote).foregroundStyle(.red).accessibilityIdentifier("boostError") }
                 }
                 .padding(16)
             }
             .safeAreaInset(edge: .bottom) {
                 Button { Task { await pay() } } label: {
                     Text(busy ? "Opening payment…" : "Continue to payment · $\(tier)")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .brandFont(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 .buttonStyle(PillButtonStyle(color: Theme.gold))
                 .disabled(busy)
@@ -59,7 +59,7 @@ struct BoostSheet: View {
                 .background(Theme.canvas)
                 .accessibilityIdentifier("boostContinue")
             }
-            .navigationTitle("Boost")
+            .barTitle("Boost")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .background(Theme.canvas)
@@ -78,14 +78,14 @@ struct BoostSheet: View {
         return Button { tier = t.dollars } label: {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: on ? "largecircle.fill.circle" : "circle")
-                    .font(.title3).foregroundStyle(on ? Theme.gold : .secondary)
+                    .brandFont(.title3).foregroundStyle(on ? Theme.gold : Theme.secondary)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("$\(t.dollars)").font(.title2.bold())
-                        Text("\(t.name) · \(t.length)").font(.subheadline).foregroundStyle(.secondary)
+                        Text("$\(t.dollars)").brandFont(.title2.bold())
+                        Text("\(t.name) · \(t.length)").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     ForEach(t.gives, id: \.self) { g in
-                        Label(g, systemImage: "checkmark").font(.subheadline).labelStyle(.titleAndIcon)
+                        Label(g, systemImage: "checkmark").brandFont(.subheadline).labelStyle(.titleAndIcon)
                     }
                 }
                 Spacer(minLength: 0)

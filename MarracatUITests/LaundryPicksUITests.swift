@@ -60,9 +60,14 @@ final class LaundryPicksUITests: XCTestCase {
         for untouched in ["Pet Supplies", "Clothing", "Jewelry", "Grocery & Gourmet"] {
             XCTAssertFalse(titles.contains("Top picks in \(untouched)"), "Top picks in \(untouched) for a shopper who only looked at laundry: \(titles)")
         }
-        // Discover more, at the foot of Home, too.
-        XCTAssertTrue(app.staticTexts["Discover more"].exists, "not at the foot of Home")
-        let bikini = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'bikini' OR label CONTAINS[c] 'dog '")).firstMatch
-        XCTAssertFalse(bikini.exists, "Discover more showed \(bikini.label)")
+        // Discover more, at the foot of Home, too. Only what is under its
+        // title: the rows above it include the store's events, which are for
+        // everyone (Black Friday's biggest markdowns had a bikini bottom at
+        // 70% off on 2026-11-22, and this read the whole page).
+        let discover = app.staticTexts["Discover more"]
+        XCTAssertTrue(discover.exists, "not at the foot of Home")
+        let strays = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'bikini' OR label CONTAINS[c] 'dog '"))
+            .allElementsBoundByIndex.filter { $0.exists && $0.frame.minY > discover.frame.minY }
+        XCTAssertTrue(strays.isEmpty, "Discover more showed \(strays.map(\.label)) to a shopper who only looked at laundry")
     }
 }

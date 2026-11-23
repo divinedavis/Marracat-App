@@ -40,6 +40,10 @@ final class SearchRankingTests: XCTestCase {
                 let brand = Bool.random(using: &rng) ? Int.random(in: 0..<2, using: &rng) : Int.random(in: 0..<brands, using: &rng)
                 return (item("p\(Int.random(in: 0..<100_000, using: &rng))-\(i)", brand: "brand\(brand)"), Int.random(in: 0...4, using: &rng))
             }
+            // One brand has nothing to spread: it keeps the order it came
+            // in, a rule the old method below never had. Four products can
+            // all land on one brand, and did (2026-11-22, round 34).
+            guard Set(ranked.map(\.0.brand)).count > 1 else { continue }
             XCTAssertEqual(CatalogStore.interleaveBrands(ranked, seed: round).map(\.id), Self.spreadByName(ranked, seed: round).map(\.id),
                            "round \(round): \(count) products, \(brands) brands")
         }

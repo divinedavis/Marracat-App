@@ -3,9 +3,14 @@
 // attrs: { hair: [...], skin: [...], free: [...], skintype: [...], ingredient: [...],
 // form: [...], pack: [...], spf: [...], scent: [...], fabric: "..." },
 // only the keys that apply. These are the values a filter may ask for.
-// Each group shows only in its own department (owner, 2026-11-04: "only have
-// filters that reflect skincare in the skincare category and the ones for hair
-// in the hair category"). `valueDepartments` narrows single values further.
+// Each group is read from its own department's products only (owner,
+// 2026-11-04: "only have filters that reflect skincare in the skincare category
+// and the ones for hair in the hair category"). A page of one department shows
+// all of its groups; a page of several (a brand's store, a wide search) shows
+// the who-is-it-for ones, MIXED_FIELDS, when it holds products that carry them
+// (owner, 2026-11-22: "a filter for products that are good for eczema ... skin
+// sensitivity filters for skin products, hair texture or sensitivities for hair
+// products"). `valueDepartments` narrows single values further.
 export const ATTR_FILTERS = {
   // Owner, 2026-11-08: "for clothes do some brands have a women and men
   // filter? if so lets use it ... do it for web/mobile" (catalog/gender.py).
@@ -23,15 +28,28 @@ export const ATTR_FILTERS = {
     values: {
       "4c": "For 4C hair", "4b": "For 4B hair", "4a": "For 4A hair", "3c": "For 3C hair",
       coils: "Coily hair", curls: "Curly hair", locs: "Locs", waves: "Waves", straight: "Straight or relaxed",
+      fine: "Fine or thin hair", thick: "Thick or coarse hair", low_porosity: "Low porosity", high_porosity: "High porosity",
     },
   },
+  // What the brand says the hair or scalp needs help with (owner, 2026-11-22).
+  hairneed: {
+    label: "Hair & scalp concern",
+    departments: ["hair"],
+    values: {
+      sensitive_scalp: "Sensitive scalp", dry_scalp: "Dry or itchy scalp", dandruff: "Dandruff & flakes",
+      damage: "Damage & breakage", thinning: "Thinning & growth", dry_hair: "Dry or brittle hair", frizz: "Frizz",
+      color_treated: "Colour-treated",
+    },
+  },
+  // Baby carries eczema, sensitivity and dryness only (catalog/attributes.py).
   skin: {
     label: "Skin concern",
-    departments: ["skincare"],
+    departments: ["skincare", "baby"],
     values: {
       acne: "Acne & breakouts", dark_spots: "Dark spots", aging: "Fine lines & wrinkles", dryness: "Dryness",
       dullness: "Dullness", oily: "Oiliness", pores: "Pores", redness: "Redness", sensitive: "Sensitivity",
-      eczema: "Eczema", texture: "Uneven texture", firmness: "Loss of firmness", dark_circles: "Dark circles & puffiness",
+      eczema: "Eczema", razor_bumps: "Razor bumps & ingrowns", texture: "Uneven texture", firmness: "Loss of firmness",
+      dark_circles: "Dark circles & puffiness",
     },
   },
   skintype: {
@@ -55,7 +73,7 @@ export const ATTR_FILTERS = {
   },
   free: {
     label: "Ingredient preferences",
-    departments: ["hair", "skincare"],
+    departments: ["hair", "skincare", "baby"],
     values: {
       fragrance: "Fragrance-free", sulfate: "Sulfate-free", paraben: "Paraben-free", silicone: "Silicone-free",
       alcohol: "Alcohol-free", oil: "Oil-free", noncomedogenic: "Non-comedogenic", vegan: "Vegan",
@@ -84,6 +102,25 @@ export const ATTR_FILTERS = {
   },
 };
 export const ATTR_FIELDS = Object.keys(ATTR_FILTERS);
+/// The groups a page of several departments still shows.
+export const MIXED_FIELDS = ["hair", "hairneed", "skin", "skintype", "free"];
+
+/// The departments a page's filters are read for: the picked category, else
+/// every one its products are in.
+export function departmentsOf(category, products) {
+  if (category) return new Set([category]);
+  return new Set((products || []).map((p) => p.category));
+}
+
+/// Whether a field's group belongs on a page of these departments: one of
+/// them is the field's own, and across several only the MIXED_FIELDS.
+export function attrShows(field, departments) {
+  const spec = ATTR_FILTERS[field];
+  if (!spec) return false;
+  if (spec.anyDepartment) return true;
+  if (!spec.departments.some((d) => departments.has(d))) return false;
+  return departments.size === 1 || MIXED_FIELDS.includes(field);
+}
 
 /// The department a set of products is in, or null when they span several.
 export function departmentOf(category, products) {
@@ -119,16 +156,20 @@ export function attrOptions(query) {
 
 /// The rows AttributeFilters would draw; empty means it draws nothing.
 export function attributeRows({ category, products, active }) {
+  // Each value is read from products of its own department only.
   const present = {};
   for (const p of products || []) {
-    for (const f of ATTR_FIELDS) for (const v of p.attrs?.[f] || []) (present[f] ||= new Set()).add(v);
+    for (const f of ATTR_FIELDS) {
+      for (const v of p.attrs?.[f] || []) if (attrApplies(f, v, p.category)) (present[f] ||= new Set()).add(v);
+    }
   }
-  // Skincare filters on skincare, hair filters on hair (owner, 2026-11-04):
-  // a department page, or a search whose results are all one department.
-  const department = departmentOf(category, products);
+  // All of one department's groups on its own page; the who-is-it-for ones
+  // on a page of several (owner, 2026-11-04 and 2026-11-22).
+  const departments = departmentsOf(category, products);
   return ATTR_FIELDS.map((f) => {
     const spec = ATTR_FILTERS[f];
-    const values = Object.keys(spec.values).filter((v) => active[f] === v || (attrApplies(f, v, department) && present[f]?.has(v)));
+    const shown = attrShows(f, departments);
+    const values = Object.keys(spec.values).filter((v) => active[f] === v || (shown && present[f]?.has(v)));
     return { f, spec, values };
   }).filter((r) => r.values.length);
 }

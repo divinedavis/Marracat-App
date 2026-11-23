@@ -140,10 +140,10 @@ struct InterestsScreen: View {
                         .accessibilityIdentifier("interestAdd")
                 }
             } footer: {
-                Text("Describe what you're into, in your own words. When new arrivals or restocks match, we'll send a notification. Your interests stay on this iPhone.")
+                Text("Describe what you're into, in your own words. When new arrivals or restocks match, we'll send a notification. Your interests stay on this iPhone.").foregroundStyle(Theme.secondary)
             }
             ForEach(interests) { interest in
-                Section(interest.text) {
+                TitledSection(verbatim: interest.text) {
                     if let ps = matches[interest.id], !ps.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
@@ -153,7 +153,7 @@ struct InterestsScreen: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                     } else {
                         Text(ready ? "No matches right now — we'll keep looking." : "Getting matches ready…")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .swipeActions { Button(role: .destructive) { remove(interest) } label: { Label("Remove", systemImage: "trash") } }
@@ -161,7 +161,7 @@ struct InterestsScreen: View {
             }
         }
         .task(id: interests.map(\.id)) { await refreshMatches() }
-        .navigationTitle("Interests")
+        .barTitle("Interests")
         .marracatChrome()
     }
 

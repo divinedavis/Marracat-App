@@ -40,14 +40,14 @@ struct CommentsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("Comments").font(.headline)
-                if total > 0 { Text("\(total)").font(.subheadline).foregroundStyle(.secondary) }
+                Text("Comments").brandFont(.headline)
+                if total > 0 { Text("\(total)").brandFont(.subheadline).foregroundStyle(Theme.secondary) }
             }
             .accessibilityIdentifier("commentsHeader")
 
             if loaded && top.isEmpty {
                 Text("No comments yet. Be the first to say what you think.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .brandFont(.subheadline).foregroundStyle(Theme.secondary)
             }
             ForEach(top) { c in
                 CommentLine(comment: c, compact: true, onLike: { await like(c) })
@@ -57,14 +57,14 @@ struct CommentsSection: View {
             if total > top.count {
                 Button { sheet = .read } label: {
                     Text("View all \(total) comments", comment: "Under the top comments on a product page; the argument is how many there are")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                        .brandFont(.subheadline.weight(.semibold)).foregroundStyle(Theme.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("viewAllComments")
             }
             if social.signedIn {
                 Button { sheet = .write } label: {
-                    Text("Add a comment…").font(.subheadline).foregroundStyle(.secondary)
+                    Text("Add a comment…").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 14).padding(.vertical, 10)
                         .background(Capsule().fill(Theme.field))
@@ -74,7 +74,7 @@ struct CommentsSection: View {
             } else {
                 Button { nav.tab = .you } label: {
                     Label("Sign in to comment", systemImage: "person.crop.circle")
-                        .font(.subheadline.weight(.semibold))
+                        .brandFont(.subheadline.weight(.semibold))
                 }
                 .accessibilityIdentifier("commentSignIn")
             }
@@ -155,13 +155,13 @@ struct CommentsSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Comments").font(.headline).padding(.top, 18).padding(.bottom, 10)
+            Text("Comments").brandFont(.headline).padding(.top, 18).padding(.bottom, 10)
             Divider()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if loaded && threads.isEmpty {
                         Text("No comments yet. Be the first to say what you think.")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                             .frame(maxWidth: .infinity).padding(.top, 30)
                     }
                     ForEach(CommentsSection.ranked(threads)) { thread in
@@ -208,7 +208,7 @@ struct CommentsSheet: View {
                              : (replies.count == 1 ? String(localized: "View 1 reply", comment: "Unfolds a comment's one reply")
                                 : String(localized: "View \(replies.count) replies", comment: "Unfolds a comment's replies; the argument is how many")))
                     }
-                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .brandFont(.caption.weight(.semibold)).foregroundStyle(Theme.secondary)
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 42)
@@ -221,24 +221,24 @@ struct CommentsSheet: View {
         VStack(spacing: 0) {
             Divider()
             if let error {
-                Text(error).font(.caption).foregroundStyle(.red).padding(.top, 6)
+                Text(error).brandFont(.caption).foregroundStyle(.red).padding(.top, 6)
                     .accessibilityIdentifier("commentError")
             }
             if social.signedIn {
                 if let r = replyingTo {
                     HStack {
                         Text("Replying to \(r.author?.name ?? String(localized: "comment", comment: "Fallback in: Replying to comment"))")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                         Spacer()
-                        Button { replyingTo = nil } label: { Image(systemName: "xmark").font(.caption.bold()) }
-                            .foregroundStyle(.secondary)
+                        Button { replyingTo = nil } label: { Image(systemName: "xmark").brandFont(.caption.bold()) }
+                            .foregroundStyle(Theme.secondary)
                             .accessibilityLabel("Cancel reply")
                     }
                     .padding(.horizontal, 16).padding(.top, 8)
                 }
                 HStack(spacing: 0) {
                     ForEach(Self.quickEmoji, id: \.self) { e in
-                        Button { draft += e } label: { Text(e).font(.title3).frame(maxWidth: .infinity, minHeight: 40) }
+                        Button { draft += e } label: { Text(e).brandFont(.title3).frame(maxWidth: .infinity, minHeight: 40) }
                             .buttonStyle(.plain)
                     }
                 }
@@ -259,7 +259,7 @@ struct CommentsSheet: View {
                         Button(replyingTo == nil ? String(localized: "Post", comment: "Posts a comment") : String(localized: "Reply", comment: "Posts a reply")) {
                             Task { await submit() }
                         }
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.link)
+                        .brandFont(.subheadline.weight(.semibold)).foregroundStyle(Theme.link)
                         .disabled(busy)
                         .accessibilityIdentifier("commentPost")
                     }
@@ -268,7 +268,7 @@ struct CommentsSheet: View {
             } else {
                 Button { dismiss(); nav.tab = .you } label: {
                     Label("Sign in to comment", systemImage: "person.crop.circle")
-                        .font(.subheadline.weight(.semibold))
+                        .brandFont(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 .accessibilityIdentifier("commentSignIn")
@@ -330,7 +330,7 @@ struct Avatar: View {
         let index = Int(name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }) % Self.palette.count
         Circle().fill(Self.palette[index].gradient)
             .frame(width: size, height: size)
-            .overlay(Text(initial).font(.system(size: size * 0.45, weight: .bold)).foregroundStyle(.white))
+            .overlay(Text(initial).brandFont(.system(size: size * 0.45, weight: .bold)).foregroundStyle(.white))
             .accessibilityHidden(true)
     }
 }
@@ -370,29 +370,29 @@ private struct CommentLine: View {
                 HStack(spacing: 6) {
                     Text(comment.author?.name ?? (comment.deleted ? String(localized: "Removed", comment: "In place of a removed comment's author")
                                                   : String(localized: "Marracat shopper", comment: "A commenter with no profile name")))
-                        .font(.caption.weight(.semibold))
-                    Text(Self.age(comment.date)).font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption.weight(.semibold))
+                    Text(Self.age(comment.date)).brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
                 if comment.deleted {
-                    Text("This comment was removed.").font(.subheadline).italic().foregroundStyle(.secondary)
+                    Text("This comment was removed.").brandFont(.subheadline).italic().foregroundStyle(Theme.secondary)
                 } else {
-                    Text(comment.body).font(.subheadline)
+                    Text(comment.body).brandFont(.subheadline)
                         .lineLimit(compact ? 2 : nil)
                         .textSelection(.enabled)
                     if comment.under_review {
-                        Label("Under review", systemImage: "eye.slash").font(.caption2).foregroundStyle(.secondary)
+                        Label("Under review", systemImage: "eye.slash").brandFont(.caption2).foregroundStyle(Theme.secondary)
                     }
                     if !compact {
                         HStack(spacing: 16) {
                             Button("Reply", action: onReply).accessibilityIdentifier("commentReply")
                             if social.signedIn { menu }
                         }
-                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        .brandFont(.caption.weight(.semibold)).foregroundStyle(Theme.secondary)
                         .buttonStyle(.plain)
                         .padding(.top, 2)
                     }
                 }
-                if let message { Text(message).font(.caption).foregroundStyle(.secondary) }
+                if let message { Text(message).brandFont(.caption).foregroundStyle(Theme.secondary) }
             }
             Spacer(minLength: 4)
             if !comment.deleted { heart }
@@ -413,11 +413,11 @@ private struct CommentLine: View {
         Button { Task { await onLike() } } label: {
             VStack(spacing: 2) {
                 Image(systemName: comment.isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: small ? 13 : 15))
-                    .foregroundStyle(comment.isLiked ? Color.red : Color.secondary)
+                    .brandFont(.system(size: small ? 13 : 15))
+                    .foregroundStyle(comment.isLiked ? Color.red : Theme.secondary)
                     .contentTransition(.symbolEffect(.replace))
                 if comment.likeCount > 0 {
-                    Text("\(comment.likeCount)").font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                    Text("\(comment.likeCount)").brandFont(.caption2).foregroundStyle(Theme.secondary).monospacedDigit()
                 }
             }
             .frame(minWidth: 36, minHeight: 36, alignment: .top)
@@ -461,7 +461,7 @@ struct CommunityTermsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Keep Marracat kind").font(.title2.bold())
+                    Text("Keep Marracat kind").brandFont(.title2.bold())
                     Text("Comments and shares are for talking about products and the brands behind them.")
                     ForEach([
                         String(localized: "No harassment, hate speech or slurs.", comment: "Community rule"),
@@ -470,10 +470,10 @@ struct CommunityTermsSheet: View {
                         String(localized: "Report anything that breaks these rules. Reported posts are hidden right away and reviewed within 24 hours.", comment: "Community rule"),
                         String(localized: "Posts that break them are removed, and accounts that keep breaking them are banned.", comment: "Community rule"),
                     ], id: \.self) { rule in
-                        Label(rule, systemImage: "checkmark.circle").font(.subheadline)
+                        Label(rule, systemImage: "checkmark.circle").brandFont(.subheadline)
                     }
                     Text("Messages you send to friends are end-to-end encrypted. If someone reports one, their phone shares that message with Marracat so it can be reviewed.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
                 .padding(20)
             }
@@ -526,11 +526,11 @@ struct SocialPanel: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(me.profile.name).font(.title3.bold())
-                        Text("@\(me.profile.handle)").font(.subheadline).foregroundStyle(.secondary)
+                        Text(me.profile.name).brandFont(.title3.bold())
+                        Text("@\(me.profile.handle)").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     Spacer()
-                    Button("Edit profile") { editing = true }.font(.subheadline).accessibilityIdentifier("editProfile")
+                    Button("Edit profile") { editing = true }.brandFont(.subheadline).accessibilityIdentifier("editProfile")
                 }
                 row(String(localized: "Friends", comment: "Row in the Connect screen"), systemImage: "person.2", badge: me.counts.incoming, route: .friends)
                 row(String(localized: "Shared with you", comment: "Row in the Connect screen: products friends shared"), systemImage: "tray", badge: me.counts.unseen_shares, route: .inbox)
@@ -543,10 +543,10 @@ struct SocialPanel: View {
                             Label("Review reports", systemImage: "flag")
                             Spacer()
                             if let n = me.counts.reports, n > 0 {
-                                Text("\(n)").font(.caption.bold()).foregroundStyle(.white)
+                                Text("\(n)").brandFont(.caption.bold()).foregroundStyle(.white)
                                     .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(.red))
                             }
-                            Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                            Image(systemName: "arrow.up.right").brandFont(.caption).foregroundStyle(Theme.secondary)
                         }
                     }
                     .foregroundStyle(.primary)
@@ -565,10 +565,10 @@ struct SocialPanel: View {
                 Label(title, systemImage: systemImage)
                 Spacer()
                 if badge > 0 {
-                    Text("\(badge)").font(.caption.bold()).foregroundStyle(.black)
+                    Text("\(badge)").brandFont(.caption.bold()).foregroundStyle(Theme.onGold)
                         .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Theme.gold))
                 }
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                Image(systemName: "chevron.right").brandFont(.caption).foregroundStyle(Theme.secondary)
             }
             .contentShape(Rectangle())
         }
@@ -587,13 +587,13 @@ struct EditProfileSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Name") { TextField("Your name", text: $name).textContentType(.name) }
+                TitledSection("Name") { TextField("Your name", text: $name).textContentType(.name) }
                 Section {
                     TextField("handle", text: $handle).textInputAutocapitalization(.never).autocorrectionDisabled()
-                } header: { Text("Handle") } footer: { Text("3 to 20 letters, numbers or underscores. Friends find you by it.") }
+                } header: { Text("Handle").foregroundStyle(Theme.secondary) } footer: { Text("3 to 20 letters, numbers or underscores. Friends find you by it.").foregroundStyle(Theme.secondary) }
                 if let error { Section { Text(error).foregroundStyle(.red) } }
             }
-            .navigationTitle("Edit profile")
+            .barTitle("Edit profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -629,11 +629,11 @@ struct ProfileScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if let reply {
-                    Image(systemName: "person.crop.circle.fill").font(.system(size: 64)).foregroundStyle(.secondary)
-                    Text(reply.profile.name).font(.title2.bold())
-                    Text("@\(reply.profile.handle)").foregroundStyle(.secondary)
+                    Image(systemName: "person.crop.circle.fill").brandFont(.system(size: 64)).foregroundStyle(Theme.secondary)
+                    Text(reply.profile.name).brandFont(.title2.bold())
+                    Text("@\(reply.profile.handle)").foregroundStyle(Theme.secondary)
                     if social.signedIn && reply.relationship != "self" { actions(reply.relationship) }
-                    if let message { Text(message).font(.subheadline).foregroundStyle(.secondary) }
+                    if let message { Text(message).brandFont(.subheadline).foregroundStyle(Theme.secondary) }
                 } else if missing {
                     ContentUnavailableView("No one by that name", systemImage: "person.slash")
                 } else {
@@ -672,7 +672,7 @@ struct ProfileScreen: View {
                 Button("Block", role: .destructive) { confirmBlock = true }
                 Button("Report") { confirmReport = true }
             }
-            .font(.subheadline)
+            .brandFont(.subheadline)
             .confirmationDialog("Block @\(handle)?", isPresented: $confirmBlock, titleVisibility: .visible) {
                 Button("Block", role: .destructive) { Task { await act { try await social.block(handle) } } }
             } message: { Text("You won't see each other's comments, profiles or shares, and any friendship ends.") }
@@ -710,40 +710,40 @@ struct FriendsScreen: View {
                             Button(p.relationship == "incoming" ? "Accept" : "Add") { Task { try? await social.befriend(p.handle); await search() } }
                                 .buttonStyle(.borderless)
                         } else if p.relationship == "requested" {
-                            Text("Requested").font(.caption).foregroundStyle(.secondary)
+                            Text("Requested").brandFont(.caption).foregroundStyle(Theme.secondary)
                         }
                     }
                 }
             }
             if !social.friends.incoming.isEmpty {
-                Section("Requests") {
+                TitledSection("Requests") {
                     ForEach(social.friends.incoming, id: \.handle) { p in
                         HStack {
                             person(p.name, p.handle)
                             Button("Accept") { Task { try? await social.befriend(p.handle) } }.buttonStyle(.borderless)
-                            Button("Decline") { Task { try? await social.unfriend(p.handle) } }.buttonStyle(.borderless).foregroundStyle(.secondary)
+                            Button("Decline") { Task { try? await social.unfriend(p.handle) } }.buttonStyle(.borderless).foregroundStyle(Theme.secondary)
                         }
                     }
                 }
             }
-            Section(String(localized: "Friends", comment: "Row in the Connect screen")) {
-                if social.friends.friends.isEmpty { Text("No friends yet. Search above to add some.").foregroundStyle(.secondary) }
+            TitledSection(verbatim: String(localized: "Friends", comment: "Row in the Connect screen")) {
+                if social.friends.friends.isEmpty { Text("No friends yet. Search above to add some.").foregroundStyle(Theme.secondary) }
                 ForEach(social.friends.friends, id: \.handle) { p in
                     NavigationLink(value: Route.profile(p.handle)) { person(p.name, p.handle) }
                 }
             }
             if !social.friends.outgoing.isEmpty {
-                Section("Sent requests") {
+                TitledSection("Sent requests") {
                     ForEach(social.friends.outgoing, id: \.handle) { p in
                         HStack {
                             person(p.name, p.handle)
-                            Button("Cancel") { Task { try? await social.unfriend(p.handle) } }.buttonStyle(.borderless).foregroundStyle(.secondary)
+                            Button("Cancel") { Task { try? await social.unfriend(p.handle) } }.buttonStyle(.borderless).foregroundStyle(Theme.secondary)
                         }
                     }
                 }
             }
         }
-        .navigationTitle(String(localized: "Friends", comment: "Row in the Connect screen"))
+        .barTitle(String(localized: "Friends", comment: "Row in the Connect screen"))
         .task { await social.reloadFriends() }
         .task(id: query) {
             try? await Task.sleep(for: .milliseconds(300))
@@ -756,7 +756,7 @@ struct FriendsScreen: View {
         results = query.count >= 2 ? ((try? await social.search(query)) ?? []) : []
     }
     private func person(_ name: String, _ handle: String) -> some View {
-        VStack(alignment: .leading) { Text(name); Text("@\(handle)").font(.caption).foregroundStyle(.secondary) }
+        VStack(alignment: .leading) { Text(name); Text("@\(handle)").brandFont(.caption).foregroundStyle(Theme.secondary) }
     }
 }
 
@@ -769,41 +769,41 @@ struct InboxScreen: View {
     var body: some View {
         List {
             if loaded && social.inbox.isEmpty {
-                Text("When friends send you products, they'll show up here.").foregroundStyle(.secondary)
+                Text("When friends send you products, they'll show up here.").foregroundStyle(Theme.secondary)
             }
             ForEach(social.inbox) { item in
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text(item.share.from.name).font(.subheadline.weight(.semibold))
+                        Text(item.share.from.name).brandFont(.subheadline.weight(.semibold))
                         Text("· \(Date(timeIntervalSince1970: item.share.created_at / 1000).formatted(.relative(presentation: .named)))")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                         Spacer()
                         Menu {
                             Button { reporting = item } label: { Label("Report", systemImage: "flag") }
-                        } label: { Image(systemName: "ellipsis").foregroundStyle(.secondary) }
+                        } label: { Image(systemName: "ellipsis").foregroundStyle(Theme.secondary) }
                     }
                     if let m = item.message {
-                        if !m.note.isEmpty { Text(m.note).font(.subheadline) }
+                        if !m.note.isEmpty { Text(m.note).brandFont(.subheadline) }
                         if let p = catalog.product(m.product_id) {
                             NavigationLink(value: Route.product(p.id)) {
                                 HStack {
                                     RemoteImage(url: p.images.first, width: 120).frame(width: 56, height: 56)
                                         .background(Theme.tile).clipShape(RoundedRectangle(cornerRadius: 6))
-                                    Text(p.title).font(.subheadline).lineLimit(2)
+                                    Text(p.title).brandFont(.subheadline).lineLimit(2)
                                 }
                             }
                         } else {
-                            Text("That product is no longer available.").font(.caption).foregroundStyle(.secondary)
+                            Text("That product is no longer available.").brandFont(.caption).foregroundStyle(Theme.secondary)
                         }
                     } else {
                         Label("Sent before you used Marracat on this phone, so it can't be opened here.", systemImage: "lock")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     }
                 }
                 .padding(.vertical, 4)
             }
         }
-        .navigationTitle(String(localized: "Shared with you", comment: "Row in the Connect screen: products friends shared"))
+        .barTitle(String(localized: "Shared with you", comment: "Row in the Connect screen: products friends shared"))
         .task { await social.loadInbox(); loaded = true }
         .markRefreshable { await social.loadInbox() }
         .confirmationDialog("Report this message?", isPresented: .init(get: { reporting != nil }, set: { if !$0 { reporting = nil } }),
@@ -822,16 +822,16 @@ struct BlockedScreen: View {
 
     var body: some View {
         List {
-            if social.blocked.isEmpty { Text("You haven't blocked anyone.").foregroundStyle(.secondary) }
+            if social.blocked.isEmpty { Text("You haven't blocked anyone.").foregroundStyle(Theme.secondary) }
             ForEach(social.blocked, id: \.handle) { p in
                 HStack {
-                    VStack(alignment: .leading) { Text(p.name); Text("@\(p.handle)").font(.caption).foregroundStyle(.secondary) }
+                    VStack(alignment: .leading) { Text(p.name); Text("@\(p.handle)").brandFont(.caption).foregroundStyle(Theme.secondary) }
                     Spacer()
                     Button("Unblock") { Task { try? await social.unblock(p.handle) } }.buttonStyle(.borderless)
                 }
             }
         }
-        .navigationTitle(String(localized: "Blocked", comment: "Row in the Connect screen: blocked people"))
+        .barTitle(String(localized: "Blocked", comment: "Row in the Connect screen: blocked people"))
         .task { await social.loadBlocked() }
     }
 }

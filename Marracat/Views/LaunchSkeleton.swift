@@ -108,7 +108,7 @@ struct LaunchSkeleton: View {
 
     private var tabBar: some View {
         HStack {
-            ForEach(0..<5, id: \.self) { _ in Circle().fill(Color.white.opacity(0.18)).frame(width: 26, height: 26).frame(maxWidth: .infinity) }
+            ForEach(0..<5, id: \.self) { _ in Circle().fill(Color.primary.opacity(0.18)).frame(width: 26, height: 26).frame(maxWidth: .infinity) }
         }
         .frame(height: FloatingTabBar.height)
         .background(Capsule().fill(Color(red: 45 / 255, green: 46 / 255, blue: 49 / 255)))

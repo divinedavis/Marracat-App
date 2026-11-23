@@ -6,7 +6,9 @@ import XCTest
 ///
 /// Tabs are found at run time (identifier "tab.*"), so a tab added or removed
 /// is audited or dropped without editing this file. Each screen is audited in
-/// light AND dark mode: the app follows the system appearance.
+/// light AND dark: the app's look is its own setting (Appearance), so these
+/// launches pass -APPEARANCE_FOLLOWS_SYSTEM and flip the simulator instead,
+/// with the screen still open.
 ///
 /// What is excused, and why, lives in `excused(_:)` — never excuse an issue on
 /// one of our own controls to get the gate green; fix the view.
@@ -19,7 +21,7 @@ final class AccessibilityAuditTests: XCTestCase {
         appearanceBefore = XCUIDevice.shared.appearance
         app = XCUIApplication()
         app.launchEnvironment["MARRACAT_NO_ANIMATIONS"] = "1"   // MarracatUITestCase.setUp
-        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB"]
+        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-APPEARANCE_FOLLOWS_SYSTEM"]
         app.launch()
     }
 
@@ -45,6 +47,12 @@ final class AccessibilityAuditTests: XCTestCase {
         // scrolled behind it are sampled against the button.
         let checkout = app.buttons["cartCheckout"]
         if checkout.exists { overlays.append(checkout.frame.insetBy(dx: -24, dy: -40)) }
+        // Browse's search field floats over its list the same way: the row
+        // just above it ("Jewelry", light look, 2026-11-22) was read through
+        // the field's shadow.
+        let search = any("searchField")   // by its id: storeSearchField() would go to Browse
+        let window = app.windows.firstMatch.frame
+        if search.exists, !window.isEmpty, search.frame.midY > window.midY { overlays.append(search.frame.insetBy(dx: -24, dy: -40)) }
         return overlays
     }
 
@@ -146,7 +154,7 @@ final class AccessibilityAuditTests: XCTestCase {
     /// You › Notifications, with the owner's test row showing.
     func testNotificationsScreen() {
         app.terminate()
-        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-LIVE_ACTIVITY_OWNER"]
+        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-APPEARANCE_FOLLOWS_SYSTEM", "-LIVE_ACTIVITY_OWNER"]
         app.launch()
         let you = app.buttons["tab.you"]
         XCTAssertTrue(you.appears(timeout: 15))
@@ -164,7 +172,7 @@ final class AccessibilityAuditTests: XCTestCase {
     /// hovering Checkout, then the continue card after the first brand.
     func testBagTotalsAndContinueCard() {
         app.terminate()
-        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-OFFLINE_CATALOG",
+        app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-APPEARANCE_FOLLOWS_SYSTEM", "-OFFLINE_CATALOG",
                                "-SEED_BUYER", "-SEED_CART", "octavia-morgan,chris-collins"]
         app.launch()
         let cart = app.buttons["tab.cart"]

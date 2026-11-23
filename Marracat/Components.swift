@@ -219,7 +219,7 @@ struct RemoteImage: View {
                     .aspectRatio(contentMode: contentMode)
                     .transition(.opacity)
             } else if failed {
-                Image(systemName: "photo").font(.title2).foregroundStyle(.tertiary)
+                Image(systemName: "photo").brandFont(.title2).foregroundStyle(.tertiary)
             } else {
                 Color.clear
             }
@@ -295,16 +295,16 @@ struct PriceView: View {
                             : AnyLayout(VStackLayout(alignment: .leading, spacing: 1))
         layout {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text(FX.symbol(usd == nil ? currency : "USD")).font(.system(size: s * 0.5)).baselineOffset(s * 0.36)
-                Text(p.dollars).font(.system(size: s))
-                Text(p.cents).font(.system(size: s * 0.5)).baselineOffset(s * 0.36)
+                Text(FX.symbol(usd == nil ? currency : "USD")).brandFont(.system(size: s * 0.5)).baselineOffset(s * 0.36)
+                Text(p.dollars).brandFont(.system(size: s))
+                Text(p.cents).brandFont(.system(size: s * 0.5)).baselineOffset(s * 0.36)
             }
             .foregroundStyle(color)
             .layoutPriority(1)
             if usd != nil {
                 Text(Money.string(value, currency: currency))
-                    .font(.system(size: max(12, s * 0.55)))
-                    .foregroundStyle(.secondary)
+                    .brandFont(.system(size: max(12, s * 0.55)))
+                    .foregroundStyle(Theme.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .accessibilityIdentifier("brandCurrencyPrice")
@@ -322,11 +322,11 @@ struct DealBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             Text("\(percent)% off")
-                .font(.caption2.bold())
-                .foregroundStyle(.black)
+                .brandFont(.caption2.bold())
+                .foregroundStyle(Theme.onGold)
                 .padding(.horizontal, 5).padding(.vertical, 3)
                 .background(Theme.deal)
-            Text("Sale").font(.caption2.bold()).foregroundStyle(Theme.deal)
+            Text("Sale").brandFont(.caption2.bold()).foregroundStyle(Theme.deal)
         }
     }
 }
@@ -347,7 +347,7 @@ struct BadgeSeal: View {
             Circle().stroke(color, lineWidth: size * 0.03).padding(size * 0.015)
             Circle().fill(color).frame(width: size * 0.54, height: size * 0.54)
             Image(systemName: symbol)
-                .font(.system(size: size * 0.24, weight: .bold))
+                .brandFont(.system(size: size * 0.24, weight: .bold))
                 .foregroundStyle(.white)
             // One letter per step around the circle, starting at nine o'clock.
             // Drawn, not laid out as Text views: twenty one-letter Texts were
@@ -360,8 +360,8 @@ struct BadgeSeal: View {
                     var c = ctx
                     c.rotate(by: .degrees(-90 + Double(i) / Double(chars.count) * 360))
                     let letter = c.resolve(Text(verbatim: String(chars[i]))
-                        .font(.system(size: size * 0.11, weight: .bold))
-                        .foregroundStyle(color))
+                        .brandFont(.system(size: size * 0.11, weight: .bold))
+                        .foregroundStyle(Theme.ink(color)))
                     c.draw(letter, at: CGPoint(x: 0, y: -size * 0.37))
                 }
             }
@@ -413,11 +413,11 @@ struct OrganicBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "leaf.fill")
-                .font(.system(size: 9, weight: .bold))
+                .brandFont(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 16, height: 16)
                 .background(Circle().fill(Theme.organic))
-            Text("Certified organic").font(.caption2.bold()).foregroundStyle(Theme.organic)
+            Text("Certified organic").brandFont(.caption2.bold()).foregroundStyle(Theme.ink(Theme.organic))
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Certified organic")
@@ -431,11 +431,11 @@ struct CleanBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 9, weight: .bold))
+                .brandFont(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 16, height: 16)
                 .background(Circle().fill(Theme.clean))
-            Text("Marracat Clean").font(.caption2.bold()).foregroundStyle(Theme.clean)
+            Text("Marracat Clean").brandFont(.caption2.bold()).foregroundStyle(Theme.ink(Theme.clean))
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Marracat Clean ingredients")
@@ -473,15 +473,15 @@ struct CleanStandardSheet: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.shield.fill")
-                            .font(.system(size: 40, weight: .semibold))
+                            .brandFont(.system(size: 40, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 84, height: 84)
                             .background(Circle().fill(Theme.clean.gradient))
                             .shadow(color: Theme.clean.opacity(0.35), radius: 16, y: 6)
                             .accessibilityHidden(true)
-                        Text("Marracat Clean").font(.title.bold())
+                        Text("Marracat Clean").brandFont(.title.bold())
                         Text("Checked against the world\u{2019}s strictest ingredient rules, then a little stricter for textured hair and Black skin.")
-                            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
                     }
                     .padding(.top, 8)
 
@@ -489,14 +489,14 @@ struct CleanStandardSheet: View {
                         ForEach(Array(rules.enumerated()), id: \.offset) { i, rule in
                             HStack(alignment: .top, spacing: 14) {
                                 Image(systemName: rule.icon)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Theme.clean)
+                                    .brandFont(.body.weight(.semibold))
+                                    .foregroundStyle(Theme.ink(Theme.clean))
                                     .frame(width: 36, height: 36)
                                     .background(Circle().fill(Theme.clean.opacity(0.14)))
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(rule.title).font(.headline)
-                                    Text(rule.line).font(.subheadline).foregroundStyle(.secondary)
+                                    Text(rule.title).brandFont(.headline)
+                                    Text(rule.line).brandFont(.subheadline).foregroundStyle(Theme.secondary)
                                 }
                                 Spacer(minLength: 0)
                             }
@@ -512,16 +512,16 @@ struct CleanStandardSheet: View {
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(rules, id: \.title) { rule in
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(rule.title).font(.subheadline.bold())
-                                    Text(rule.full).font(.footnote).foregroundStyle(.secondary)
+                                    Text(rule.title).brandFont(.subheadline.bold())
+                                    Text(rule.full).brandFont(.footnote).foregroundStyle(Theme.secondary)
                                 }
                             }
                             Text("Read from the brand\u{2019}s own published ingredient list at catalog build time. It is a check on the formula, not a safety certification, medical advice, or a claim that the product is registered to sell in any particular country. Petrolatum, mineral oil, linear silicones, the lye in traditional soap and paraffin candle wax are allowed.")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .brandFont(.caption).foregroundStyle(Theme.secondary)
                         }
                         .padding(.top, 10)
                     } label: {
-                        Text("Read the full standard").font(.subheadline.weight(.semibold))
+                        Text("Read the full standard").brandFont(.subheadline.weight(.semibold))
                     }
                     .tint(Theme.clean)
                     .accessibilityIdentifier("cleanStandardDetails")
@@ -655,12 +655,12 @@ struct QualityLabelBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: label.icon)
-                .font(.system(size: 9, weight: .bold))
+                .brandFont(.system(size: 9, weight: .bold))
                 .foregroundStyle(.black)
                 .frame(width: 16, height: 16)
                 .background(Circle().fill(label.color))
             Text(label.title)
-                .font(.caption2.bold()).foregroundStyle(label.color).lineLimit(1).minimumScaleFactor(0.8)
+                .brandFont(.caption2.bold()).foregroundStyle(Theme.ink(label.color)).lineLimit(1).minimumScaleFactor(0.8)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label.title)
@@ -737,14 +737,14 @@ struct QualityLabelStandardSheet: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 12) {
                         Image(systemName: label.icon)
-                            .font(.system(size: 38, weight: .semibold))
+                            .brandFont(.system(size: 38, weight: .semibold))
                             .foregroundStyle(.black)
                             .frame(width: 84, height: 84)
                             .background(Circle().fill(label.color.gradient))
                             .accessibilityHidden(true)
-                        Text(label.title).font(.title.bold()).multilineTextAlignment(.center)
+                        Text(label.title).brandFont(.title.bold()).multilineTextAlignment(.center)
                         Text(label.summary)
-                            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
                     }
                     .padding(.top, 8)
                     VStack(spacing: 0) {
@@ -752,14 +752,14 @@ struct QualityLabelStandardSheet: View {
                         ForEach(Array(rules.enumerated()), id: \.offset) { i, rule in
                             HStack(alignment: .top, spacing: 14) {
                                 Image(systemName: rule.icon)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(label.color)
+                                    .brandFont(.body.weight(.semibold))
+                                    .foregroundStyle(Theme.ink(label.color))
                                     .frame(width: 36, height: 36)
                                     .background(Circle().fill(label.color.opacity(0.14)))
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(rule.title).font(.headline)
-                                    Text(rule.line).font(.subheadline).foregroundStyle(.secondary)
+                                    Text(rule.title).brandFont(.headline)
+                                    Text(rule.line).brandFont(.subheadline).foregroundStyle(Theme.secondary)
                                 }
                                 Spacer(minLength: 0)
                             }
@@ -771,7 +771,7 @@ struct QualityLabelStandardSheet: View {
                     .padding(.horizontal, 16).padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 18).fill(Theme.surface))
                     Text("Read from the ingredient list the brand publishes, at catalog build time. A product without a published list isn\u{2019}t badged. It is a check on the list, not a lab test.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
                 .padding(20)
             }
@@ -796,12 +796,12 @@ struct TrueMetalBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "seal.fill")
-                .font(.system(size: 9, weight: .bold))
+                .brandFont(.system(size: 9, weight: .bold))
                 .foregroundStyle(.black)
                 .frame(width: 16, height: 16)
                 .background(Circle().fill(Theme.metal))
             Text(ethical ? "Marracat True Metal · Ethically Sourced" : "Marracat True Metal")
-                .font(.caption2.bold()).foregroundStyle(Theme.metal).lineLimit(1).minimumScaleFactor(0.8)
+                .brandFont(.caption2.bold()).foregroundStyle(Theme.ink(Theme.metal)).lineLimit(1).minimumScaleFactor(0.8)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(ethical ? "Marracat True Metal, ethically sourced" : "Marracat True Metal")
@@ -826,28 +826,28 @@ struct TrueMetalStandardSheet: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 12) {
                         Image(systemName: "seal.fill")
-                            .font(.system(size: 40, weight: .semibold))
+                            .brandFont(.system(size: 40, weight: .semibold))
                             .foregroundStyle(.black)
                             .frame(width: 84, height: 84)
                             .background(Circle().fill(Theme.metal.gradient))
                             .accessibilityHidden(true)
-                        Text("Marracat True Metal").font(.title.bold())
+                        Text("Marracat True Metal").brandFont(.title.bold())
                         Text("Every metal the brand names is the real thing, and it\u{2019}s safe on skin.")
-                            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
                     }
                     .padding(.top, 8)
                     VStack(spacing: 0) {
                         ForEach(Array(Self.rules.enumerated()), id: \.offset) { i, rule in
                             HStack(alignment: .top, spacing: 14) {
                                 Image(systemName: rule.icon)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Theme.metal)
+                                    .brandFont(.body.weight(.semibold))
+                                    .foregroundStyle(Theme.ink(Theme.metal))
                                     .frame(width: 36, height: 36)
                                     .background(Circle().fill(Theme.metal.opacity(0.14)))
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(rule.title).font(.headline)
-                                    Text(rule.line).font(.subheadline).foregroundStyle(.secondary)
+                                    Text(rule.title).brandFont(.headline)
+                                    Text(rule.line).brandFont(.subheadline).foregroundStyle(Theme.secondary)
                                 }
                                 Spacer(minLength: 0)
                             }
@@ -859,7 +859,7 @@ struct TrueMetalStandardSheet: View {
                     .padding(.horizontal, 16).padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 18).fill(Theme.surface))
                     Text("Read from what the brand publishes about the piece at catalog build time. A listing that doesn\u{2019}t name its metal isn\u{2019}t badged. It is a check on the listing, not an assay or a certification.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .brandFont(.caption).foregroundStyle(Theme.secondary)
                 }
                 .padding(20)
             }
@@ -911,7 +911,7 @@ struct BadgeIconRow: View {
             HStack(spacing: 5) {
                 ForEach(marks) { m in
                     Image(systemName: m.symbol)
-                        .font(.system(size: 10, weight: .bold))
+                        .brandFont(.system(size: 10, weight: .bold))
                         .foregroundStyle(m.ink)
                         .frame(width: 20, height: 20)
                         .background(Circle().fill(m.color))
@@ -942,7 +942,7 @@ struct BadgeCornerTab: View {
             VStack(spacing: 0) {
                 ForEach(marks) { m in
                     Image(systemName: m.symbol)
-                        .font(.system(size: 12, weight: .bold))
+                        .brandFont(.system(size: 12, weight: .bold))
                         .foregroundStyle(m.ink)
                         // The first hangs from the photo's edge: a little taller.
                         .padding(.top, m.id == marks.first?.id ? 3 : 0)
@@ -991,15 +991,15 @@ struct ProductTile: View {
                 // above its brand. Rows stay level because the grids align
                 // tiles to the top, so the photos line up whatever the text.
                 Text(product.title)
-                    .font(.subheadline)
+                    .brandFont(.subheadline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 Text(catalog.brand(product.brand)?.name ?? "")
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .brandFont(.caption).foregroundStyle(Theme.secondary).lineLimit(1)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     PriceView(product.price, currency: product.currencyCode, size: 20, inline: true)
                     if !product.available {
-                        Text("Sold out").font(.caption).foregroundStyle(Theme.deal)
+                        Text("Sold out").brandFont(.caption).foregroundStyle(Theme.deal)
                     }
                 }
             }
@@ -1020,11 +1020,11 @@ struct SectionHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             if let accent { Circle().fill(accent).frame(width: 10, height: 10).accessibilityHidden(true) }
-            Text(title).font(.title3.bold())
+            Text(title).brandFont(.title3.bold())
             Spacer()
             if let route {
                 NavigationLink(value: route) {
-                    Image(systemName: "arrow.right").font(.headline).foregroundStyle(.primary)
+                    Image(systemName: "arrow.right").brandFont(.headline).foregroundStyle(.primary)
                         .frame(minWidth: 44, minHeight: 44, alignment: .trailing)   // Apple's 44 pt hit target
                         .contentShape(Rectangle())
                 }
@@ -1044,7 +1044,7 @@ struct QuadCard: View {
         VStack(alignment: .leading, spacing: 8) {
             NavigationLink(value: route) {
                 Text(title)
-                    .font(.headline)
+                    .brandFont(.headline)
                     .foregroundStyle(.primary)
                     .lineLimit(2, reservesSpace: true)
                     .multilineTextAlignment(.leading)
@@ -1063,7 +1063,7 @@ struct QuadCard: View {
                             .overlay(alignment: .bottomLeading) {
                                 if let off = p.percentOff {
                                     Text("\(off)% off")
-                                        .font(.caption2.bold()).foregroundStyle(.black)
+                                        .brandFont(.caption2.bold()).foregroundStyle(Theme.onGold)
                                         .padding(.horizontal, 4).padding(.vertical, 2)
                                         .background(Theme.deal)
                                         .padding(4)
@@ -1112,8 +1112,8 @@ private struct TileTextProbe: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: "M\nM").font(.subheadline).lineLimit(2)
-            Text(verbatim: "M").font(.caption)
+            Text(verbatim: "M\nM").brandFont(.subheadline).lineLimit(2)
+            Text(verbatim: "M").brandFont(.caption)
             PriceView(10, size: 20, inline: true)
         }
     }
@@ -1177,10 +1177,10 @@ struct FilterChips: View {
     private func chip(_ name: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(name)
-                .font(.subheadline.weight(selected ? .semibold : .regular))
+                .brandFont(.subheadline.weight(selected ? .semibold : .regular))
                 .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(Capsule().fill(selected ? Color.white : Theme.field))
-                .foregroundStyle(selected ? Color.black : Color.primary)
+                .background(Capsule().fill(selected ? Theme.inverse : Theme.field))
+                .foregroundStyle(selected ? Theme.onGold : Color.primary)
                 .overlay(Capsule().stroke(Theme.hairline, lineWidth: selected ? 0 : 1))
         }
         .buttonStyle(.plain)
@@ -1261,7 +1261,7 @@ struct QuantityPill: View {
                 Image(systemName: quantity == 1 ? "trash" : "minus").frame(width: 44, height: 44).contentShape(Rectangle())   // 44 pt target
             }
             .accessibilityLabel(quantity == 1 ? "Delete" : "Decrease quantity")
-            Text("\(quantity)").font(.subheadline.bold()).frame(minWidth: 30)
+            Text("\(quantity)").brandFont(.subheadline.bold()).frame(minWidth: 30)
             Button { onChange(quantity + 1) } label: {
                 Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())   // 44 pt target
             }
@@ -1284,8 +1284,10 @@ struct SafariView: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> SFSafariViewController {
         let vc = SFSafariViewController(url: url)
-        vc.preferredControlTintColor = UIColor(Theme.cocoa)
-        // Marracat is a dark app, and the web view inherits that: a store whose
+        // Charcoal controls on the always-light page below (the dark look's
+        // panel colour, fixed: `Theme.cocoa` is pale in the light look).
+        vc.preferredControlTintColor = UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1)
+        // In the dark look the web view would inherit dark: a store whose
         // dark-mode CSS is half-finished renders its checkout labels white on
         // white (Ten To One's form came through as unlabelled boxes). Brand
         // sites are designed light, so show them light.
@@ -1315,7 +1317,7 @@ struct SwipeToRemove: ViewModifier {
             Button(role: .destructive) { remove() } label: {
                 Label("Remove", systemImage: "trash")
                     .labelStyle(.iconOnly)
-                    .font(.title3)
+                    .brandFont(.title3)
                     .foregroundStyle(.white)
                     .frame(width: max(button, -offset))
                     .frame(maxHeight: .infinity)

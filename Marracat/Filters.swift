@@ -163,8 +163,9 @@ enum FilterGroup: String, CaseIterable, Identifiable {
     case gender = "Gender"
     case brand = "Brand"
     case price = "Price"
-    // What the brand says (AttrFilter), each in its own department only.
+    // What the brand says (AttrFilter), each from its own department's products.
     case hairType = "Hair type"
+    case hairConcern = "Hair concern"
     case skinConcern = "Skin concern"
     case skinType = "Skin type"
     case ingredient = "Key ingredient"
@@ -189,6 +190,7 @@ enum FilterGroup: String, CaseIterable, Identifiable {
         case .badges: String(localized: "Badges", comment: "Filter group heading: Marracat's quality badges (Marracat Clean, True Metal and the like) and Certified organic")
         case .offers: String(localized: "Offers", comment: "Filter group heading: in stock and on sale")
         case .hairType: String(localized: "Hair type", comment: "Filter group heading")
+        case .hairConcern: String(localized: "Hair & scalp concern", comment: "Filter group heading: sensitive scalp, dandruff, breakage and the like")
         case .skinConcern: String(localized: "Skin concern", comment: "Filter group heading")
         case .skinType: String(localized: "Skin type", comment: "Filter group heading")
         case .ingredient: String(localized: "Key ingredient", comment: "Filter group heading")
@@ -204,6 +206,7 @@ enum FilterGroup: String, CaseIterable, Identifiable {
         switch self {
         case .gender: "gender"
         case .hairType: "hair"
+        case .hairConcern: "hairneed"
         case .skinConcern: "skin"
         case .skinType: "skintype"
         case .ingredient: "ingredient"
@@ -503,12 +506,11 @@ struct FilterFacets {
         var colors: [String: Int] = [:]
         var sizes: [String: Int] = [:]
         var offers: [ProductFilters.Offer: Int] = [:]
-        // Brand-said groups: only the ones for this department (AttrFilter).
-        let department = AttrFilter.department(of: products, picked: filters.categories)
-        let liveFields = AttrFilter.fields.filter {
-            guard let spec = AttrFilter.specs[$0] else { return false }
-            return spec.anyDepartment || spec.departments.contains(department ?? "")
-        }
+        // Brand-said groups (AttrFilter): all of one department's on its own
+        // page, the who-is-it-for ones on a page of several. A value is read
+        // from products of its own department only.
+        let departments = AttrFilter.departments(of: products, picked: filters.categories)
+        let liveFields = AttrFilter.fields.filter { AttrFilter.shows($0, in: departments) }
         let wanted = AttrFilter.fields.compactMap { f in filters.attrs[f].flatMap { $0.isEmpty ? nil : (f, $0) } }
         var attrCounts: [String: [String: Int]] = [:]
 
@@ -574,7 +576,7 @@ struct FilterFacets {
             }
             if okAisle && okBrand && okCategory && okColor && okSize && okPrice && okOffers, let a = p.attrs {
                 for f in liveFields where failures == 0 || (failures == 1 && failed == f) {
-                    for v in a[f] ?? [] where AttrFilter.applies(f, v, department: department) {
+                    for v in a[f] ?? [] where AttrFilter.applies(f, v, department: p.category) {
                         attrCounts[f, default: [:]][v, default: 0] += 1
                         attrPhotos[f, default: PhotoPicks()].offer(p, v)
                     }
@@ -705,7 +707,7 @@ struct FilterSheet: View {
             }
             .background(Theme.canvas)
             .safeAreaInset(edge: .bottom) { footer(remaining) }
-            .navigationTitle("Filters")
+            .barTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.canvas, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -723,12 +725,12 @@ struct FilterSheet: View {
                     Button { group = g } label: {
                         HStack(spacing: 4) {
                             Text(g.title)
-                                .font(.subheadline.weight(group == g ? .semibold : .regular))
+                                .brandFont(.subheadline.weight(group == g ? .semibold : .regular))
                                 .multilineTextAlignment(.leading)
                                 .foregroundStyle(group == g ? Theme.link : Color.primary)
                             if count(of: g) > 0 {
                                 Text("\(count(of: g))")
-                                    .font(.caption2.bold()).foregroundStyle(Color.black)
+                                    .brandFont(.caption2.bold()).foregroundStyle(Theme.onGold)
                                     .padding(.horizontal, 5).padding(.vertical, 1)
                                     .background(Capsule().fill(Theme.gold))
                             }
@@ -775,7 +777,7 @@ struct FilterSheet: View {
                     // (2026-11-09), then the rest (2026-11-11: "lets have
                     // images for all categories for the filters wherever we
                     // have a filter pill").
-                    Text(group.title).font(.title3.bold())
+                    Text(group.title).brandFont(.title3.bold())
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: 3), spacing: 14) {
                         ForEach(facets.options[group] ?? []) { option in
                             typeTile(option)
@@ -819,18 +821,18 @@ struct FilterSheet: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 6)
-                        .stroke(on ? Color.white : Color.clear, lineWidth: 3)
+                        .stroke(on ? Theme.inverse : Color.clear, lineWidth: 3)
                 }
                 .overlay(alignment: .topTrailing) {
                     if on {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.body).foregroundStyle(.black, .white)
+                            .brandFont(.body).foregroundStyle(Theme.onGold, Theme.inverse)
                             .padding(4)
                     }
                 }
-                Text(short).font(.caption.weight(on ? .semibold : .regular)).lineLimit(3)
+                Text(short).brandFont(.caption.weight(on ? .semibold : .regular)).lineLimit(3)
                     .multilineTextAlignment(.center)
-                Text("\(option.count)").font(.caption2).foregroundStyle(.secondary)
+                Text("\(option.count)").brandFont(.caption2).foregroundStyle(Theme.secondary)
             }
         }
         .buttonStyle(.plain)
@@ -883,7 +885,7 @@ struct FilterSheet: View {
             Divider()
             HStack(spacing: 10) {
                 Button("Clear all") { draft.clear() }
-                    .font(.body.weight(.semibold))
+                    .brandFont(.body.weight(.semibold))
                     .padding(.horizontal, 16).padding(.vertical, 13)
                     .background(Capsule().fill(Theme.field))
                     .foregroundStyle(draft.isEmpty ? Theme.textSecondary : Color.primary)
@@ -904,7 +906,7 @@ struct FilterSheet: View {
                 .disabled(remaining == 0)
                 .accessibilityIdentifier("filtersApply")
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark").font(.body.weight(.semibold))
+                    Image(systemName: "xmark").brandFont(.body.weight(.semibold))
                         .frame(width: 48, height: 48)
                         .background(Circle().fill(Theme.field))
                 }
@@ -969,10 +971,10 @@ struct CleanEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: "checkmark.shield").font(.largeTitle).foregroundStyle(Theme.clean)
-            Text("No Marracat Clean products here yet").font(.headline)
+            Image(systemName: "checkmark.shield").brandFont(.largeTitle).foregroundStyle(Theme.ink(Theme.clean))
+            Text("No Marracat Clean products here yet").brandFont(.headline)
             Text("The badge covers hair care, skincare, makeup, face and body washes, and candles whose brands publish what's in them.")
-                .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
             Button("Show everything") { filters.offers.remove(.clean) }
                 .buttonStyle(PillButtonStyle(color: Theme.gold))
                 .accessibilityIdentifier("cleanEmptyShowAll")
@@ -1000,12 +1002,12 @@ struct FilterPill: View {
             Button(action: open) {
                 HStack(spacing: 7) {
                     Image(systemName: "line.3.horizontal.decrease")
-                    Text("Filters").font(.subheadline.weight(.semibold))
+                    Text("Filters").brandFont(.subheadline.weight(.semibold))
                     if filters.activeCount > 0 {
                         Text("\(filters.activeCount)")
-                            .font(.caption2.bold()).foregroundStyle(Color.white)
+                            .brandFont(.caption2.bold()).foregroundStyle(Theme.floating)
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Capsule().fill(Color.black))
+                            .background(Capsule().fill(Theme.onGold))
                     }
                 }
                 .padding(.leading, 18).padding(.trailing, 16).padding(.vertical, 13)
@@ -1014,7 +1016,7 @@ struct FilterPill: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("filtersButton")
 
-            Rectangle().fill(Color.black.opacity(0.14)).frame(width: 1, height: 26)
+            Rectangle().fill(Theme.onGold.opacity(0.14)).frame(width: 1, height: 26)
 
             Menu {
                 Picker("Sort by", selection: $filters.sort) {
@@ -1024,15 +1026,15 @@ struct FilterPill: View {
                 HStack(spacing: 7) {
                     Image(systemName: "arrow.up.arrow.down")
                     Text(filters.sort != .featured ? filters.sort.shortName : String(localized: "Sort", comment: "Button that opens the sort order menu"))
-                        .font(.subheadline.weight(.semibold))
+                        .brandFont(.subheadline.weight(.semibold))
                 }
                 .padding(.leading, 16).padding(.trailing, 18).padding(.vertical, 13)
                 .contentShape(Rectangle())
             }
             .accessibilityIdentifier("sortButton")
         }
-        .foregroundStyle(Color.black)
-        .background(Capsule().fill(Color(white: 0.95)))
+        .foregroundStyle(Theme.onGold)
+        .background(Capsule().fill(Theme.floating))
         .shadow(color: .black.opacity(0.5), radius: 14, y: 6)
     }
 }
@@ -1097,10 +1099,10 @@ struct FilterBar: View {
                 Button { showSheet = true } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "line.3.horizontal.decrease")
-                        Text("Filters").font(.subheadline.weight(.semibold))
+                        Text("Filters").brandFont(.subheadline.weight(.semibold))
                         if filters.activeCount > 0 {
                             Text("\(filters.activeCount)")
-                                .font(.caption2.bold()).foregroundStyle(Color.black)
+                                .brandFont(.caption2.bold()).foregroundStyle(Theme.onGold)
                                 .padding(.horizontal, 5).padding(.vertical, 1)
                                 .background(Capsule().fill(Theme.gold))
                         }
@@ -1180,12 +1182,12 @@ struct FilterBar: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
-                Text(on ? filters.sort.shortName : String(localized: "Sort", comment: "Button that opens the sort order menu")).font(.subheadline.weight(on ? .semibold : .regular))
-                Image(systemName: "chevron.down").font(.caption2)
+                Text(on ? filters.sort.shortName : String(localized: "Sort", comment: "Button that opens the sort order menu")).brandFont(.subheadline.weight(on ? .semibold : .regular))
+                Image(systemName: "chevron.down").brandFont(.caption2)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Capsule().fill(on ? Color.white : Theme.field))
-            .foregroundStyle(on ? Color.black : Color.primary)
+            .background(Capsule().fill(on ? Theme.inverse : Theme.field))
+            .foregroundStyle(on ? Theme.onGold : Color.primary)
             .overlay(Capsule().stroke(Theme.hairline, lineWidth: on ? 0 : 1))
         }
         .accessibilityIdentifier("sortButton")
@@ -1201,8 +1203,8 @@ struct FilterBar: View {
             // Just the shield, the same mark the badge carries; VoiceOver
             // still hears "Marracat Clean only".
             Image(systemName: "checkmark.shield.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(on ? Color.white : Theme.clean)
+                .brandFont(.subheadline.weight(.semibold))
+                .foregroundStyle(on ? Color.white : Theme.ink(Theme.clean))
                 .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Capsule().fill(on ? Theme.clean : Theme.field))
             .foregroundStyle(on ? Color.white : Color.primary)
@@ -1225,8 +1227,8 @@ struct FilterBar: View {
             if on { filters.offers.remove(offer) } else { filters.offers.insert(offer) }
         } label: {
             Image(systemName: icon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(on ? Color.black : color)
+                .brandFont(.subheadline.weight(.semibold))
+                .foregroundStyle(on ? Color.black : Theme.ink(color))
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Capsule().fill(on ? color : Theme.field))
                 .overlay(Capsule().stroke(on ? color : Theme.hairline, lineWidth: 1))
@@ -1272,12 +1274,12 @@ struct FilterBar: View {
     private func activeChip(_ label: String, remove: @escaping () -> Void) -> some View {
         Button(action: remove) {
             HStack(spacing: 5) {
-                Text(label).font(.subheadline.weight(.semibold))
-                Image(systemName: "xmark").font(.caption2.bold())
+                Text(label).brandFont(.subheadline.weight(.semibold))
+                Image(systemName: "xmark").brandFont(.caption2.bold())
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Capsule().fill(Color.white))
-            .foregroundStyle(Color.black)
+            .background(Capsule().fill(Theme.inverse))
+            .foregroundStyle(Theme.onGold)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("activeFilterChip")
@@ -1304,18 +1306,18 @@ struct BadgeTypeTile: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 2) {
                     Text(verbatim: kicker)
-                        .font(.system(size: w * 0.085, weight: .bold))
+                        .brandFont(.system(size: w * 0.085, weight: .bold))
                         .tracking(w * 0.016)
                         .foregroundStyle(ink.opacity(0.75))
                         .lineLimit(1).minimumScaleFactor(0.6)
                     Spacer(minLength: 0)
                     Image(systemName: symbol)
-                        .font(.system(size: w * 0.15, weight: .semibold))
+                        .brandFont(.system(size: w * 0.15, weight: .semibold))
                         .foregroundStyle(ink)
                 }
                 Spacer(minLength: 0)
                 Text(verbatim: lines.joined(separator: "\n"))
-                    .font(.system(size: w * (longest <= 7 ? 0.19 : longest <= 9 ? 0.155 : 0.135), weight: .black))
+                    .brandFont(.system(size: w * (longest <= 7 ? 0.19 : longest <= 9 ? 0.155 : 0.135), weight: .black))
                     .foregroundStyle(ink)
                     .lineSpacing(-w * 0.02)
                     .lineLimit(lines.count)

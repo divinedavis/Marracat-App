@@ -38,6 +38,7 @@ class MarracatUITestCase: XCTestCase {
         "testLiveStockShowsARestockedItemInStock", "testBritishProductKeepsPoundsThroughCartAndOrderHistory",
         "testBagTotalIncludesStandardShippingThenPaysEachBrand", "testStoresWithoutRatesSayShippingAtCheckout",
         "testBoostedBrandShowsAsSponsored", "testRealBagOpensStoreCheckoutWithoutAForm",
+        "testABrandWithHairAndSkinOffersBothKindsOfFilter",
     ]
 
     fileprivate func any(_ id: String) -> XCUIElement {
@@ -73,6 +74,16 @@ class MarracatUITestCase: XCTestCase {
         let row = any("shippingDetailsRow")
         XCTAssertTrue(row.appears(timeout: 10), "no Shipping address row under You")
         for _ in 0..<4 where !row.isHittable { app.swipeUp() }
+        // The Profile's search field floats over its rows, above the tab
+        // bar. The Appearance row (2026-11-22) moved this one down a slot,
+        // under the field, where it still counted as hittable and the tap
+        // went to the field instead.
+        let search = any("youSearch")
+        XCTAssertTrue(search.exists, "the Profile's search field should be on screen")
+        for _ in 0..<4 where row.frame.maxY > search.frame.minY - 8 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+                .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.40)))
+        }
         row.tap()
         XCTAssertTrue(any("buyerForm").appears(timeout: 5), "Shipping address didn't open the details form")
     }
@@ -638,6 +649,59 @@ final class MarracatUITests: MarracatUITestCase {
         XCTAssertTrue(tiles.contains { abs($0.minY - tab.frame.minY) < 2 && tab.frame.minX > $0.midX && tab.frame.maxX < $0.maxX },
                       "the tab hangs from a photo's top right corner: \(tab.frame) in \(tiles)")
         snap("grid-badge-tab")
+    }
+
+    /// A brand that sells hair care and skincare (owner, 2026-11-22: "can we
+    /// get a filter for products that are good for eczema ... skin sensitivity
+    /// filters for skin products, hair texture or sensitivities for hair
+    /// products"): its Filters sheet offers Hair type and Skin concern without
+    /// picking a Category first, and a skin concern narrows the store.
+    func testABrandWithHairAndSkinOffersBothKindsOfFilter() {
+        // The bundled catalog: what this build ships with, and no network.
+        app.launchArguments += ["-OFFLINE_CATALOG"]
+        app.launch()
+        XCTAssertTrue(app.storeSearchField().appears(timeout: 15))
+        app.storeSearchField().tap()
+        XCTAssertTrue(any("searchInput").appears(timeout: 5))
+        any("searchInput").typeText("Adiva Naturals\n")
+        let result = any("resultTitle")
+        XCTAssertTrue(result.appears(timeout: 5), "no Adiva Naturals results")
+        result.tap()
+        let store = any("visitStore")
+        XCTAssertTrue(store.appears(timeout: 5), "product page has no link to the store")
+        XCTAssertEqual(store.label, "Visit the Adiva Naturals Store")
+        store.tap()
+        XCTAssertTrue(any("filtersButton").appears(timeout: 5))
+        let count = app.staticTexts.matching(NSPredicate(format: "label ENDSWITH ' items'")).firstMatch
+        XCTAssertTrue(count.appears(timeout: 3))
+        let before = count.label
+        any("filtersButton").tap()
+        func group(_ name: String) -> XCUIElement {
+            app.buttons.matching(NSPredicate(format: "identifier == 'filterGroup' AND label BEGINSWITH %@", name)).firstMatch
+        }
+        XCTAssertTrue(group("Badges").appears(timeout: 5), "the sheet didn't open")
+        let hair = group("Hair type"), skin = group("Skin concern")
+        XCTAssertTrue(hair.exists, "a brand with hair products should offer Hair type")
+        XCTAssertTrue(skin.exists, "a brand with skincare should offer Skin concern")
+        XCTAssertFalse(group("Formulation").exists, "Formulation waits for a single department")
+        // Hair & scalp concern (sensitive scalp, dandruff, breakage): shown
+        // once the catalog carries it. Not required here, because a ship
+        // bundles whatever catalog the refresh droplet last built.
+        let scalp = group("Hair & scalp concern")
+        if scalp.exists {
+            scalp.tap()
+            XCTAssertTrue(app.buttons.matching(identifier: "filterOption").firstMatch.appears(timeout: 5), "Hair & scalp concern has no options")
+            snap("brand-hair-concern-filters", settle: 1)
+        }
+        skin.tap()
+        let option = app.buttons.matching(identifier: "filterOption").firstMatch
+        XCTAssertTrue(option.appears(timeout: 5), "Skin concern has no options")
+        snap("brand-skin-concern-filters", settle: 1)
+        option.tap()
+        any("filtersApply").tap()
+        XCTAssertTrue(any("filterSheet").disappears(timeout: 5))
+        XCTAssertTrue(count.appears(timeout: 3))
+        XCTAssertNotEqual(count.label, before, "a skin concern should narrow the brand's items")
     }
 
     func testHomeTabScrollsHomeToTop() {
@@ -2789,8 +2853,12 @@ final class MarracatUITests3: MarracatUITestCase {
         any("orderRow").tap()
         XCTAssertTrue(any("orderTracker").appears(timeout: 5), "order details didn't open")
         // One back button and one title, the navigation bar's (owner, 2026-10-26).
+        // The bar's title element holds a view in the app's typeface
+        // (`barTitle`), so the words are in the bar twice over for XCUITest;
+        // VoiceOver reads the outer one. None may be in the page under it.
+        let said = NSPredicate(format: "label == 'Order details'")
+        XCTAssertEqual(app.staticTexts.matching(said).count, app.navigationBars.staticTexts.matching(said).count, "Order details said again under the bar")
         XCTAssertFalse(any("orderBackToOrders").exists, "a second back button under the bar")
-        XCTAssertLessThanOrEqual(app.staticTexts.matching(NSPredicate(format: "label == 'Order details'")).count, 1, "Order details said twice")
         XCTAssertTrue(any("orderStatus").label.hasPrefix("Ordered"), any("orderStatus").label)
         XCTAssertTrue(any("orderTrackPackage").exists, "a review-built order should link to the brand's status page")
         let number = any("orderNumber")

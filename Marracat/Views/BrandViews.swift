@@ -33,10 +33,10 @@ private struct BrandRow: View {
                     BrandArtwork(brand: brand, size: 56)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(brand.name).font(.body.weight(.semibold))
-                    if let t = brand.tagline { Text(t).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
+                    Text(brand.name).brandFont(.body.weight(.semibold))
+                    if let t = brand.tagline { Text(t).brandFont(.caption).foregroundStyle(Theme.secondary).lineLimit(2) }
                     Text(products.isEmpty ? "Shop on \(brand.domain)" : "\(products.count) items")
-                        .font(.caption2).foregroundStyle(Theme.link)
+                        .brandFont(.caption2).foregroundStyle(Theme.link)
                 }
             }
         }
@@ -60,7 +60,7 @@ struct BrandArtwork: View {
             } else {
                 Theme.field.overlay {
                     Text(String(brand.name.prefix(1)))
-                        .font(.system(size: size * 0.42, weight: .bold))
+                        .brandFont(.system(size: size * 0.42, weight: .bold))
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -147,20 +147,20 @@ struct BrandStoreView: View {
                 if all.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("\(brand.name) sells on its own site")
-                            .font(.headline)
+                            .brandFont(.headline)
                         Text("Their catalog isn't in Marracat yet. Tap “Website” to shop it directly.")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                     }
                     .padding(16)
                 } else {
-                    Text("\(shown.count) items").font(.subheadline).foregroundStyle(.secondary)
+                    Text("\(shown.count) items").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                         .padding(12)
                     if shown.isEmpty {
                         if filters.offers.contains(.clean) && !all.isEmpty {
                             CleanEmptyState(filters: $filters)
                         } else {
                             Text("No items match those filters.")
-                                .font(.subheadline).foregroundStyle(.secondary).padding(12)
+                                .brandFont(.subheadline).foregroundStyle(Theme.secondary).padding(12)
                         }
                     }
                     MasonryProductGrid(products: shown)
@@ -251,17 +251,17 @@ private struct BrandHero: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let origin = brand.shipsFromLabel {
                     Text(origin.uppercased())
-                        .font(.caption.weight(.semibold)).tracking(1.5)
+                        .brandFont(.caption.weight(.semibold)).tracking(1.5)
                         .foregroundStyle(.white.opacity(0.8))
                         .accessibilityLabel(origin)
                         .accessibilityIdentifier("brandShipsFrom")
                 }
                 Text(brand.name)
-                    .font(.largeTitle.bold()).foregroundStyle(.white)
+                    .brandFont(.largeTitle.bold()).foregroundStyle(.white)
                     .lineLimit(2).minimumScaleFactor(0.7)
                     .accessibilityAddTraits(.isHeader)
                 if let t = brand.tagline {
-                    Text(t).font(.subheadline).foregroundStyle(.white.opacity(0.9))
+                    Text(t).brandFont(.subheadline).foregroundStyle(.white.opacity(0.9))
                 }
             }
             Spacer(minLength: 0)
@@ -305,7 +305,7 @@ private struct RailIcon: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 19, weight: .semibold))
+            .brandFont(.system(size: 19, weight: .semibold))
             .foregroundStyle(on ? Color.black : Color.white)
             .frame(width: 48, height: 48)
             .background { Circle().fill(on ? AnyShapeStyle(Color.white) : AnyShapeStyle(.ultraThinMaterial)) }
@@ -372,7 +372,7 @@ private struct BrandMoreMenu: View {
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : landed)
             } else {
                 // Before the glass bar, a frosted disc keeps it readable on the photo.
-                Image(systemName: "ellipsis").font(.body.weight(.semibold)).foregroundStyle(.white)
+                Image(systemName: "ellipsis").brandFont(.body.weight(.semibold)).foregroundStyle(.white)
                     .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? false : landed)
                     .frame(width: 34, height: 34).background(.ultraThinMaterial, in: Circle())
             }
@@ -504,24 +504,24 @@ struct MasonryTile: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .modifier(ProductZoomSource(id: product.id))
                 Text(product.title)
-                    .font(.subheadline)
+                    .brandFont(.subheadline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .padding(.top, 2)
                 if showBrand, let name = catalog.brand(product.brand)?.name {
-                    Text(name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text(name).brandFont(.caption).foregroundStyle(Theme.secondary).lineLimit(1)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     if let usd = PriceView.approxUSD(product.price, currency: product.currencyCode) {
                         Text(Money.string(usd.rounded(), currency: "USD").replacingOccurrences(of: ".00", with: ""))
-                            .font(.headline)
+                            .brandFont(.headline)
                         Text(Money.string(product.price, currency: product.currencyCode))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .brandFont(.caption).foregroundStyle(Theme.secondary)
                     } else {
-                        Text(Money.string(product.price, currency: product.currencyCode)).font(.headline)
+                        Text(Money.string(product.price, currency: product.currencyCode)).brandFont(.headline)
                     }
                     if !product.available {
-                        Text("Sold out").font(.caption).foregroundStyle(Theme.deal)
+                        Text("Sold out").brandFont(.caption).foregroundStyle(Theme.deal)
                     }
                 }
             }
@@ -560,9 +560,9 @@ struct ProductGridScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(title).font(.title2.bold())
+                    Text(title).brandFont(.title2.bold())
                     Spacer()
-                    Text("\(shown.count)").font(.subheadline).foregroundStyle(.secondary)
+                    Text("\(shown.count)").brandFont(.subheadline).foregroundStyle(Theme.secondary)
                 }
                 .padding(12)
                 .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).maxY < 8 } action: { gone in
@@ -574,7 +574,7 @@ struct ProductGridScreen: View {
                         CleanEmptyState(filters: $filters)
                     } else {
                         Text(filters.isEmpty ? emptyText : String(localized: "No items match those filters.", comment: "Empty list message when filters exclude everything"))
-                            .font(.subheadline).foregroundStyle(.secondary).padding(12)
+                            .brandFont(.subheadline).foregroundStyle(Theme.secondary).padding(12)
                     }
                 }
                 if !sponsored.isEmpty && filters.isEmpty {
@@ -599,7 +599,7 @@ struct ProductGridScreen: View {
                         VStack(spacing: 1) {
                             MarqueeText(text: title)
                             Text("\(shown.count) items", comment: "Under a category name in the top bar; the argument is how many products it shows")
-                                .font(.caption2).foregroundStyle(.secondary)
+                                .brandFont(.caption2).foregroundStyle(Theme.secondary)
                         }
                     }
                     .transition(.opacity)
@@ -661,7 +661,7 @@ struct DropWatchSheet: View {
                 Section {
                     Text("Get a notification and an email when \(brand.name) adds new products.",
                          comment: "Watch drops sheet; the argument is a brand name")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .brandFont(.subheadline).foregroundStyle(Theme.secondary)
                 }
                 Section {
                     row(String(localized: "Everything new", comment: "Watch drops: every department"), on: picked.isEmpty, id: "dropAll") { picked = [] }
@@ -673,7 +673,7 @@ struct DropWatchSheet: View {
                         }
                     }
                 } header: {
-                    Text("Notify me about", comment: "Watch drops sheet heading")
+                    Text("Notify me about", comment: "Watch drops sheet heading").foregroundStyle(Theme.secondary)
                 }
                 if watching {
                     Section {
@@ -684,7 +684,7 @@ struct DropWatchSheet: View {
                     }
                 }
             }
-            .navigationTitle(Text("New from \(brand.name)", comment: "Watch drops sheet title; the argument is a brand name"))
+            .barTitle(Text("New from \(brand.name)", comment: "Watch drops sheet title; the argument is a brand name"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
