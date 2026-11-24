@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Browse. Its Explore tiles and category rows are the app's one coloured
+/// screen: forest green on pale sage (owner, 2026-11-23, #7 of ten looks:
+/// "i like this one"). The shortcuts and the About link stay grey.
 struct MenuView: View {
     @Environment(CatalogStore.self) private var catalog
     @State private var expanded: String?
@@ -16,9 +19,9 @@ struct MenuView: View {
 
                 Text("Explore more for you").brandFont(.title3.bold())
                 HStack(spacing: 10) {
-                    tile(String(localized: "New", comment: "Menu tile"), "sparkles", Theme.chipColors[1], .newArrivals)
-                    tile(String(localized: "Deals", comment: "Menu tile"), "tag.fill", Theme.chipColors[1], .deals)
-                    tile(String(localized: "Brands", comment: "Menu tile"), "storefront.fill", Theme.cocoa, .brands)
+                    tile(String(localized: "New", comment: "Menu tile"), "sparkles", .newArrivals)
+                    tile(String(localized: "Deals", comment: "Menu tile"), "tag.fill", .deals)
+                    tile(String(localized: "Brands", comment: "Menu tile"), "storefront.fill", .brands)
                 }
 
                 Text("Shop by category").brandFont(.title3.bold())
@@ -47,15 +50,15 @@ struct MenuView: View {
         .buttonStyle(.plain)
     }
 
-    private func tile(_ title: String, _ symbol: String, _ color: Color, _ route: Route) -> some View {
+    private func tile(_ title: String, _ symbol: String, _ route: Route) -> some View {
         NavigationLink(value: route) {
             VStack(spacing: 4) {
                 Image(systemName: symbol).brandFont(.title2)
                 Text(title).brandFont(.caption.bold())
             }
-            .foregroundStyle(.primary)
+            .foregroundStyle(Theme.onForest)
             .frame(maxWidth: .infinity, minHeight: 64)
-            .background(RoundedRectangle(cornerRadius: 12).fill(color))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.forest))
         }
         .buttonStyle(.plain)
     }
@@ -67,12 +70,12 @@ struct MenuView: View {
                 withAnimation(.snappy) { expanded = isOpen ? nil : c.id }
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: c.symbol).frame(width: 28).foregroundStyle(Theme.amber)
+                    Image(systemName: c.symbol).frame(width: 28).foregroundStyle(Theme.forestInk)
                     Text(c.name).foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.down")
                         .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .foregroundStyle(Theme.secondary)
+                        .foregroundStyle(Theme.forestInk)
                 }
                 .padding(14)
                 .contentShape(Rectangle())
@@ -97,8 +100,8 @@ struct MenuView: View {
                 .padding(.bottom, 8)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.sage))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.sageLine))
     }
 
     private func link(_ title: String, _ route: Route) -> some View {

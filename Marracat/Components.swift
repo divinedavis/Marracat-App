@@ -1011,13 +1011,18 @@ struct ProductTile: View {
     }
 }
 
-/// A product in one of Home's sideways rows: its photo in a white well set
-/// into a bordered card, the price under it, then the brand (owner,
-/// 2026-11-22, with a recording of a big retailer's home page: "let's use
-/// this size and style cards", then "I only want to change the Home Screen
-/// tile layout"). Larger than the 150-pt tile rows elsewhere keep, and with
-/// the product's name left to the photo and the product page; VoiceOver
-/// still reads it.
+/// A product in one of Home's sideways rows: a big card, one product at a
+/// time. The photo sits in a white well set into a bordered card, the price
+/// under it, then the brand.
+///
+/// Its size came in two steps, both from the owner with a recording of a
+/// big retailer's home page. 2026-11-22: "let's use this size and style
+/// cards", then "I only want to change the Home Screen tile layout" (195 pt
+/// cards, two high). 2026-11-23, shown three ways to match that page's big
+/// tiles: "Let's do product tiles", so the card is now four fifths of its
+/// row wide and rows are one card high. Rows elsewhere keep their 150-pt
+/// tiles. The product's name is left to the photo and the product page;
+/// VoiceOver still reads it.
 ///
 /// Every card is the same height: one price line and one line under it,
 /// whatever the product carries. A sale is the regular price struck through
@@ -1027,10 +1032,16 @@ struct ProductCard: View {
     @Environment(CatalogStore.self) private var catalog
     let product: Product
 
-    static let width: CGFloat = 195
-    static let inset: CGFloat = 11
-    /// The photo's square.
-    static let photo: CGFloat = width - inset * 2
+    /// How much of its row a card takes: the next one shows at the edge.
+    static let share: CGFloat = 0.8
+    /// Where it stops growing (an iPad's column, a wide phone on its side).
+    static let widest: CGFloat = 360
+    static let inset: CGFloat = 12
+    static let priceFont = BrandFont.title2
+    static let noteFont = BrandFont.footnote
+
+    /// The card's width in a row this wide.
+    static func width(in row: CGFloat) -> CGFloat { min((row * share).rounded(), widest) }
 
     var body: some View {
         // Price and stock as fresh as this phone has them (FreshCatalog).
@@ -1038,14 +1049,14 @@ struct ProductCard: View {
         NavigationLink(value: Route.product(product.id)) {
             ProductCardShell {
                 Color.white
-                    .overlay { RemoteImage(url: product.images.first, width: 400).padding(8) }
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay { RemoteImage(url: product.images.first, width: 800).padding(12) }
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     // The name the card no longer prints, first in what the
                     // card says aloud.
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(product.title)
-                    .overlay(alignment: .bottomLeading) { BadgeIconRow(product: product).padding(6) }
-                    .modifier(ProductZoomSource(id: product.id, cornerRadius: 8))
+                    .overlay(alignment: .bottomLeading) { BadgeIconRow(product: product).padding(8) }
+                    .modifier(ProductZoomSource(id: product.id, cornerRadius: 10))
             } price: {
                 Self.price(product)
             } note: {
@@ -1076,7 +1087,7 @@ struct ProductCard: View {
                 + Text(Money.string(was, currency: code)).strikethrough().foregroundStyle(Theme.secondary)
             spoken += ", regular price \(Money.spoken(was, currency: code))"
         }
-        return line.brandFont(.subheadline).lineLimit(1).minimumScaleFactor(0.75)
+        return line.brandFont(priceFont).lineLimit(1).minimumScaleFactor(0.75)
             .accessibilityLabel(spoken)
             .accessibilityIdentifier("cardPrice")
     }
@@ -1092,31 +1103,41 @@ struct ProductCard: View {
         if let brand, !brand.isEmpty { parts.append(Text(verbatim: brand).foregroundStyle(Theme.secondary)) }
         let dot = Text(verbatim: " · ").foregroundStyle(Theme.secondary)
         let line = parts.dropFirst().reduce(parts.first ?? Text(verbatim: " ")) { $0 + dot + $1 }
-        return line.brandFont(.footnote).lineLimit(1)
+        return line.brandFont(noteFont).lineLimit(1)
     }
 }
 
 /// The card's shape, shared with the placeholders that hold a row's place
-/// (RowPlaceholder), so both come out the same height.
+/// (RowPlaceholder), so both come out the same height. It takes the width
+/// it is given (`inRow`) and is as tall as that makes it: a square photo and
+/// two lines.
 struct ProductCardShell<Photo: View, Price: View, Note: View>: View {
     @ViewBuilder var photo: Photo
     @ViewBuilder var price: Price
     @ViewBuilder var note: Note
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            photo.frame(width: ProductCard.photo, height: ProductCard.photo)
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 10) {
+            photo.aspectRatio(1, contentMode: .fit)
+            VStack(alignment: .leading, spacing: 3) {
                 // Each line is as tall as its type at full size, even when a
                 // long price is shrunk to fit.
-                ZStack(alignment: .leading) { Text(verbatim: "$0").brandFont(.subheadline).hidden().accessibilityHidden(true); price }
-                ZStack(alignment: .leading) { Text(verbatim: "M").brandFont(.footnote).hidden().accessibilityHidden(true); note }
+                ZStack(alignment: .leading) { Text(verbatim: "$0").brandFont(ProductCard.priceFont).hidden().accessibilityHidden(true); price }
+                ZStack(alignment: .leading) { Text(verbatim: "M").brandFont(ProductCard.noteFont).hidden().accessibilityHidden(true); note }
             }
-            .frame(width: ProductCard.photo, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(ProductCard.inset)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+extension View {
+    /// A card's width in the sideways row it scrolls in (ProductCard.width).
+    func cardWidthInRow() -> some View {
+        containerRelativeFrame(.horizontal) { row, _ in ProductCard.width(in: row) }
     }
 }
 
@@ -1229,7 +1250,8 @@ private struct TileTextProbe: View {
 }
 
 extension EnvironmentValues {
-    /// Home's rows of products are drawn as cards (`ProductCard`), two high.
+    /// Home's rows of products are drawn as big cards (`ProductCard`), one
+    /// product at a time.
     /// Only Home's (owner, 2026-11-22: "I only want to change the Home
     /// Screen tile layout"): a row on a product page, the cart or Profile
     /// keeps the tiles it had.
@@ -1239,8 +1261,8 @@ extension EnvironmentValues {
 struct ProductRow: View {
     /// Off Home, every tile in every row is this wide, photo included.
     static let tileWidth: CGFloat = 150
-    /// The gap between Home's cards, across and down.
-    static let spacing: CGFloat = 9
+    /// The gap between Home's cards.
+    static let spacing: CGFloat = 10
     @Environment(\.productRowCards) private var cards
     let title: String
     let products: [Product]
@@ -1252,26 +1274,14 @@ struct ProductRow: View {
     var reserved: Set<String> = []
     var accent: Color? = nil
 
-    /// Home's cards in columns, top to bottom then on to the next column, so
-    /// the first products are the ones on screen before any sideways scroll.
-    /// A row too short to fill two lines stays on one.
-    static func columns(_ count: Int, lines: Int = 2) -> [Range<Int>] {
-        let per = lines > 1 && count >= lines * 2 ? lines : 1
-        return stride(from: 0, to: count, by: per).map { $0..<min($0 + per, count) }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: title, route: route, accent: accent).padding(.horizontal, 12)
             ScrollView(.horizontal, showsIndicators: false) {
                 if cards {
                     LazyHStack(alignment: .top, spacing: Self.spacing) {
-                        ForEach(Self.columns(products.count), id: \.lowerBound) { column in
-                            VStack(spacing: Self.spacing) {
-                                ForEach(column, id: \.self) { index in
-                                    ProductCard(product: products[index]).simultaneousGesture(tap(index))
-                                }
-                            }
+                        ForEach(Array(products.enumerated()), id: \.element.id) { index, product in
+                            ProductCard(product: product).cardWidthInRow().simultaneousGesture(tap(index))
                         }
                     }
                     .padding(.horizontal, 12)

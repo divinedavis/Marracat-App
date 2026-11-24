@@ -68,7 +68,7 @@ struct HomeView: View {
                     .id("homeTop")
                     HeroCarousel(mix: mix)
                     // A holiday's banner and rows while its event runs.
-                    HolidayEventRows()
+                    HolidayEventRows(touched: page.touched)
                     // Rows side by side once the window is wide enough (Duo
                     // opened, iPad); a VStack at phone widths. One Layout for
                     // every width, so a fold re-places these rows rather than
@@ -122,8 +122,8 @@ struct HomeView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { feedWidth = $0 }
-            // Home's rows of products are cards, two high (ProductRow); the
-            // holiday rows too. Screens pushed from Home keep their tiles.
+            // Home's rows of products are big cards, one product at a time
+            // (ProductRow); the holiday rows too. Screens pushed from Home keep their tiles.
             .environment(\.productRowCards, true)
             .task { if page.categories.isEmpty { rebuild(why: "first") } }
             // The launch cover waits for this (HomeSettle).
@@ -688,18 +688,15 @@ private struct RowPlaceholder: View {
             // (owner, build 131 first launch).
             ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: ProductRow.spacing) {
-                ForEach(0..<3, id: \.self) { _ in
-                    VStack(spacing: ProductRow.spacing) {
-                        ForEach(0..<2, id: \.self) { _ in
-                            ProductCardShell {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.tile)
-                            } price: {
-                                Text(verbatim: "$00.00").brandFont(.subheadline).redacted(reason: .placeholder)
-                            } note: {
-                                Text(verbatim: "Brand").brandFont(.footnote).redacted(reason: .placeholder)
-                            }
-                        }
+                ForEach(0..<2, id: \.self) { _ in
+                    ProductCardShell {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.tile)
+                    } price: {
+                        Text(verbatim: "$00.00").brandFont(ProductCard.priceFont).redacted(reason: .placeholder)
+                    } note: {
+                        Text(verbatim: "Brand").brandFont(ProductCard.noteFont).redacted(reason: .placeholder)
                     }
+                    .cardWidthInRow()
                 }
             }
             .padding(.horizontal, 12)

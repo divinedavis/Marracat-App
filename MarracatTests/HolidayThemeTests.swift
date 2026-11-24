@@ -150,6 +150,32 @@ final class HolidayThemeTests: XCTestCase {
         XCTAssertEqual(Set(got), ["costume", "tagged"])
     }
 
+    /// Home's event rows show a shopper their own departments (owner,
+    /// 2026-11-23: "only departments they touched"); the banner stays and
+    /// someone with no history sees the whole event.
+    func testEventRowsKeepToTheShoppersDepartments() throws {
+        let friday = try XCTUnwrap(HolidayCalendar.holidays.first { $0.id == "black-friday" })
+        // Ten markdowns in laundry, ten in skincare; only skincare's are under $25.
+        let products = (0..<10).map { item("h\($0)", "Detergent \($0)", brand: "h\($0)", category: "household", price: 30, compareAt: 60) }
+            + (0..<10).map { item("s\($0)", "Serum \($0)", brand: "s\($0)", category: "skincare", price: 12, compareAt: 24) }
+
+        let everyone = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: []).first)
+        XCTAssertEqual(everyone.rows.map(\.collection.id), ["black-friday-deals", "black-friday-under-25"])
+        XCTAssertEqual(Set(everyone.rows[0].products.map(\.category)), ["household", "skincare"], "no history: the whole store")
+
+        let laundry = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: ["household"]).first)
+        XCTAssertEqual(laundry.rows.map(\.collection.id), ["black-friday-deals"], "nothing of theirs is under $25, so that row goes")
+        XCTAssertEqual(Set(laundry.rows[0].products.map(\.category)), ["household"])
+        XCTAssertEqual(laundry.opens.id, "black-friday-deals")
+
+        let pets = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: ["pets"]).first,
+                                 "the banner stays when none of the event is in their departments")
+        XCTAssertTrue(pets.rows.isEmpty)
+        XCTAssertEqual(pets.opens.id, "black-friday-deals", "and opens the event's whole list")
+
+        XCTAssertTrue(HolidayEventRows.build([friday], products: [], touched: []).isEmpty, "an event with nothing to show has no banner")
+    }
+
     func testDealRowsSkipPlaceholderMarkdownsAndTakeTurnsByBrand() throws {
         let c = try XCTUnwrap(HolidayCalendar.collection("black-friday-deals"))
         let got = c.picks(from: [

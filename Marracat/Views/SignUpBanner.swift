@@ -7,32 +7,30 @@ import SwiftUI
 /// gives, a Sign up button and a close.
 ///
 /// A card to tap, never a prompt: nothing opens by itself. The card opens
-/// the sign-in buttons in Account settings; the close puts it away for a
-/// week (`snooze`), and it is gone for good once they have an account.
+/// the sign-in buttons in Account settings. The close puts it away for good
+/// on this phone (owner, 2026-11-23: "i want forever"; it was a week in
+/// build 197), and it never shows to someone with an account.
 struct SignUpBanner: View {
     @Environment(AccountStore.self) private var account
     @AppStorage(SignUpBanner.closedKey) private var closedAt = 0.0
 
-    /// When the card was last closed, seconds since 1970.
+    /// When the card was closed, seconds since 1970; 0 if it never was.
     static let closedKey = "signUpBanner.closedAt"
-    /// How long a close keeps it away.
-    static let snooze: TimeInterval = 7 * 24 * 3600
     /// The card's height at the default text size, for the launch outline.
     static let outlineHeight: CGFloat = 123
 
-    static func isSnoozed(closedAt: Double, now: Date = .now) -> Bool {
-        closedAt > 0 && now.timeIntervalSince1970 - closedAt < snooze
-    }
+    /// Closed once is closed for good.
+    static func isClosed(closedAt: Double) -> Bool { closedAt > 0 }
 
     /// Whether the launch outline should leave the card's room: the last
     /// launch ended as a guest and the card isn't put away (LaunchSkeleton,
     /// which draws before the session is read).
-    static func expected(_ defaults: UserDefaults = .standard, now: Date = .now) -> Bool {
-        defaults.bool(forKey: AccountStore.guestKey) && !isSnoozed(closedAt: defaults.double(forKey: closedKey), now: now)
+    static func expected(_ defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: AccountStore.guestKey) && !isClosed(closedAt: defaults.double(forKey: closedKey))
     }
 
     var body: some View {
-        if account.isGuest, !Self.isSnoozed(closedAt: closedAt) {
+        if account.isGuest, !Self.isClosed(closedAt: closedAt) {
             NavigationLink(value: Route.accountSettings) { card }
                 .buttonStyle(.plain)
                 .simultaneousGesture(TapGesture().onEnded { Analytics.shared.track("sign_up_banner_tap") })

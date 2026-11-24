@@ -6,7 +6,16 @@ import SwiftUI
 /// other days. The rows come from the catalog this phone has (the bundled
 /// slice first, the whole catalog once it lands), filtered off the main
 /// thread.
+///
+/// The rows follow the shopper like the rest of Home's picks (owner,
+/// 2026-11-23, asked whether Black Friday's rows should: "only departments
+/// they touched"): someone with a history sees an event's products from
+/// their departments only, and a row with too few of those isn't shown.
+/// The banner stays either way and opens the event's whole list. A shopper
+/// with no history sees the whole event.
 struct HolidayEventRows: View {
+    /// The departments this shopper has shown interest in (empty: all).
+    var touched: Set<String> = []
     @Environment(CatalogStore.self) private var catalog
     @State private var built: [Built] = []
     @State private var builtFor = ""
@@ -14,20 +23,38 @@ struct HolidayEventRows: View {
     struct Built: Identifiable {
         let holiday: Holiday
         let rows: [(collection: HolidayCollection, products: [Product])]
+        /// What the banner opens: the first row shown, else the event's
+        /// first collection with anything in it.
+        let opens: HolidayCollection
         var id: String { holiday.id }
     }
 
     /// A row needs this many products to show; fewer looks broken.
     static let minimum = 4
 
+    /// Each event's banner and rows for a shopper. Pure, so Home can run it
+    /// off the main thread.
+    static func build(_ events: [Holiday], products: [Product], touched: Set<String>) -> [Built] {
+        let theirs = touched.isEmpty ? products : products.filter { touched.contains($0.category) }
+        return events.compactMap { h in
+            let collections = (h.rows ?? []).compactMap { HolidayCalendar.collection($0) }
+            let rows = collections.compactMap { c -> (collection: HolidayCollection, products: [Product])? in
+                let picks = c.picks(from: theirs, limit: 12)
+                return picks.count >= minimum ? (c, picks) : nil
+            }
+            guard let opens = rows.first?.collection
+                    ?? collections.first(where: { $0.picks(from: products, limit: 12).count >= minimum }) else { return nil }
+            return Built(holiday: h, rows: rows, opens: opens)
+        }
+    }
+
     var body: some View {
         let events = HolidayCalendar.events()
-        let key = events.map(\.id).joined(separator: ",") + "|\(catalog.catalog.generatedAt)|\(catalog.catalog.products.count)"
+        let key = events.map(\.id).joined(separator: ",") + "|\(catalog.catalog.generatedAt)|\(catalog.catalog.products.count)|"
+            + touched.sorted().joined(separator: ",")
         VStack(spacing: 0) {
             ForEach(built) { b in
-                if let first = b.rows.first {
-                    EventBanner(holiday: b.holiday, route: .collection(first.collection.id))
-                }
+                EventBanner(holiday: b.holiday, route: .collection(b.opens.id))
                 ForEach(b.rows, id: \.collection.id) { row in
                     ProductRow(title: row.collection.title, products: row.products,
                                route: .collection(row.collection.id), track: "event", accent: b.holiday.banner?.first.map(Color.init(hex:)))
@@ -40,16 +67,8 @@ struct HolidayEventRows: View {
             guard key != builtFor else { return }
             guard !events.isEmpty else { built = []; builtFor = key; return }
             let products = catalog.catalog.products
-            let made = await Task.detached(priority: .userInitiated) {
-                events.map { h in
-                    Built(holiday: h, rows: (h.rows ?? []).compactMap { id in
-                        guard let c = HolidayCalendar.collection(id) else { return nil }
-                        let picks = c.picks(from: products, limit: 12)
-                        return picks.count >= Self.minimum ? (c, picks) : nil
-                    })
-                }.filter { !$0.rows.isEmpty }
-            }.value
-            built = made
+            let touched = touched
+            built = await Task.detached(priority: .userInitiated) { Self.build(events, products: products, touched: touched) }.value
             builtFor = key
         }
     }

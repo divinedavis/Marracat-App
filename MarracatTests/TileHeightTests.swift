@@ -50,30 +50,30 @@ struct TileHeightTests {
         }
     }
 
-    /// The card in Home's rows (owner, 2026-11-22: "this size and style
-    /// cards"): 195 pt wide, its photo set in, and one height for all.
+    /// The card in Home's rows (owner, 2026-11-23: "Let's do product
+    /// tiles"): as wide as its row gives it, a square photo and two lines,
+    /// and one height for all.
     @Test func everyRowCardIsOneSize() {
-        let cards = cards, store = store(cards)
-        func measured(_ p: Product) -> CGSize { size(ProductCard(product: p).environment(store), width: 400) }
+        let cards = cards, store = store(cards), width = ProductCard.width(in: 402)
+        func measured(_ p: Product) -> CGSize { size(ProductCard(product: p).frame(width: width).environment(store), width: 402) }
         let plain = measured(cards[0])
-        #expect(plain.width == ProductCard.width)
-        #expect(plain.height > ProductCard.width, "a photo and two lines under it")
+        #expect(plain.width == width)
+        #expect(plain.height > width, "a photo and two lines under it")
+        #expect(plain.height < width + 90, "a square photo, a price and one line: nothing more")
         for card in cards.dropFirst() {
             let s = measured(card)
             #expect(abs(s.height - plain.height) < 0.5, "\(card.id) is a different height")
-            #expect(s.width == ProductCard.width, "\(card.id) is a different width")
+            #expect(s.width == width, "\(card.id) is a different width")
         }
     }
 
-    /// Home's rows are two cards high, filled a column at a time so the first
-    /// products are the ones on screen; a short row stays on one line.
-    @Test func rowsStackTwoHighOnceTheyAreLongEnough() {
-        #expect(ProductRow.columns(12, lines: 2) == [0..<2, 2..<4, 4..<6, 6..<8, 8..<10, 10..<12])
-        #expect(ProductRow.columns(5, lines: 2) == [0..<2, 2..<4, 4..<5])
-        #expect(ProductRow.columns(4, lines: 2) == [0..<2, 2..<4])
-        #expect(ProductRow.columns(3, lines: 2) == [0..<1, 1..<2, 2..<3])
-        #expect(ProductRow.columns(6, lines: 1) == [0..<1, 1..<2, 2..<3, 3..<4, 4..<5, 5..<6])
-        #expect(ProductRow.columns(8) == ProductRow.columns(8, lines: 2), "two high unless asked otherwise")
-        #expect(ProductRow.columns(0, lines: 2).isEmpty)
+    /// A card takes four fifths of its row, so the next one shows at the
+    /// edge, and stops growing where an iPad's column would make it a poster.
+    @Test func aCardIsFourFifthsOfItsRow() {
+        #expect(ProductCard.width(in: 402) == 322)   // iPhone 17 Pro
+        #expect(ProductCard.width(in: 375) == 300)   // iPhone SE
+        #expect(ProductCard.width(in: 440) == 352)   // iPhone 17 Pro Max
+        #expect(ProductCard.width(in: 506) == 360)   // half an iPad
+        #expect(ProductCard.width(in: 1024) == 360)
     }
 }

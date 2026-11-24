@@ -61,9 +61,9 @@ final class LaundryPicksUITests: XCTestCase {
             XCTAssertFalse(titles.contains("Top picks in \(untouched)"), "Top picks in \(untouched) for a shopper who only looked at laundry: \(titles)")
         }
         // Discover more, at the foot of Home, too. Only what is under its
-        // title: the rows above it include the store's events, which are for
-        // everyone (Black Friday's biggest markdowns had a bikini bottom at
-        // 70% off on 2026-11-22, and this read the whole page).
+        // title: this once read the whole page and met an event row's bikini
+        // bottom (2026-11-22). Event rows keep to the shopper's departments
+        // too since 2026-11-23 (HolidayThemeTests).
         let discover = app.staticTexts["Discover more"]
         XCTAssertTrue(discover.exists, "not at the foot of Home")
         let strays = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'bikini' OR label CONTAINS[c] 'dog '"))
