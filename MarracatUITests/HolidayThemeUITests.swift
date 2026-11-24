@@ -36,18 +36,30 @@ final class HolidayThemeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tab.home"].exists, "the tab bar is there in the day's colours")
     }
 
-    /// While an event runs, Home opens with its banner and rows (owner,
-    /// 2026-10-27), and the banner opens the first row's whole list.
-    func testHalloweenRowsLeadHome() {
+    /// While an event runs, Home leads with its big tiles (owner, 2026-11-23:
+    /// "Target has some promotional tiles that are big, we don't"; of the
+    /// previews, "I like #3"): as wide as a Home product card, taller than
+    /// wide, one height, and a tile opens its list.
+    func testHalloweenTilesLeadHome() {
         app.launchEnvironment["MARRACAT_NO_ANIMATIONS"] = "1"
         app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-OFFLINE_CATALOG", "-HOLIDAY", "halloween"]
         app.launch()
-        let banner = any("eventBanner")
-        XCTAssertTrue(banner.appears(timeout: 20), "no Halloween banner on Home")
-        let row = any("eventRow")
-        XCTAssertTrue(row.exists, "no Halloween row on Home")
-        XCTAssertTrue(row.descendants(matching: .any).matching(identifier: "productTile").firstMatch.exists, "the row is empty")
-        banner.tap()
-        XCTAssertTrue(waitUntil(timeout: 10) { !banner.exists || !banner.isHittable }, "the banner didn't open its list")
+        let row = any("eventTiles")
+        XCTAssertTrue(row.appears(timeout: 20), "no Halloween tiles on Home")
+        let tiles = app.descendants(matching: .any).matching(identifier: "eventTile")
+        let first = tiles.firstMatch
+        XCTAssertTrue(first.exists, "the row is empty")
+        XCTAssertFalse(any("eventBanner").exists, "the banner only stands in when there are no tiles")
+        let window = app.windows.firstMatch.frame.width
+        XCTAssertEqual(first.frame.width, min((window * 0.8).rounded(), 360), accuracy: 1, "a tile is as wide as a Home product card")
+        XCTAssertGreaterThan(first.frame.height, first.frame.width, "a tile is tall")
+        let frames = tiles.allElementsBoundByIndex.map(\.frame)
+        XCTAssertEqual(Set(frames.map { $0.height.rounded() }).count, 1, "tiles in a row are one height: \(frames)")
+        XCTAssertEqual(Set(frames.map { $0.minY.rounded() }).count, 1, "and sit side by side: \(frames)")
+        XCTAssertTrue(first.label.contains("Halloween Picks"), "the tile names its event: \(first.label)")
+        XCTAssertFalse(first.label.contains("$"), "the price is spoken in words: \(first.label)")
+        first.tap()
+        let title = app.staticTexts.matching(NSPredicate(format: "label == 'Halloween picks'")).firstMatch
+        XCTAssertTrue(waitUntil(timeout: 10) { title.exists && !first.isHittable }, "the tile didn't open its list")
     }
 }

@@ -44,11 +44,11 @@ struct Holiday: Decodable, Identifiable, Equatable {
     /// The App Store event: its days around the date, which are also the
     /// days Home shows `rows`.
     let event: Event?
-    /// Collection ids shown as Home rows while the event runs (owner,
+    /// Collection ids, each a big Home tile while the event runs (owner,
     /// 2026-10-27: "a row or two in the app that has products that match
-    /// the event").
+    /// the event"; tiles since 2026-11-24, HolidayEventRows).
     let rows: [String]?
-    /// The two colours of the Home banner above those rows.
+    /// The two colours of those tiles.
     let banner: [String]?
 
     struct Event: Decodable, Equatable {
@@ -142,6 +142,13 @@ struct HolidayCollection: Decodable, Identifiable, Equatable {
     /// dealt one brand at a time so a shop with hundreds of matches takes
     /// turns. Pure, so Home can run it off the main thread.
     func picks(from products: [Product], limit: Int = 200) -> [Product] {
+        CatalogStore.spread(ranked(from: products), limit: limit)
+    }
+
+    /// Every in-stock product with a photo that passes the filters, best
+    /// first: what `picks` deals from, and what a Home tile counts
+    /// (HolidayEventRows.Tile).
+    func ranked(from products: [Product]) -> [Product] {
         func rx(_ p: String?) -> NSRegularExpression? { p.flatMap { try? NSRegularExpression(pattern: $0, options: .caseInsensitive) } }
         func hit(_ r: NSRegularExpression?, _ s: String) -> Bool {
             r?.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) != nil
@@ -165,12 +172,11 @@ struct HolidayCollection: Decodable, Identifiable, Equatable {
             if let booksNeed, p.category == "books", !p.title.localizedCaseInsensitiveContains(booksNeed) { continue }
             kept.append((p, hit(first, p.title)))
         }
-        let ranked = kept.sorted { a, b in
+        return kept.sorted { a, b in
             if order == "off" { return (a.0.percentOff ?? 0) > (b.0.percentOff ?? 0) }
             if a.1 != b.1 { return a.1 }
             return (a.0.publishedAt ?? "") > (b.0.publishedAt ?? "")
         }.map(\.0)
-        return CatalogStore.spread(ranked, limit: limit)
     }
 }
 

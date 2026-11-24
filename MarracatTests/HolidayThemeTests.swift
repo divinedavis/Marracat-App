@@ -150,30 +150,100 @@ final class HolidayThemeTests: XCTestCase {
         XCTAssertEqual(Set(got), ["costume", "tagged"])
     }
 
-    /// Home's event rows show a shopper their own departments (owner,
-    /// 2026-11-23: "only departments they touched"); the banner stays and
-    /// someone with no history sees the whole event.
-    func testEventRowsKeepToTheShoppersDepartments() throws {
+    /// Home's event tiles show a shopper their own departments (owner,
+    /// 2026-11-23: "only departments they touched"); the banner stands in
+    /// when none of the event is theirs, and someone with no history sees
+    /// the whole event.
+    func testEventTilesKeepToTheShoppersDepartments() throws {
         let friday = try XCTUnwrap(HolidayCalendar.holidays.first { $0.id == "black-friday" })
-        // Ten markdowns in laundry, ten in skincare; only skincare's are under $25.
-        let products = (0..<10).map { item("h\($0)", "Detergent \($0)", brand: "h\($0)", category: "household", price: 30, compareAt: 60) }
-            + (0..<10).map { item("s\($0)", "Serum \($0)", brand: "s\($0)", category: "skincare", price: 12, compareAt: 24) }
+        // Ten markdowns in laundry (50% off), ten in skincare (40% off);
+        // only skincare's are under $25.
+        var products: [Product] = []
+        for i in 0..<10 {
+            let n = Double(i)
+            products.append(item("h\(i)", "Detergent \(i)", brand: "h\(i)", category: "household", price: 30 + n, compareAt: 60 + n * 2))
+            products.append(item("s\(i)", "Serum \(i)", brand: "s\(i)", category: "skincare", price: 12 + n, compareAt: (12 + n) / 0.6))
+        }
 
         let everyone = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: []).first)
-        XCTAssertEqual(everyone.rows.map(\.collection.id), ["black-friday-deals", "black-friday-under-25"])
-        XCTAssertEqual(Set(everyone.rows[0].products.map(\.category)), ["household", "skincare"], "no history: the whole store")
+        XCTAssertEqual(everyone.tiles.map(\.collection.id), ["black-friday-deals", "black-friday-under-25"])
+        XCTAssertEqual(everyone.tiles.map(\.title), ["Biggest deals", "Deals under $25"], "the header names the event, so the tile doesn't")
+        XCTAssertEqual(everyone.tiles[0].percent, 50, "the biggest markdown in the list")
+        XCTAssertEqual(everyone.tiles[0].lowest.id, "s0", "no history: the whole store, so the cheapest is the $12 serum")
+        XCTAssertEqual(everyone.tiles[0].count, 20)
+        XCTAssertEqual(everyone.tiles[1].percent, 40)
+        XCTAssertEqual(everyone.tiles[1].photo.category, "skincare")
+
+        // Both lists are the same ten serums for someone who only shops skincare.
+        let skin = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: ["skincare"]).first)
+        XCTAssertEqual(skin.tiles.count, 2)
+        XCTAssertNotEqual(skin.tiles[0].photo.id, skin.tiles[1].photo.id, "two tiles don't picture one product")
 
         let laundry = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: ["household"]).first)
-        XCTAssertEqual(laundry.rows.map(\.collection.id), ["black-friday-deals"], "nothing of theirs is under $25, so that row goes")
-        XCTAssertEqual(Set(laundry.rows[0].products.map(\.category)), ["household"])
-        XCTAssertEqual(laundry.opens.id, "black-friday-deals")
+        XCTAssertEqual(laundry.tiles.map(\.collection.id), ["black-friday-deals"], "nothing of theirs is under $25, so that tile goes")
+        XCTAssertEqual(laundry.tiles[0].photo.category, "household")
+        XCTAssertEqual(laundry.tiles[0].lowest.id, "h0", "the lowest price is from their departments too")
+        XCTAssertEqual(laundry.tiles[0].count, 10)
 
         let pets = try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: ["pets"]).first,
                                  "the banner stays when none of the event is in their departments")
-        XCTAssertTrue(pets.rows.isEmpty)
+        XCTAssertTrue(pets.tiles.isEmpty)
         XCTAssertEqual(pets.opens.id, "black-friday-deals", "and opens the event's whole list")
 
         XCTAssertTrue(HolidayEventRows.build([friday], products: [], touched: []).isEmpty, "an event with nothing to show has no banner")
+
+        // "From" is an exact dollar price when the list has one: another
+        // currency's dollar figure is approximate (and a mislabelled one,
+        // a shirt at 50 naira, would read "from $0.03").
+        var abroad = item("ngn", "Shirt", brand: "ngn", category: "household", price: 50.17, compareAt: 100)
+        abroad.currency = "NGN"
+        let mixed = try XCTUnwrap(HolidayEventRows.build([friday], products: products + [abroad], touched: ["household"]).first)
+        XCTAssertEqual(mixed.tiles[0].count, 11)
+        XCTAssertEqual(mixed.tiles[0].lowest.id, "h0")
+        var onlyAbroad: [Product] = []
+        for i in 0..<4 {
+            var p = item("n\(i)", "Dress \(i)", brand: "n\(i)", category: "clothing", price: 5000 + Double(i), compareAt: 10000)
+            p.currency = "NGN"
+            onlyAbroad.append(p)
+        }
+        let far = try XCTUnwrap(HolidayEventRows.build([friday], products: onlyAbroad, touched: []).first)
+        XCTAssertEqual(far.tiles.first?.lowest.id, "n0", "no dollar price in the list: the lowest of what there is")
+    }
+
+    /// A list that isn't markdowns has no percentage to claim, and its tile
+    /// keeps its own title.
+    func testATileOnlyClaimsAMarkdownOnADealList() throws {
+        let halloween = try XCTUnwrap(HolidayCalendar.holidays.first { $0.id == "halloween" })
+        var products: [Product] = []
+        for i in 0..<6 { products.append(item("c\(i)", "Witch Costume \(i)", brand: "c\(i)", price: 20 + Double(i), compareAt: 40)) }
+        let tile = try XCTUnwrap(HolidayEventRows.build([halloween], products: products, touched: []).first?.tiles.first)
+        XCTAssertEqual(tile.collection.id, "halloween")
+        XCTAssertEqual(tile.title, "Halloween picks")
+        XCTAssertNil(tile.percent)
+        XCTAssertFalse(tile.isDeals)
+        XCTAssertEqual(tile.count, 6)
+        XCTAssertEqual(tile.lowest.id, "c0")
+    }
+
+    /// White type on every event's colours, once shaded, is at least 4.5:1
+    /// (WCAG AA), and no event is shaded less than the banner always was.
+    func testWhiteTypeReadsOnEveryEventsColours() {
+        func luminance(_ hex: String, shade: Double) -> Double {
+            let v = UInt32(hex.dropFirst(), radix: 16) ?? 0
+            return zip([16, 8, 0], [0.2126, 0.7152, 0.0722]).reduce(0) { sum, c in
+                let s = Double((v >> UInt32(c.0)) & 0xFF) / 255 * (1 - shade)
+                return sum + c.1 * (s <= 0.03928 ? s / 12.92 : pow((s + 0.055) / 1.055, 2.4))
+            }
+        }
+        for h in HolidayCalendar.holidays where h.rows != nil {
+            let shade = Holiday.shade(over: h.eventColors)
+            XCTAssertGreaterThanOrEqual(shade, 0.25, h.id)
+            for hex in h.eventColors {
+                XCTAssertGreaterThanOrEqual(1.05 / (luminance(hex, shade: shade) + 0.05), 4.5, "\(h.id) \(hex)")
+            }
+        }
+        XCTAssertEqual(Holiday.shade(over: ["#D4AF37", "#0A0A0A"]), 0.35, accuracy: 0.001, "Black Friday's gold needs more than a quarter")
+        XCTAssertEqual(Holiday.shade(over: ["#F26B1D", "#0A0A0A"]), 0.25, accuracy: 0.001)
     }
 
     func testDealRowsSkipPlaceholderMarkdownsAndTakeTurnsByBrand() throws {

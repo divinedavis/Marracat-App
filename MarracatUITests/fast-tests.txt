@@ -38,7 +38,7 @@ MarracatUITests/testBuyNowOrderIsTrackedWithoutTheOrderEmail
 MarracatUITests2/testGuestAccountControlsAndPrivacy
 # holidays (themes and App Store event links)
 HolidayThemeUITests/testAnEventLinkOpensItsCollection
-HolidayThemeUITests/testHalloweenRowsLeadHome
+HolidayThemeUITests/testHalloweenTilesLeadHome
 # appearance (2026-11-22): opens white, Dark is a Profile setting that sticks
 AppearanceUITests/testTheAppOpensWhiteAndDarkIsASettingThatSticks
 # accessibility, trimmed: light mode only (A11Y_LOOKS), three screens

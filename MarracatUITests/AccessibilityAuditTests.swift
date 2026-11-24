@@ -207,7 +207,47 @@ final class AccessibilityAuditTests: XCTestCase {
         audit("Search")
     }
 
-    /// The real Dynamic Type check: at the largest accessibility size Home
+    /// Home while an event runs: the big tiles in the day's colours, white
+    /// type on Black Friday's gold (the lightest of the events' colours),
+    /// then at the largest text size, where the tiles must still be one
+    /// height and keep their type inside them.
+    func testHomeEventTiles() {
+        func open(_ extra: [String]) -> XCUIElement {
+            app.terminate()
+            app.launchArguments = ["-UITEST_RESET", "-SKIP_SPLASH", "-CHECKOUT_STUB", "-APPEARANCE_FOLLOWS_SYSTEM", "-OFFLINE_CATALOG",
+                                   "-HOLIDAY", "black-friday"] + extra
+            app.launch()
+            let tile = any("eventTile")
+            XCTAssertTrue(tile.appears(timeout: 20), "no event tiles on Home \(extra)")
+            // Up under the status bar, in steps from mid-screen (a drag that
+            // starts lower lands on the tab bar).
+            let window = app.windows.firstMatch
+            for _ in 0..<8 where tile.exists {
+                let delta = tile.frame.minY - 110
+                if abs(delta) < 8 { break }
+                let from = window.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 200, dy: 480))
+                from.press(forDuration: 0.1, thenDragTo: from.withOffset(CGVector(dx: 0, dy: -min(max(delta, -360), 360))),
+                           withVelocity: .slow, thenHoldForDuration: 0.4)
+            }
+            return tile
+        }
+        _ = open([])
+        audit("Home event tiles")
+
+        _ = open(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let frames = app.descendants(matching: .any).matching(identifier: "eventTile").allElementsBoundByIndex.map(\.frame)
+        XCTAssertEqual(Set(frames.map { $0.height.rounded() }).count, 1, "tiles are one height at the largest text size: \(frames)")
+        XCUIDevice.shared.appearance = .light
+        var clipped: [String] = []
+        try? app.performAccessibilityAudit(for: [.textClipped, .contrast]) { issue in
+            guard let e = issue.element, !self.excused(issue) else { return true }
+            let row = self.any("eventTiles").frame
+            if row.intersects(e.frame) { clipped.append("\(Self.name(issue.auditType)) \"\(e.label)\"") }
+            return true
+        }
+        XCTAssertTrue(clipped.isEmpty, "at the largest text size: \(clipped)")
+    }
+
     /// still loads and every tab can still be reached.
     func testTheLargestTextSizeStillWorks() {
         app.terminate()
