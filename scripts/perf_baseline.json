@@ -4,87 +4,94 @@
       217.6,
       182.7,
       207.3,
-      210.5
+      210.5,
+      216.8
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home fling hitch ratio": {
     "history": [
-      68.51,
       68.26,
       70.29,
       71.8,
-      69.18
+      69.18,
+      42.31
     ],
     "unit": "ms/s"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home longest main-thread stall": {
     "history": [
-      153.9,
       158.9,
       181.6,
       199.8,
-      193.9
+      193.9,
+      147.2
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Launch to interactive Home": {
     "history": [
-      1825,
       1875,
       1815,
       1854,
-      2047
+      2047,
+      2037
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeScroll() :: Absolute Memory Physical (marracat)": {
     "history": [
-      502794.928,
       506055.344,
       511052.488,
       539904.712,
-      537152.2
+      537152.2,
+      590334.736
     ],
     "unit": "kB"
   },
   "PerformanceTests/testHomeScroll() :: Duration (Scroll_Deceleration)": {
     "history": [
-      2.4171,
       2.4172,
       2.4172,
       2.4171,
-      2.4335
+      2.4335,
+      2.417
     ],
     "unit": "s"
   },
   "PerformanceTests/testHomeScroll() :: Memory Peak Physical (marracat)": {
     "history": [
-      503220.912,
       506448.56,
       511396.552,
       540347.08,
-      537594.568
+      537594.568,
+      590596.88
     ],
     "unit": "kB"
   },
   "PerformanceTests/testHomeScroll() :: Memory Physical (marracat)": {
     "history": [
-      0,
       16.384,
+      0,
       0,
       0,
       0
     ],
     "unit": "kB"
   },
+  "PerformanceTests/testLaunch() :: Duration (ApplicationFirstFramePresentationResponsive)": {
+    "history": [
+      2.0978
+    ],
+    "unit": "s"
+  },
   "PerformanceTests/testLaunchToHomeProducts() :: Clock Monotonic Time": {
     "history": [
-      5.0183,
       5.057,
       5.0669,
       5.106,
-      5.3668
+      5.3668,
+      5.3029
     ],
     "unit": "s"
   }
