@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// Browse. Its Explore tiles and category rows are the app's one coloured
-/// screen: forest green on pale sage (owner, 2026-11-23, #7 of ten looks:
-/// "i like this one"). The shortcuts and the About link stay grey.
+/// Browse. Its Explore tiles and category rows carry 3D pictures on the
+/// app's plain grey surfaces. They were forest green on pale sage for two
+/// days (owner, 2026-11-23); with the pictures in, the owner took the green
+/// back out (2026-11-25: "don't forget to remove the green on the search
+/// screen"), so the pictures are the only colour here.
 struct MenuView: View {
     @Environment(CatalogStore.self) private var catalog
     @State private var expanded: String?
@@ -19,9 +21,9 @@ struct MenuView: View {
 
                 Text("Explore more for you").brandFont(.title3.bold())
                 HStack(spacing: 10) {
-                    tile(String(localized: "New", comment: "Menu tile"), "sparkles", .newArrivals)
-                    tile(String(localized: "Deals", comment: "Menu tile"), "tag.fill", .deals)
-                    tile(String(localized: "Brands", comment: "Menu tile"), "storefront.fill", .brands)
+                    tile(String(localized: "New", comment: "Menu tile"), "new", "sparkles", .newArrivals)
+                    tile(String(localized: "Deals", comment: "Menu tile"), "deals", "tag.fill", .deals)
+                    tile(String(localized: "Brands", comment: "Menu tile"), "brands", "storefront.fill", .brands)
                 }
 
                 Text("Shop by category").brandFont(.title3.bold())
@@ -50,15 +52,17 @@ struct MenuView: View {
         .buttonStyle(.plain)
     }
 
-    private func tile(_ title: String, _ symbol: String, _ route: Route) -> some View {
+    private func tile(_ title: String, _ art: String, _ symbol: String, _ route: Route) -> some View {
         NavigationLink(value: route) {
             VStack(spacing: 4) {
-                Image(systemName: symbol).brandFont(.title2)
+                ArtIcon(name: art, symbol: symbol, size: 44).brandFont(.title2)
                 Text(title).brandFont(.caption.bold())
             }
-            .foregroundStyle(Theme.onForest)
+            .foregroundStyle(.primary)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 64)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.forest))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline))
         }
         .buttonStyle(.plain)
     }
@@ -70,14 +74,14 @@ struct MenuView: View {
                 withAnimation(.snappy) { expanded = isOpen ? nil : c.id }
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: c.symbol).frame(width: 28).foregroundStyle(Theme.forestInk)
+                    ArtIcon(name: c.id, symbol: c.symbol, size: 40)
                     Text(c.name).foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.down")
                         .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .foregroundStyle(Theme.forestInk)
+                        .foregroundStyle(Theme.secondary)
                 }
-                .padding(14)
+                .padding(.horizontal, 14).padding(.vertical, 9)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -96,12 +100,12 @@ struct MenuView: View {
                         .accessibilityIdentifier("subcategory")
                     }
                 }
-                .padding(.leading, 54)
+                .padding(.leading, 66)
                 .padding(.bottom, 8)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.sage))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.sageLine))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.surface))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
     }
 
     private func link(_ title: String, _ route: Route) -> some View {

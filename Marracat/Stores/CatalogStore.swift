@@ -2446,6 +2446,18 @@ extension CatalogStore {
     }
 }
 
+extension Array {
+    /// The same items starting `k` places along and wrapping round:
+    /// `[a, b, c].rotated(by: 1)` is `[b, c, a]`. What a pull to refresh does
+    /// to a row that has one right order (best match first, most due first):
+    /// nothing is dropped, something else leads.
+    func rotated(by k: Int) -> [Element] {
+        guard count > 1 else { return self }
+        let k = ((k % count) + count) % count
+        return k == 0 ? self : Array(self[k...] + self[..<k])
+    }
+}
+
 /// Which brands Home leads with. Brands are shuffled once per launch; each
 /// pull-to-refresh bumps `round`, which rotates every list past the brands
 /// that were just up front, so the page comes back led by ones you didn't

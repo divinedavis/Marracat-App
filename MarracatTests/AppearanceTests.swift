@@ -100,18 +100,6 @@ final class AppearanceTests: XCTestCase {
                        UIColor.secondaryLabel.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
     }
 
-    /// Browse's green: the tile's white type, the row's names and its icons
-    /// all read on their ground in both looks (4.5:1 and over).
-    func testBrowseGreenReadsInBothLooks() {
-        for style in [UIUserInterfaceStyle.light, .dark] {
-            XCTAssertGreaterThanOrEqual(contrast(Theme.onForest, Theme.forest, style), 4.5)
-            XCTAssertGreaterThanOrEqual(contrast(Theme.forestInk, Theme.sage, style), 4.5)
-            XCTAssertGreaterThanOrEqual(contrast(Color(uiColor: .label), Theme.sage, style), 7)
-            XCTAssertGreaterThanOrEqual(contrast(Theme.secondary, Theme.sage, style), 4.5)
-        }
-        XCTAssertEqual(rgb(Theme.forest, .light), rgb(Theme.forest, .dark), "the tiles are the same green in both looks")
-    }
-
     /// Type on the primary button and on the selected chip is the opposite
     /// of its ground in both looks, and the photo well is light in both.
     func testButtonTypeOpposesItsGroundInBothLooks() {

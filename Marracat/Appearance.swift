@@ -43,7 +43,7 @@ struct AppearanceRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "circle.lefthalf.filled").frame(width: 24).accessibilityHidden(true)
+            ArtIcon(name: "appearance", symbol: "circle.lefthalf.filled", size: 30)
             Text("Appearance", comment: "Row in the You tab menu: light or dark look").brandFont(.subheadline)
             Spacer()
             Picker(String(localized: "Appearance", comment: "Row in the You tab menu: light or dark look"), selection: $appearance) {

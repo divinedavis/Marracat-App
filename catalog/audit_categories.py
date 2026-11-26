@@ -59,6 +59,9 @@ def score_table(product, brand):
             total = 0.0
         if cat == "alcohol" and brand["category"] != "alcohol":
             total = 0.0
+        if total and cat == "pets" and brand["category"] != "pets" and not bc.names_pet_goods(
+                fields[0][0], fields[1][0]):
+            total = 0.0
         if total:
             table[cat] = (total + (1.5 if cat == brand["category"] else 0), best_kw, tag_only)
     return table

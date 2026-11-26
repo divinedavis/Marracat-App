@@ -68,7 +68,7 @@ struct HomeView: View {
                     .id("homeTop")
                     HeroCarousel(mix: mix)
                     // A holiday's banner and rows while its event runs.
-                    HolidayEventRows(touched: page.touched)
+                    HolidayEventRows(touched: page.touched, round: mix.round)
                     // Rows side by side once the window is wide enough (Duo
                     // opened, iPad); a VStack at phone widths. One Layout for
                     // every width, so a fold re-places these rows rather than
@@ -238,7 +238,12 @@ struct HomeView: View {
         let purchased = shopper.checkouts.flatMap(\.productIDs)
         // Only departments this shopper has shown interest in (owner, 2026-11-09).
         let allowed = catalog.touchedDepartments(of: shopper)
+        // Best match first at launch; each pull to refresh starts the row
+        // further down the same 24 matches, so it comes back led by products
+        // that weren't just up front (owner, 2026-11-25: "the refresh feature
+        // doesn't actually refresh my products").
         let found = await MeaningPicks.forTaste(catalog: catalog, hidden: hidden, limit: 24, allowed: allowed).distinctLooking()
+            .rotated(by: mix.round * Self.pickedStep)
         let row = Array(found.prefix(12))
         guard row.count >= 4 else { return (row, []) }
         let lean = catalog.departmentLean(viewed: shopper.recentlyViewed, saved: shopper.saved, purchased: purchased)
@@ -249,6 +254,10 @@ struct HomeView: View {
         let products = mixed.products.distinctLooking()
         return (products, mixed.reserved.intersection(products.map(\.id)))
     }
+
+    /// How far a pull to refresh moves "Picked for you right now" along its
+    /// matches: past the cards a shopper has likely just looked at.
+    static let pickedStep = 5
 
     /// Re-reads the taste for "Picked for you right now". It goes on the page
     /// only where it can't be seen changing: Home off screen, the row's first
@@ -425,8 +434,9 @@ struct HomeView: View {
                                                 touched: TasteProfile.shared.recentProducts, hidden: Set(shopper.hidden))
             : []
         var seen = Set<String>()
+        // Most due first at launch; a pull to refresh leads with the next one.
         let restock = Array((rhythmic + Replenishment.due(checkouts: shopper.checkouts, catalog: catalog))
-            .filter { seen.insert($0.id).inserted }.prefix(12))
+            .filter { seen.insert($0.id).inserted }.prefix(12)).rotated(by: mix.round)
         return Personal(rows: rows, keepShopping: keepShopping, restock: restock, restockFirst: !rhythmic.isEmpty)
     }
 

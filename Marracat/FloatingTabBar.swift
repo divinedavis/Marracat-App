@@ -172,7 +172,7 @@ struct FloatingTabBar: View {
                     }
                 }
         case .saved:
-            symbol(selected ? "heart.fill" : "heart", selected: selected)
+            symbol(selected ? ListsIcon.filled : ListsIcon.name, selected: selected)
         case .you:
             symbol(selected ? "person.fill" : "person", selected: selected)
         }
@@ -184,6 +184,21 @@ struct FloatingTabBar: View {
             // One colour in both states, like ASOS — selection is shown by the pill alone.
             .foregroundStyle(glyph.opacity(selected ? 1 : 0.94))
     }
+}
+
+/// The picture for Your List and the lists: a list, not a heart (owner,
+/// 2026-11-25: "Instead of a heart can we have a list for the lists icon?
+/// Change it everywhere"). The tab, the Profile tile, Add to List and its
+/// toasts, and the Lists screen's empty places all read it from here. A
+/// heart still means liking a comment, and Marracat Baby Safe's badge.
+///
+/// Unlike "heart", this symbol has no spoken name of its own: VoiceOver
+/// reads "list.clipboard" aloud (the accessibility audit caught it on the
+/// empty Lists screen). Wherever it stands beside a title rather than
+/// inside a labelled control, hide it from VoiceOver.
+enum ListsIcon {
+    static let name = "list.clipboard"
+    static let filled = "list.clipboard.fill"
 }
 
 extension AppTab {

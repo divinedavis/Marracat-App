@@ -255,7 +255,48 @@ DISQUALIFY = {
 }
 
 
-def categorize(product, brand):
+# Pet Supplies is the one department whose keywords are mostly what a product
+# is about, not what it is. A record called "Diamond Dogs", a "Birthday Cat
+# Card", a "Best Dog Mom Sticker" and a shirt with a collar all carry a pet
+# word and none is for a pet (a shopper browsing collars in Pet Supplies met a
+# Telfar "Collar T", 2026-11-25; 54 records, cards, prints and stickers sat
+# there with it). So outside a pet brand:
+#   - "collar" and "harness" belong to shirts, necklaces and fashion first, and
+#     count only beside an animal word ("Dog Collar");
+#   - "dog", "cat" and "pet" in a title count only when the merchant's own
+#     product type says pets too, or the title goes on to name something a pet
+#     uses ("Dog Bandana", "Pet Refresh Spray", "Pet House").
+# Words that are goods by name ("leash", "catnip", "pet bowl", "dog treat")
+# place a product as before, and a pet brand's own products are untouched.
+PET_SUBJECTS = {"dog", "cat", "pet"}
+PET_BORROWED = {"collar", "harness"}
+_PET_ANIMAL = r"(?:dog|doggie|doggy|pup|puppy|puppie|cat|kitty|kitten|pet)s?(?:['\u2019]s)?"
+# What may follow the animal, at most one word later ("Pet Refresh Spray").
+# Not "eye", "mom" and the like: a cat eye brush is makeup.
+_PET_GOODS = re.compile(
+    r"\b" + _PET_ANIMAL + r"[\s/&,\-]+"
+    r"(?:(?!(?:eyes?|moms?|mamas?|dads?|lady|ladies|lovers?|people|person|themed?|print|shaped?)\b)[\w'\u2019]+[\s/&,\-]+)?"
+    r"(?:beds?|bandann?as?|bowls?|feeders?|houses?|collars?|leash(?:es)?|leads?|harness(?:es)?|"
+    r"toys?|treats?|food|chews?|shampoos?|conditioners?|wash|sprays?|colognes?|perfumes?|balms?|"
+    r"wipes|brush(?:es)?|combs?|blankets?|sweaters?|coats?|raincoats?|costumes?|clothes|clothing|"
+    r"apparel|carriers?|crates?|kennels?|tags?|pods?|placemats?|mats?|accessor(?:y|ies)|supplies|"
+    r"bow ?ties?|grooming|supplements?|strollers?|scratchers?|litter|cushions?)\b", re.I)
+
+
+def names_pet_goods(product_type, title, bare_words=False):
+    """Do the type and title name something for a pet, or only mention one?
+    `bare_words` is the rule before 2026-11-25: any pet keyword was enough."""
+    pats = _patterns["pets"]
+    in_type = {k for k, p in pats if p.search(product_type)}
+    hits = in_type | {k for k, p in pats if p.search(title)}
+    if bare_words or hits - PET_SUBJECTS - PET_BORROWED:
+        return bool(hits)
+    if not hits & PET_SUBJECTS:
+        return False                     # a collar or a harness, nobody's pet
+    return bool(in_type & PET_SUBJECTS) or bool(_PET_GOODS.search(title))
+
+
+def categorize(product, brand, bare_pet_words=False):
     """Score each category from product_type (x3), title (x2) and tags (x0.5),
     counting a longer keyword for more ("top handle" beats "top"), nudge toward
     the brand's home category, fall back to it when nothing hits."""
@@ -284,11 +325,32 @@ def categorize(product, brand):
         # that actually sells alcohol can put anything in Wine & Spirits.
         if cat == "alcohol" and brand["category"] != "alcohol":
             s = 0.0
+        if s and cat == "pets" and brand["category"] != "pets" and not names_pet_goods(
+                fields[0][0], fields[1][0], bare_pet_words):
+            s = 0.0
         if s:
             scores[cat] = s + (1.5 if cat == brand["category"] else 0)
     if not scores:
         return brand["category"]
     return max(scores.items(), key=lambda kv: kv[1])[0]
+
+
+def frozen_pet_guess(pin, product, brand, handle):
+    """A brands.json pin of "pets" that is only an import freezing the old
+    bare-word guess (see PET_SUBJECTS): the rules no longer say pets, and
+    nobody reviewed it. Such a pin is neither a placement nor a hand pin;
+    without this, a nail polish called "Pink Collar Crime" that Jev had moved
+    to Makeup would read as pinned to Pet Supplies by hand and go back."""
+    return (pin == "pets" and handle not in (brand.get("pinned_handles") or ())
+            and categorize(product, brand) != "pets"
+            and categorize(product, brand, bare_pet_words=True) == "pets")
+
+
+def placed(pin, product, brand, handle):
+    """Where a product starts: its reviewed pin, else the keyword guess."""
+    if not pin or frozen_pet_guess(pin, product, brand, handle):
+        return categorize(product, brand)
+    return pin
 
 
 def fetch_curl(url):
@@ -376,6 +438,21 @@ def fetch_store(domain):
         if len(batch) < PAGE_SIZE:
             break
     return products
+
+
+def in_registry_order(items, brands, brand_of):
+    """`items` (products or brand entries) in the order brands.json lists
+    their brands, each brand's own items in the order they came.
+
+    A rescued store's products are added after everything else, and the
+    catalog's order is not cosmetic: where two sister stores list the same
+    product, the fold (dedupe_products.py) keeps the copy that comes first.
+    On 2026-11-26 chriscollins.com answered 429, its 30 products were carried
+    through at the end of the list, and every one lost that tie to World of
+    Chris Collins: the brand was listed with nothing on its shelf, the web
+    tests refused the catalog and the refresh did not publish."""
+    place = {b["id"]: i for i, b in enumerate(brands)}
+    return sorted(items, key=lambda item: place.get(brand_of(item), len(place)))
 
 
 def unique_by_id(products):
@@ -686,7 +763,7 @@ def normalize_woo(p, brand):
     fields = {"title": title, "product_type": ptype or "", "tags": categories}
     # Placements an import reviewed, keyed by the product's slug (Woo's handle).
     slug = p.get("slug") or ""
-    category = brand.get("product_categories", {}).get(slug) or categorize(fields, brand)
+    category = placed(brand.get("product_categories", {}).get(slug), fields, brand, slug)
     return {
         "id": f"{brand['id']}-{p['id']}",
         "brand": brand["id"],
@@ -901,7 +978,7 @@ def normalize(p, brand):
         return None
     # Reviewed product placement takes precedence over ambiguous merchant types
     # such as "Brush" (which otherwise looks like makeup) or seed cultivar names.
-    category = brand.get("product_categories", {}).get(p["handle"], categorize(p, brand))
+    category = placed(brand.get("product_categories", {}).get(p["handle"]), p, brand, p["handle"])
     pick = min((v for v in variants if v["available"]), key=lambda v: v["price"], default=variants[0])
     compare = pick["compare_at"] if pick["compare_at"] and pick["compare_at"] > pick["price"] else None
     tags = p.get("tags") or []
@@ -1272,6 +1349,8 @@ def main():
                 print(f"  dropped {b['id']}: {b['domain']} has nothing for sale", file=sys.stderr)
         if rescued:
             print(f"carried {rescued} products through stores that were briefly unreachable")
+            catalog["products"] = in_registry_order(catalog["products"], brands, lambda p: p["brand"])
+            catalog["brands"] = in_registry_order(catalog["brands"], brands, lambda b: b["id"])
             # Those products may use aisles nothing else in this build touches.
             used = {f"{p['category']}:{sub}" for p in catalog["products"] for sub in p["subs"]}
             catalog["subcategories"] = [s for s in flat_subcategories() if s["id"] in used]

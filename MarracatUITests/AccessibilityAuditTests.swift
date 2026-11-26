@@ -53,6 +53,10 @@ final class AccessibilityAuditTests: XCTestCase {
         let search = any("searchField")   // by its id: storeSearchField() would go to Browse
         let window = app.windows.firstMatch.frame
         if search.exists, !window.isEmpty, search.frame.midY > window.midY { overlays.append(search.frame.insetBy(dx: -24, dy: -40)) }
+        // Profile's own search field floats the same way ("Appearance",
+        // light look, 2026-11-26, once the rows under it changed height).
+        let you = any("youSearch")
+        if you.exists, !window.isEmpty, you.frame.midY > window.midY { overlays.append(you.frame.insetBy(dx: -24, dy: -40)) }
         return overlays
     }
 

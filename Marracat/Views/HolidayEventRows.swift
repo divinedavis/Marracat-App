@@ -24,6 +24,10 @@ import SwiftUI
 struct HolidayEventRows: View {
     /// The departments this shopper has shown interest in (empty: all).
     var touched: Set<String> = []
+    /// How many times Home has been pulled to refresh this launch: each pull
+    /// moves every tile on to its list's next product (owner, 2026-11-25:
+    /// "the refresh feature doesn't actually refresh my products").
+    var round = 0
     @Environment(CatalogStore.self) private var catalog
     @State private var built: [Built] = []
     @State private var builtFor = ""
@@ -44,7 +48,8 @@ struct HolidayEventRows: View {
         /// ("Black Friday: biggest deals" is "Biggest deals" under the
         /// "Black Friday Deals" header).
         let title: String
-        /// The product pictured: the list's first pick no earlier tile shows.
+        /// The product pictured: the list's first pick no earlier tile shows,
+        /// then the next one along for each pull to refresh.
         let photo: Product
         /// The biggest markdown in a deal list (one with `minOff`); nil for
         /// the rest. Never past the list's `maxOff`.
@@ -65,7 +70,7 @@ struct HolidayEventRows: View {
 
     /// Each event's tiles for a shopper. Pure, so Home can run it off the
     /// main thread.
-    static func build(_ events: [Holiday], products: [Product], touched: Set<String>) -> [Built] {
+    static func build(_ events: [Holiday], products: [Product], touched: Set<String>, round: Int = 0) -> [Built] {
         let theirs = touched.isEmpty ? products : products.filter { touched.contains($0.category) }
         return events.compactMap { h in
             let collections = (h.rows ?? []).compactMap { HolidayCalendar.collection($0) }
@@ -77,7 +82,9 @@ struct HolidayEventRows: View {
                         ?? all.min(by: { $0.usdPrice < $1.usdPrice }) else { return nil }
                 // One brand at a time, as the list itself opens; two lists
                 // that lead with the same product don't show it twice.
-                let picks = CatalogStore.spread(all, limit: 12)
+                // A refresh starts each list `round` picks further along,
+                // so the tile comes back with another brand's product.
+                let picks = CatalogStore.spread(all, limit: 12).rotated(by: round)
                 guard let photo = picks.first(where: { !pictured.contains($0.id) && !photos.contains($0.images.first ?? "") })
                         ?? picks.first(where: { !pictured.contains($0.id) }) ?? picks.first else { return nil }
                 pictured.insert(photo.id)
@@ -104,7 +111,7 @@ struct HolidayEventRows: View {
     var body: some View {
         let events = HolidayCalendar.events()
         let key = events.map(\.id).joined(separator: ",") + "|\(catalog.catalog.generatedAt)|\(catalog.catalog.products.count)|"
-            + touched.sorted().joined(separator: ",")
+            + touched.sorted().joined(separator: ",") + "|\(round)"
         VStack(spacing: 0) {
             ForEach(built) { b in
                 if b.tiles.isEmpty {
@@ -118,8 +125,8 @@ struct HolidayEventRows: View {
             guard key != builtFor else { return }
             guard !events.isEmpty else { built = []; builtFor = key; return }
             let products = catalog.catalog.products
-            let touched = touched
-            built = await Task.detached(priority: .userInitiated) { Self.build(events, products: products, touched: touched) }.value
+            let touched = touched, round = round
+            built = await Task.detached(priority: .userInitiated) { Self.build(events, products: products, touched: touched, round: round) }.value
             builtFor = key
         }
     }

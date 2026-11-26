@@ -2126,7 +2126,7 @@ final class MarracatUITests2: MarracatUITestCase {
         // Let the scroll stop first: a hold that lands on a page still
         // gliding stops the scroll and counts as a tap, which saved the item
         // instead of fanning out the lists (2026-11-01, once the store card
-        // put the heart lower and the swipe above ran more often).
+        // put the Add to List chip lower and the swipe above ran more often).
         var resting = folder.frame
         for _ in 0..<12 {
             usleep(150_000)
@@ -2182,7 +2182,7 @@ final class MarracatUITests2: MarracatUITestCase {
         // Let the scroll stop first: a hold that lands on a page still
         // gliding stops the scroll and counts as a tap, which saved the item
         // instead of fanning out the lists (2026-11-01, once the store card
-        // put the heart lower and the swipe above ran more often).
+        // put the Add to List chip lower and the swipe above ran more often).
         var resting = folder.frame
         for _ in 0..<12 {
             usleep(150_000)
@@ -2473,9 +2473,9 @@ final class MarracatUITests3: MarracatUITestCase {
         XCTAssertEqual(lists, tracks, "every result with Track price also has Add to List")
         XCTAssertEqual(options + carts, tracks, "each result has exactly one of See options / Add to cart")
         snap("search-chips")
-        let heart = app.buttons.matching(identifier: "resultAddToList").firstMatch
-        XCTAssertEqual(heart.label, "Add to List")
-        heart.tap()
+        let save = app.buttons.matching(identifier: "resultAddToList").firstMatch
+        XCTAssertEqual(save.label, "Add to List")
+        save.tap()
         XCTAssertTrue(any("actionToast").appears(timeout: 3), "saving shows the toast")
         XCTAssertTrue(app.buttons["Saved"].firstMatch.appears(timeout: 3))
         app.buttons["Saved"].firstMatch.tap()   // leave Your List as it was

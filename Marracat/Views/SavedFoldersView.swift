@@ -140,7 +140,7 @@ struct SavedView: View {
     private var empty: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Image(systemName: "heart").brandFont(.system(size: 44)).foregroundStyle(Theme.amber)
+                Image(systemName: ListsIcon.name).brandFont(.system(size: 44)).foregroundStyle(Theme.amber).accessibilityHidden(true)
                 Text("Don't lose your finds").brandFont(.title3.bold()).accessibilityIdentifier("savedEmpty")
                 Text("Tap “Add to List” on any item to save it here, so it's easy to come back to.")
                     .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)
@@ -199,7 +199,7 @@ struct FolderCard: View {
                     } else if let first = urls.first {
                         RemoteImage(url: first, width: 400).padding(10)
                     } else {
-                        Image(systemName: "heart").brandFont(.system(size: 40)).foregroundStyle(Color.black.opacity(0.35))
+                        Image(systemName: ListsIcon.name).brandFont(.system(size: 40)).foregroundStyle(Color.black.opacity(0.35)).accessibilityHidden(true)
                     }
                 }
             }
@@ -254,7 +254,7 @@ struct FolderView: View {
                             } else if let url = FolderCover.imageURL(list, catalog: catalog) {
                                 RemoteImage(url: url, width: 240).padding(6)
                             } else {
-                                Image(systemName: "heart").foregroundStyle(Color.black.opacity(0.35))
+                                Image(systemName: ListsIcon.name).foregroundStyle(Color.black.opacity(0.35)).accessibilityHidden(true)
                             }
                         }
                         .frame(width: 72, height: 72)
@@ -298,7 +298,7 @@ struct FolderView: View {
             } message: { Text("The items stay in All saved.") }
             .marracatChrome()
         } else {
-            ContentUnavailableView("This list is gone", systemImage: "heart.slash").marracatChrome()
+            ContentUnavailableView("This list is gone", systemImage: ListsIcon.name).marracatChrome()
         }
     }
 }

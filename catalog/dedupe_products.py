@@ -190,6 +190,17 @@ def dedupe(products, brand_categories=None):
     return [p for p in products2 if p['id'] not in folded], dropped
 
 
+def without_empty_brands(catalog):
+    """Takes out of catalog['brands'] any brand the fold left with nothing to sell, and
+    returns their ids. A brand with no products is not a shelf (build_catalog.py leaves
+    such brands out too); a sister store can take every product a brand has, and the
+    app, the site and the web tests all expect the brand list to match the products."""
+    selling = {p['brand'] for p in catalog['products']}
+    emptied = [b['id'] for b in catalog['brands'] if b['id'] not in selling]
+    catalog['brands'] = [b for b in catalog['brands'] if b['id'] in selling]
+    return emptied
+
+
 def main():
     catalog = json.loads(CATALOG.read_text())
     products, dropped = dedupe(catalog['products'], {b['id']: b.get('category') for b in catalog['brands']})
@@ -197,8 +208,11 @@ def main():
     if '--check' in sys.argv or not dropped:
         return
     catalog['products'] = products
+    emptied = without_empty_brands(catalog)
     write_catalog(CATALOG, catalog)
     print('by brand:', Counter(p['brand'] for p in dropped).most_common(12))
+    if emptied:
+        print('no longer listed, every product folded into a sister store:', ', '.join(emptied))
 
 
 if __name__ == '__main__':

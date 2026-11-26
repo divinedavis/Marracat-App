@@ -69,7 +69,7 @@ struct YouView: View {
     @ViewBuilder
     private func resultRow(_ e: YouSearch.Entry) -> some View {
         let label = HStack(spacing: 14) {
-            Image(systemName: e.icon).frame(width: 24)
+            Image(systemName: e.icon).frame(width: 24).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(e.title).brandFont(.subheadline)
                 if let place = e.place { Text(place).brandFont(.caption).foregroundStyle(Theme.secondary) }
@@ -151,19 +151,18 @@ struct YouView: View {
 
     private var tiles: some View {
         HStack(spacing: 12) {
-            tile(String(localized: "Orders", comment: "Tile on the You tab"), systemImage: "bag", route: .checkouts, id: "tileOrders")
-            tile(String(localized: "Lists", comment: "Tile on the You tab"), systemImage: "heart", route: .saved, id: "tileLists")
-            if social.signedIn { tile(String(localized: "Connect", comment: "Tile on the You tab"), systemImage: "person.2", route: .connections, id: "tileConnections") }
+            tile(String(localized: "Orders", comment: "Tile on the You tab"), art: "orders", systemImage: "bag", route: .checkouts, id: "tileOrders")
+            tile(String(localized: "Lists", comment: "Tile on the You tab"), art: "lists", systemImage: ListsIcon.name, route: .saved, id: "tileLists")
+            if social.signedIn { tile(String(localized: "Connect", comment: "Tile on the You tab"), art: "connect", systemImage: "person.2", route: .connections, id: "tileConnections") }
         }
         .padding(.horizontal, 16)
     }
 
-    private func tile(_ title: String, systemImage: String, route: Route, id: String) -> some View {
+    private func tile(_ title: String, art: String, systemImage: String, route: Route, id: String) -> some View {
         NavigationLink(value: route) {
             VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: systemImage).brandFont(.title2)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Theme.field))
+                ArtIcon(name: art, symbol: systemImage, size: 48).brandFont(.title2)
+                    .background(Circle().fill(Theme.field).opacity(ArtIcon.has(art) ? 0 : 1))
                 Text(title).brandFont(.subheadline.bold())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -200,53 +199,53 @@ struct YouView: View {
 
     private var rows: some View {
         VStack(spacing: 0) {
-            Button { shareApp = true } label: { row(String(localized: "Share Marracat", comment: "Row in the You tab menu: opens a QR code for the App Store"), "qrcode") }
+            Button { shareApp = true } label: { row(String(localized: "Share Marracat", comment: "Row in the You tab menu: opens a QR code for the App Store"), "qrcode", art: "share") }
                 .buttonStyle(.plain).accessibilityIdentifier("shareAppRow")
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.accountSettings) { row(String(localized: "Account settings", comment: "Row in the You tab menu"), "gearshape") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.accountSettings) { row(String(localized: "Account settings", comment: "Row in the You tab menu"), "gearshape", art: "settings") }
                 .buttonStyle(.plain).accessibilityIdentifier("accountSettings")
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 58)
             AppearanceRow()
-            Divider().padding(.leading, 52)
-            Link(destination: URL(string: "https://marracat.com/#/support")!) { row(String(localized: "Get help", comment: "Row in the You tab menu"), "questionmark.circle", external: true) }
+            Divider().padding(.leading, 58)
+            Link(destination: URL(string: "https://marracat.com/#/support")!) { row(String(localized: "Get help", comment: "Row in the You tab menu"), "questionmark.circle", art: "help", external: true) }
                 .buttonStyle(.plain).foregroundStyle(.primary)
-            Divider().padding(.leading, 52)
-            Button { privacy = true } label: { row(String(localized: "Privacy", comment: "Row in the You tab menu"), "hand.raised") }
+            Divider().padding(.leading, 58)
+            Button { privacy = true } label: { row(String(localized: "Privacy", comment: "Row in the You tab menu"), "hand.raised", art: "privacy") }
                 .buttonStyle(.plain).accessibilityIdentifier("privacyRow")
-            Divider().padding(.leading, 52)
-            Button { shippingDetails = true } label: { row(String(localized: "Shipping address", comment: "Row in the You tab menu"), "shippingbox") }
+            Divider().padding(.leading, 58)
+            Button { shippingDetails = true } label: { row(String(localized: "Shipping address", comment: "Row in the You tab menu"), "shippingbox", art: "shipping") }
                 .buttonStyle(.plain).accessibilityIdentifier("shippingDetailsRow")
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 58)
             NavigationLink(value: Route.restockAlerts) {
-                row(restock.alerts.isEmpty ? String(localized: "Restock alerts", comment: "Row in the You tab menu") : String(localized: "Restock alerts (\(restock.alerts.count))", comment: "Row in the You tab menu"), "bell")
+                row(restock.alerts.isEmpty ? String(localized: "Restock alerts", comment: "Row in the You tab menu") : String(localized: "Restock alerts (\(restock.alerts.count))", comment: "Row in the You tab menu"), "bell", art: "restock")
             }
                 .buttonStyle(.plain).accessibilityIdentifier("restockAlertsRow")
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 58)
             NavigationLink(value: Route.priceAlerts) {
                 let n = DealAlertStore.shared.prices.count + DealAlertStore.shared.brands.count + DealAlertStore.shared.drops.count
-                row(n == 0 ? String(localized: "Price & sale alerts", comment: "Row in the You tab menu") : String(localized: "Price & sale alerts (\(n))", comment: "Row in the You tab menu"), "tag")
+                row(n == 0 ? String(localized: "Price & sale alerts", comment: "Row in the You tab menu") : String(localized: "Price & sale alerts (\(n))", comment: "Row in the You tab menu"), "tag", art: "deals")
             }
                 .buttonStyle(.plain).accessibilityIdentifier("priceAlertsRow")
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.notifications) { row(String(localized: "Notifications", comment: "Row in the You tab menu"), "bell.badge") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.notifications) { row(String(localized: "Notifications", comment: "Row in the You tab menu"), "bell.badge", art: "notifications") }
                 .buttonStyle(.plain).accessibilityIdentifier("notificationsRow")
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.yourTaste) { row(String(localized: "Your taste", comment: "Row in the You tab menu: what the app has learned the shopper likes"), "person.crop.circle.badge.checkmark") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.yourTaste) { row(String(localized: "Your taste", comment: "Row in the You tab menu: what the app has learned the shopper likes"), "person.crop.circle.badge.checkmark", art: "taste") }
                 .buttonStyle(.plain).accessibilityIdentifier("yourTasteRow")
-            NavigationLink(value: Route.interests) { row(String(localized: "Interests", comment: "Row in the You tab menu"), "sparkles") }
+            NavigationLink(value: Route.interests) { row(String(localized: "Interests", comment: "Row in the You tab menu"), "sparkles", art: "new") }
                 .buttonStyle(.plain).accessibilityIdentifier("interestsRow")
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.forBrands) { row(String(localized: "For brands", comment: "Row in the You tab menu"), "megaphone") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.forBrands) { row(String(localized: "For brands", comment: "Row in the You tab menu"), "megaphone", art: "forbrands") }
                 .buttonStyle(.plain).accessibilityIdentifier("forBrandsRow")
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.brands) { row(String(localized: "Brands", comment: "Row in the You tab menu"), "storefront") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.brands) { row(String(localized: "Brands", comment: "Row in the You tab menu"), "storefront", art: "brands") }
                 .buttonStyle(.plain)
-            Divider().padding(.leading, 52)
-            NavigationLink(value: Route.about) { row(String(localized: "About Marracat", comment: "Row in the You tab menu"), "info.circle") }
+            Divider().padding(.leading, 58)
+            NavigationLink(value: Route.about) { row(String(localized: "About Marracat", comment: "Row in the You tab menu"), "info.circle", art: "about") }
                 .buttonStyle(.plain)
             if account.user != nil {
-                Divider().padding(.leading, 52)
-                Button { Task { await account.signOut() } } label: { row(String(localized: "Log out", comment: "Row in the You tab menu"), "rectangle.portrait.and.arrow.right") }
+                Divider().padding(.leading, 58)
+                Button { Task { await account.signOut() } } label: { row(String(localized: "Log out", comment: "Row in the You tab menu"), "rectangle.portrait.and.arrow.right", art: "logout") }
                     .buttonStyle(.plain).accessibilityIdentifier("logOutRow")
             }
         }
@@ -255,14 +254,14 @@ struct YouView: View {
         .padding(.horizontal, 16)
     }
 
-    private func row(_ title: String, _ systemImage: String, external: Bool = false) -> some View {
+    private func row(_ title: String, _ systemImage: String, art: String? = nil, external: Bool = false) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: systemImage).frame(width: 24)
+            ArtIcon(name: art ?? "", symbol: systemImage, size: 30)
             Text(title).brandFont(.subheadline)
             Spacer()
             Image(systemName: external ? "arrow.up.right" : "chevron.right").brandFont(.caption).foregroundStyle(Theme.secondary)
         }
-        .padding(.horizontal, 14).padding(.vertical, 14)
+        .padding(.horizontal, 14).padding(.vertical, 11)
         .contentShape(Rectangle())
     }
 
@@ -510,7 +509,7 @@ enum YouSearch {
         let settings = String(localized: "Account settings", comment: "Row in the You tab menu")
         var all: [Entry] = [
             Entry(title: String(localized: "Orders", comment: "Tile on the You tab"), place: nil, icon: "bag", target: .route(.checkouts), words: "orders purchases bought checkouts receipts tracking delivery"),
-            Entry(title: String(localized: "Lists", comment: "Tile on the You tab"), place: nil, icon: "heart", target: .route(.saved), words: "lists saved favorites wishlist"),
+            Entry(title: String(localized: "Lists", comment: "Tile on the You tab"), place: nil, icon: ListsIcon.name, target: .route(.saved), words: "lists saved favorites wishlist"),
             Entry(title: settings, place: nil, icon: "gearshape", target: .route(.accountSettings), words: "account settings sign in google apple email profile"),
             Entry(title: String(localized: "Personalized recommendations", comment: "Account setting"), place: settings, icon: "sparkles", target: .route(.accountSettings), words: "personalized recommendations personalization for you"),
             Entry(title: String(localized: "Share usage analytics", comment: "Account setting"), place: settings, icon: "chart.bar", target: .route(.accountSettings), words: "analytics usage tracking data sharing"),

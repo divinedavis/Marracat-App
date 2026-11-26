@@ -180,7 +180,12 @@ def hand_pinned(row, brand, bc):
     like an import freezing the guess and could be moved again)."""
     h = handle(row)
     pinned = (brand.get("product_categories") or {}).get(h)
-    return bool(pinned and (h in (brand.get("pinned_handles") or ()) or pinned != bc.categorize(row, brand)))
+    if not pinned:
+        return False
+    if h in (brand.get("pinned_handles") or ()):
+        return True
+    # Not a pin that only froze the old bare-word guess for Pet Supplies.
+    return pinned != bc.categorize(row, brand) and not bc.frozen_pet_guess(pinned, row, brand, h)
 
 
 def placed_on_purpose(row, brand, bc):

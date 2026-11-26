@@ -725,12 +725,12 @@ struct SearchResultRow: View {
                 .accessibilityIdentifier("resultTrackPrice")
             Button {
                 shopper.toggleSaved(product.id)
-                toast = shopper.isSaved(product.id) ? .init(text: String(localized: "Added to Your List", comment: "Toast"), symbol: "heart.fill")
-                                                    : .init(text: String(localized: "Removed from Your List", comment: "Toast"), symbol: "heart")
+                toast = shopper.isSaved(product.id) ? .init(text: String(localized: "Added to Your List", comment: "Toast"), symbol: ListsIcon.filled)
+                                                    : .init(text: String(localized: "Removed from Your List", comment: "Toast"), symbol: ListsIcon.name)
             } label: {
                 let saved = shopper.isSaved(product.id)
                 IconChipLabel(title: saved ? String(localized: "Saved", comment: "Button state: the product is in Your List") : String(localized: "Add to List", comment: "Button: save the product to Your List"),
-                              symbol: saved ? "heart.fill" : "heart", tint: .pink, on: saved)
+                              symbol: saved ? ListsIcon.filled : ListsIcon.name, tint: .pink, on: saved)
             }
             .buttonStyle(ActionChipStyle())
             .accessibilityIdentifier("resultAddToList")

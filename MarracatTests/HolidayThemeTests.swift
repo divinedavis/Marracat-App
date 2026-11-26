@@ -136,6 +136,50 @@ final class HolidayThemeTests: XCTestCase {
                 variants: [], tags: tags, description: nil, publishedAt: at, bestRank: nil, currency: "USD")
     }
 
+    /// Owner, 2026-11-25, pulling Home down: "the refresh feature doesn't
+    /// actually refresh my products". The tiles were built the same way
+    /// every time; each pull now moves a tile to its list's next product.
+    func testAPullToRefreshMovesEachTileToItsNextProduct() throws {
+        let friday = try XCTUnwrap(HolidayCalendar.holidays.first { $0.id == "black-friday" })
+        var products: [Product] = []
+        for i in 0..<10 {
+            let n = Double(i)
+            products.append(item("s\(i)", "Serum \(i)", brand: "s\(i)", category: "skincare", price: 12 + n, compareAt: (12 + n) / 0.6))
+        }
+        func tiles(_ round: Int) throws -> [HolidayEventRows.Tile] {
+            try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: [], round: round).first).tiles
+        }
+        let first = try tiles(0)
+        XCTAssertEqual(first.map(\.photo.id), try XCTUnwrap(HolidayEventRows.build([friday], products: products, touched: []).first).tiles.map(\.photo.id),
+                       "a launch is round 0: the lists' own first picks")
+        var seen = Set(first.map(\.photo.id))
+        for round in 1...3 {
+            let next = try tiles(round), before = try tiles(round - 1)
+            XCTAssertEqual(next.count, before.count)
+            for (a, b) in zip(next, before) {
+                XCTAssertNotEqual(a.photo.id, b.photo.id, "\(a.title) shows another product after pull \(round)")
+                XCTAssertEqual(a.title, b.title)
+                XCTAssertEqual(a.count, b.count, "the list behind the tile is the same list")
+                XCTAssertEqual(a.lowest.id, b.lowest.id)
+                XCTAssertEqual(a.percent, b.percent)
+            }
+            XCTAssertEqual(Set(next.map(\.photo.id)).count, next.count, "two tiles still don't picture one product")
+            seen.formUnion(next.map(\.photo.id))
+        }
+        XCTAssertGreaterThanOrEqual(seen.count, 5, "pulls walk through the list, not back and forth between two products")
+        XCTAssertEqual(try tiles(10).map(\.photo.id), first.map(\.photo.id), "and come round again after the ten picks")
+    }
+
+    func testRotatingARowKeepsEveryItem() {
+        XCTAssertEqual([1, 2, 3, 4].rotated(by: 1), [2, 3, 4, 1])
+        XCTAssertEqual([1, 2, 3, 4].rotated(by: 6), [3, 4, 1, 2], "wraps round")
+        XCTAssertEqual([1, 2, 3, 4].rotated(by: 0), [1, 2, 3, 4], "a launch changes nothing")
+        XCTAssertEqual([1, 2, 3, 4].rotated(by: 4), [1, 2, 3, 4])
+        XCTAssertEqual([1].rotated(by: 3), [1])
+        XCTAssertEqual([Int]().rotated(by: 3), [])
+        XCTAssertGreaterThan(HomeView.pickedStep, 1, "a pull moves past the cards just seen")
+    }
+
     func testHalloweenPicksKeepTheHolidayAndDropLookalikes() throws {
         let c = try XCTUnwrap(HolidayCalendar.collection("halloween"))
         let got = c.picks(from: [

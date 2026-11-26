@@ -6,7 +6,8 @@ import UIKit
 /// surfaces, black and grey type. Dark is the look the app had until then, a
 /// black ground with charcoal surfaces, kept value for value and chosen in
 /// Profile > Appearance (`Appearance`). Product photography carries the
-/// colour, with one exception: Browse's buttons are forest green on sage. The legacy token names (cocoa, gold, …) are kept so every screen
+/// colour, with the small 3D pictures on Browse and Profile (`ArtIcon`). The
+/// legacy token names (cocoa, gold, …) are kept so every screen
 /// picks up the greys unchanged.
 enum Theme {
     /// One colour per look. The dark value is what the token always was.
@@ -94,14 +95,6 @@ enum Theme {
         grey(light: 0.91, dark: 0.22), grey(light: 0.89, dark: 0.26), grey(light: 0.93, dark: 0.19), grey(light: 0.87, dark: 0.30),
     ]
 
-    // Browse's buttons (MenuView), the one place the chrome itself has a
-    // colour (owner, 2026-11-23, "Forest & sage"). Dark keeps the green
-    // tiles and turns the pale rows into a green-black with lighter icons.
-    static let forest = Color(red: 0.184, green: 0.365, blue: 0.275)                                  // Explore tiles (#2F5D46)
-    static let onForest = Color.white
-    static let sage = pair(light: rgb(0.933, 0.953, 0.925), dark: rgb(0.078, 0.110, 0.090))           // category rows (#EEF3EC / #141C17)
-    static let sageLine = pair(light: rgb(0.835, 0.878, 0.824), dark: rgb(0.165, 0.227, 0.188))       // their outline (#D5E0D2 / #2A3A30)
-    static let forestInk = pair(light: rgb(0.184, 0.365, 0.275), dark: rgb(0.561, 0.765, 0.643))      // icons, arrows (#2F5D46 / #8FC3A4)
 
     static let header = grey(light: 1, dark: 0)
     static let headerSoft = grey(light: 0.985, dark: 0.04)

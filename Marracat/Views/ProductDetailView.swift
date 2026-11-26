@@ -347,7 +347,7 @@ struct ProductDetailView: View {
                     // Tap saves; hold fans out the lists (QuickListFan;
                     // "Save to a list" was its own chip until 2026-10-05).
                     ActionChipLabel(title: shopper.isSaved(p.id) ? String(localized: "Saved", comment: "Button state: the product is in Your List") : String(localized: "Add to List", comment: "Button: save the product to Your List"),
-                                    symbol: shopper.isSaved(p.id) ? "heart.fill" : "heart", tint: .pink, on: shopper.isSaved(p.id))
+                                    symbol: shopper.isSaved(p.id) ? ListsIcon.filled : ListsIcon.name, tint: .pink, on: shopper.isSaved(p.id))
                         .scaleEffect(addPressed ? 0.95 : 1)
                         .brightness(addPressed ? 0.12 : 0)
                         .animation(.spring(duration: 0.2), value: addPressed)
@@ -457,8 +457,8 @@ struct ProductDetailView: View {
 
     private func toggleSaved(_ p: Product) {
         shopper.toggleSaved(p.id)
-        toast = shopper.isSaved(p.id) ? .init(text: String(localized: "Added to Your List", comment: "Toast"), symbol: "heart.fill")
-                                      : .init(text: String(localized: "Removed from Your List", comment: "Toast"), symbol: "heart")
+        toast = shopper.isSaved(p.id) ? .init(text: String(localized: "Added to Your List", comment: "Toast"), symbol: ListsIcon.filled)
+                                      : .init(text: String(localized: "Removed from Your List", comment: "Toast"), symbol: ListsIcon.name)
     }
 
     private func listChoices(_ p: Product) -> [QuickListFan.Choice] {
