@@ -308,7 +308,9 @@ struct CartView: View {
     private var empty: some View {
         VStack(spacing: 12) {
             HStack(spacing: 16) {
-                Image(systemName: "cart").brandFont(.system(size: 60)).foregroundStyle(Theme.amber)
+                // The cart's own 3D picture (owner, 2026-11-26, of this empty state:
+                // "Make sure this has an icon").
+                ArtIcon(name: "cart", symbol: "cart", size: 64, tint: Theme.amber).brandFont(.system(size: 52))
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your Marracat Cart is empty").brandFont(.title3.bold())
                     Text("Good stuff goes in here").brandFont(.subheadline).foregroundStyle(Theme.secondary)

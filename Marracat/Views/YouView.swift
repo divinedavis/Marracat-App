@@ -177,7 +177,7 @@ struct YouView: View {
     private var signInCard: some View {
         NavigationLink(value: Route.accountSettings) {
             HStack(spacing: 14) {
-                Image(systemName: "person.crop.circle.badge.plus").brandFont(.title)
+                ArtIcon(name: "signin", symbol: "person.crop.circle.badge.plus", size: 40).brandFont(.title)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Make Marracat yours").brandFont(.subheadline.bold())
                     Text("Sign in to keep your lists, orders and history across devices.")

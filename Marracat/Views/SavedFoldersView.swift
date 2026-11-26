@@ -140,7 +140,7 @@ struct SavedView: View {
     private var empty: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Image(systemName: ListsIcon.name).brandFont(.system(size: 44)).foregroundStyle(Theme.amber).accessibilityHidden(true)
+                ArtIcon(name: "lists", symbol: ListsIcon.name, size: 64, tint: Theme.amber).brandFont(.system(size: 44))
                 Text("Don't lose your finds").brandFont(.title3.bold()).accessibilityIdentifier("savedEmpty")
                 Text("Tap “Add to List” on any item to save it here, so it's easy to come back to.")
                     .brandFont(.subheadline).foregroundStyle(Theme.secondary).multilineTextAlignment(.center)

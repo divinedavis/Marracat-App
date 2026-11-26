@@ -1,3 +1,4 @@
+import Observation
 import XCTest
 @testable import Marracat
 
@@ -161,6 +162,53 @@ final class RelayTests: XCTestCase {
         XCTAssertNil(prepared)
         XCTAssertFalse(relay.guest)
     }
+
+    /// 2026-11-26: the app asks for a refresh from two places as it opens.
+    /// Both ran on background threads, both set `address` at once, and the
+    /// app crashed in the ship's own speed test (build 201). However a
+    /// refresh is started, the store is only ever changed on the main thread.
+    @MainActor
+    func testARefreshStartedOffTheMainThreadChangesTheStoreOnIt() async {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [GuestRelayProtocol.self]
+        let store = RelayStore(defaults: UserDefaults(suiteName: "relay-\(UUID())")!,
+                               session: URLSession(configuration: config), reachesServer: true)
+        store.attach(AccountStore(defaults: UserDefaults(suiteName: "relay-acct-\(UUID())")!))
+        let changedOffMain = OffMainFlag()
+        withObservationTracking { _ = store.enabled; _ = store.address; _ = store.guest } onChange: {
+            if !Thread.isMainThread { changedOffMain.raise() }
+        }
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<8 { group.addTask { await store.refresh() } }
+        }
+        XCTAssertFalse(changedOffMain.raised, "a background thread changed the store")
+        XCTAssertEqual(store.address, "u-test2k7m9q@orders.marracat.com")
+        XCTAssertTrue(store.guest)
+    }
+}
+
+/// Stands in for the guest order email (/api/relay/guest): the flag on, one
+/// address, no events. Nothing leaves the test.
+final class GuestRelayProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        let events = request.url?.path.hasSuffix("/events") == true
+        let body = events ? #"{"events":[]}"# : #"{"enabled":true,"address":"u-test2k7m9q@orders.marracat.com"}"#
+        let reply = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: reply, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
+/// Raised from whichever thread a change arrives on.
+final class OffMainFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    func raise() { lock.lock(); value = true; lock.unlock() }
+    var raised: Bool { lock.lock(); defer { lock.unlock() }; return value }
 }
 
 /// Records any request that reaches it, and answers none.

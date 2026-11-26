@@ -15,6 +15,12 @@ import Observation
 /// checkouts and cart links, the emails read into Your Orders and pushed to
 /// this phone, but nothing forwarded (there's no inbox). Signing in merges
 /// it into the account, which keeps one address.
+///
+/// Everything that changes the store runs on the main thread (`@MainActor`
+/// on each async method). They used to run wherever Swift put them, and the
+/// app asks for a refresh from two places as it opens: two background
+/// threads set `address` at the same moment and the app crashed
+/// (2026-11-26, build 201, in the ship's own speed test).
 @Observable
 final class RelayStore {
     static let shared = RelayStore()
@@ -32,10 +38,17 @@ final class RelayStore {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var account: AccountStore?
+    /// Tests hand in a session that answers by itself and say the server may
+    /// be reached; the app never passes either.
+    @ObservationIgnored private let session: URLSession
+    @ObservationIgnored private let reachesServerOverride: Bool?
+    private var reachesServer: Bool { reachesServerOverride ?? AppChannel.reachesOrderServer }
     private static let cacheKey = "relay.cache.v1"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, session: URLSession = .shared, reachesServer: Bool? = nil) {
         self.defaults = defaults
+        self.session = session
+        self.reachesServerOverride = reachesServer
         if let data = defaults.data(forKey: Self.cacheKey), let c = try? JSONDecoder().decode(Cache.self, from: data) {
             enabled = c.enabled; address = c.address; forwardTo = c.forwardTo; events = c.events; guest = c.guest ?? false
         }
@@ -57,13 +70,14 @@ final class RelayStore {
     /// Asks the server whether this account (or, signed out, this install)
     /// has the order email, and the order events it has read since. Just
     /// signed in on a phone that had a guest address: merges it first.
+    @MainActor
     func refresh() async {
-        guard let account, AppChannel.reachesOrderServer else { return }
-        guard await account.signedIn else { return await refreshGuest() }
+        guard let account, reachesServer else { return }
+        guard account.signedIn else { return await refreshGuest() }
         if guest {
             // The server takes this phone's guest address only into the
             // account signed in on it, and only with this phone's own key.
-            let key = await MainActor.run { RestockStore.installKey }
+            let key = RestockStore.installKey
             if let (status, _) = try? await account.mobile("relay", method: "PUT", body: Data("{}".utf8), deviceKey: key),
                (200..<500).contains(status) {
                 guest = false
@@ -82,6 +96,7 @@ final class RelayStore {
         save()
     }
 
+    @MainActor
     private func refreshGuest() async {
         if let (status, data) = await guestCall(), status == 200, let state = try? JSONDecoder().decode(State.self, from: data) {
             enabled = state.enabled
@@ -99,10 +114,10 @@ final class RelayStore {
     /// Makes sure the address exists. Signed in, it forwards to the account's
     /// own sign-in email (the server ignores `forwardTo`); signed out, it's
     /// this install's. Returns the address, or nil when the order email is off.
-    @discardableResult
+    @MainActor @discardableResult
     func prepare(forwardTo: String, deviceKey: String?) async -> String? {
-        guard enabled, let account, AppChannel.reachesOrderServer else { return address }
-        guard await account.signedIn else {
+        guard enabled, let account, reachesServer else { return address }
+        guard account.signedIn else {
             if let (status, data) = await guestCall(method: "PUT"), status == 200,
                let state = try? JSONDecoder().decode(State.self, from: data) {
                 enabled = state.enabled
@@ -128,30 +143,33 @@ final class RelayStore {
 
     /// Before a cart link opens (it's built synchronously): the address, if
     /// the order email is on and there isn't one yet.
+    @MainActor
     func ensureAddress() async {
         guard enabled, address == nil, let account else { return }
-        let email = await MainActor.run { account.user?.email } ?? ""
-        let key = await MainActor.run { RestockStore.installKey }
+        let email = account.user?.email ?? ""
+        let key = RestockStore.installKey
         await prepare(forwardTo: email, deviceKey: key)
     }
 
     /// Lets the server reach this phone with order updates once the shopper
     /// has allowed notifications.
+    @MainActor
     func linkDevice(_ deviceKey: String) async {
         guard let forwardTo else { return }
         await prepare(forwardTo: forwardTo, deviceKey: deviceKey)
     }
 
     /// A call to the guest order email, as this install.
+    @MainActor
     private func guestCall(_ path: String = "", method: String = "GET") async -> (Int, Data)? {
-        guard AppChannel.reachesOrderServer else { return nil }
-        let key = await MainActor.run { RestockStore.installKey }
+        guard reachesServer else { return nil }
+        let key = RestockStore.installKey
         var request = URLRequest(url: URL(string: "https://marracat.com/api/relay/guest" + path)!)
         request.httpMethod = method; request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(AppChannel.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue(key, forHTTPHeaderField: "X-Marracat-Device")
-        guard let (data, response) = try? await URLSession.shared.data(for: request) else { return nil }
+        guard let (data, response) = try? await session.data(for: request) else { return nil }
         return ((response as? HTTPURLResponse)?.statusCode ?? 0, data)
     }
 
@@ -227,8 +245,9 @@ final class RelayStore {
     }
 
     /// Sends `itemNames` once per order; remembers what the server took.
+    @MainActor
     func syncItemNames(orders: [CheckoutRecord], brand: (String) -> Brand?, titles: (CheckoutRecord) -> [String]) async {
-        guard let account, AppChannel.reachesOrderServer, await account.signedIn else { return }
+        guard let account, reachesServer, account.signedIn else { return }
         let sentListName = "relay.itemsSent.v1"
         let sent = Set(defaults.stringArray(forKey: sentListName) ?? [])
         let batch = Array(itemNames(orders: orders, brand: brand, titles: titles, alreadySent: sent).prefix(50))

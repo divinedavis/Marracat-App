@@ -87,8 +87,12 @@ if (( ! DRY )); then
         || notify "public copy not synced; see build/public-mirror.log"
 fi
 
-last=$(git log -1 --format=%H -G'CURRENT_PROJECT_VERSION: "' -- project.yml)
-changes=$(git log --format='- %s' --no-merges "$last"..HEAD -- "${APP_PATHS[@]}" | grep -v '^- Bump to' || true)
+# What main holds that no build has: the app commits since the last build bump.
+unbuilt_changes() {
+    last=$(git log -1 --format=%H -G'CURRENT_PROJECT_VERSION: "' -- project.yml)
+    changes=$(git log --format='- %s' --no-merges "$last"..HEAD -- "${APP_PATHS[@]}" | grep -v '^- Bump to' || true)
+}
+unbuilt_changes
 pipeline=$(git log --format='- %s' --no-merges "$last"..HEAD -- "${PIPELINE_PATHS[@]}" | grep -v '^- Bump to' || true)
 [[ -z "$pipeline" ]] || { say "ship-script changes since the last build (this run exercises them):"; echo "$pipeline"; }
 # The weekly full suite belongs to Sunday, not to "a Sunday that happens to
@@ -115,6 +119,17 @@ until ! busy && ! dirty && build_lock_try "Marracat daily_ship.sh"; do
     fi
     sleep 300
 done
+
+# The wait can be for another ship of this very app. 2026-11-26: a by-hand
+# ship made build 201 while this run waited for the lock; the list above was
+# from before it, so this run tested the same code again and was a failed
+# speed test away from uploading it a second time as 202. Look again now
+# that the Mac is ours.
+git pull --ff-only --quiet || { notify "could not fast-forward main after the wait; skipped"; exit 1; }
+unbuilt_changes
+if [[ -z "$changes" ]] && (( ! check_only )); then
+    say "another ship built these changes while this one waited (build bump $(git log -1 --format=%h "$last")); nothing to ship"; exit 0
+fi
 
 # What a run learnt about flaky tests is kept whether it shipped or not.
 keep_flaky_history() {
