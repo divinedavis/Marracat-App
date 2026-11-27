@@ -45,7 +45,7 @@ function setup({ key = "sk_live_1" } = {}) {
   return { db, app, calls, tick: (ms) => (clock += ms), now: () => clock };
 }
 async function serve(app) {
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const base = `http://127.0.0.1:${s.address().port}`;
   const call = async (method, path, body, user) => {
     const r = await fetch(base + path, { method, headers: { "Content-Type": "application/json", ...(user ? { "X-User": user } : {}) }, body: body && JSON.stringify(body) });

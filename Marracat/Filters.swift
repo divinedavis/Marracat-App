@@ -9,6 +9,9 @@ import SwiftUI
 /// option names, so each part is classified by what it looks like.
 struct ProductFilters: Hashable {
     var brands: Set<String> = []
+    /// The countries brands are based in, as ISO codes ("NG", "GB"): owner,
+    /// 2026-11-26, "Let's put a filter for the country the company is founded".
+    var countries: Set<String> = []
     var categories: Set<String> = []
     /// Aisles, as Subcategory ids ("clothing:pants"): pants, sweatshirts,
     /// dresses inside Clothing (owner, 2026-11-08: "we need better filtering
@@ -110,7 +113,7 @@ struct ProductFilters: Hashable {
 
     /// How many groups are narrowing the results. Sort isn't a filter.
     var activeCount: Int {
-        brands.count + categories.count + aisles.count + colors.count + sizes.count + priceBands.count + offers.count
+        brands.count + countries.count + categories.count + aisles.count + colors.count + sizes.count + priceBands.count + offers.count
             + attrs.values.reduce(0) { $0 + $1.count }
     }
     var isEmpty: Bool { activeCount == 0 }
@@ -125,6 +128,7 @@ struct ProductFilters: Hashable {
     /// to the choice already made in it.
     @MainActor func matches(_ p: Product, ignoring group: FilterGroup? = nil) -> Bool {
         if group != .brand, !brands.isEmpty, !brands.contains(p.brand) { return false }
+        if group != .country, !countries.isEmpty, !(BrandCountry.of(p.brand).map(countries.contains) ?? false) { return false }
         if group != .category, !categories.isEmpty, !categories.contains(p.category) { return false }
         if group != .aisle, !aisles.isEmpty, !Self.inAisle(p, aisles) { return false }
         if group != .color, !colors.isEmpty, colors.isDisjoint(with: ProductFacets.colors(p)) { return false }
@@ -162,6 +166,7 @@ enum FilterGroup: String, CaseIterable, Identifiable {
     case aisle = "Type"
     case gender = "Gender"
     case brand = "Brand"
+    case country = "Country"
     case price = "Price"
     // What the brand says (AttrFilter), each from its own department's products.
     case hairType = "Hair type"
@@ -184,6 +189,7 @@ enum FilterGroup: String, CaseIterable, Identifiable {
         case .aisle: String(localized: "Type", comment: "Filter group heading: the kind of product inside a category, e.g. Pants, Sweatshirts, Dresses")
         case .gender: String(localized: "Gender", comment: "Filter group heading: Women / Men")
         case .brand: String(localized: "Brand", comment: "Filter group heading")
+        case .country: String(localized: "Country", comment: "Filter group heading: the country a brand is based in (Nigeria, United Kingdom, United States)")
         case .price: String(localized: "Price", comment: "Filter group heading")
         case .color: String(localized: "Colour", comment: "Filter group heading")
         case .size: String(localized: "Size", comment: "Filter group heading")
@@ -216,6 +222,59 @@ enum FilterGroup: String, CaseIterable, Identifiable {
         case .pack: "pack"
         default: nil
         }
+    }
+}
+
+/// Which country each brand is based in, for the Country filter. The catalog
+/// fills it in whenever it loads; a filter only holds brand ids on a product,
+/// so this is where it looks the country up. Written where the catalog is
+/// installed and read by the filters, both on the main thread, as FX's rates.
+enum BrandCountry {
+    nonisolated(unsafe) private static var byBrand: [String: String] = [:]
+
+    static func update(from brands: some Sequence<Brand>) {
+        byBrand = Dictionary(brands.compactMap { b in valid(b.country).map { (b.id, $0) } }, uniquingKeysWith: { a, _ in a })
+    }
+
+    static func of(_ brandID: String) -> String? { byBrand[brandID] }
+
+    /// A two-letter code, upper case; anything else is no country.
+    static func valid(_ code: String?) -> String? {
+        guard let c = code?.uppercased(), c.count == 2, c.allSatisfy({ $0.isASCII && $0.isLetter }) else { return nil }
+        return c
+    }
+
+    /// The country's flag, as the emoji the phone draws: "NG" is 🇳🇬. A flag
+    /// emoji is the code's two letters as regional-indicator symbols.
+    static func flag(_ code: String) -> String? {
+        guard let code = valid(code) else { return nil }
+        let indicators = code.unicodeScalars.compactMap { Unicode.Scalar(0x1F1E6 + $0.value - 65) }
+        return indicators.count == 2 ? String(String.UnicodeScalarView(indicators)) : nil
+    }
+
+    /// "Nigeria", "United Kingdom": the country's name in the phone's language.
+    static func name(_ code: String, locale: Locale = .current) -> String {
+        locale.localizedString(forRegionCode: code) ?? code
+    }
+}
+
+/// A country's tile in the Filters sheet: its flag, where the other groups
+/// show a product photo (owner, 2026-11-26: "For the country image on mobile
+/// use the country flag").
+struct FlagTile: View {
+    let flag: String
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6).fill(Theme.surface)
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                GeometryReader { box in
+                    Text(flag)
+                        .brandFont(.system(size: box.size.width * 0.62))
+                        .frame(width: box.size.width, height: box.size.height)
+                }
+            }
+            .accessibilityHidden(true)
     }
 }
 
@@ -502,6 +561,7 @@ struct FilterFacets {
         var photos: [FilterGroup: PhotoPicks] = [:]
         var attrPhotos: [String: PhotoPicks] = [:]
         var brands: [String: Int] = [:]
+        var countries: [String: Int] = [:]
         var prices: [String: Int] = [:]
         var colors: [String: Int] = [:]
         var sizes: [String: Int] = [:]
@@ -524,7 +584,12 @@ struct FilterFacets {
             let okAttrs = failures == 0
             let pColors = filters.colors.isEmpty ? [] : ProductFacets.colors(p)
             let pSizes = filters.sizes.isEmpty ? [] : ProductFacets.sizes(p)
-            let okBrand = filters.brands.isEmpty || filters.brands.contains(p.brand)
+            // A brand and its country are one fact about who makes the
+            // product, so the two travel together in every other group's tally.
+            let country = BrandCountry.of(p.brand)
+            let okCountry = filters.countries.isEmpty || (country.map(filters.countries.contains) ?? false)
+            let okBrandOnly = filters.brands.isEmpty || filters.brands.contains(p.brand)
+            let okBrand = okBrandOnly && okCountry
             let okCategory = filters.categories.isEmpty || filters.categories.contains(p.category)
             let okAisle = filters.aisles.isEmpty || ProductFilters.inAisle(p, filters.aisles)
             let okColor = filters.colors.isEmpty || !filters.colors.isDisjoint(with: pColors)
@@ -547,8 +612,12 @@ struct FilterFacets {
                 }
             }
             if okAisle && okCategory && okColor && okSize && okPrice && okOffers && okAttrs {
-                brands[p.brand, default: 0] += 1
-                photos[.brand, default: PhotoPicks()].offer(p, p.brand)
+                if okCountry {
+                    brands[p.brand, default: 0] += 1
+                    photos[.brand, default: PhotoPicks()].offer(p, p.brand)
+                }
+                // No product photo: a country's tile is its flag.
+                if okBrandOnly, let country { countries[country, default: 0] += 1 }
             }
             if okAisle && okBrand && okCategory && okColor && okSize && okOffers && okAttrs {
                 let band = PriceBand.band(for: p.usdPrice).name
@@ -593,6 +662,9 @@ struct FilterFacets {
             .sorted { ($0.count, $1.name) > ($1.count, $0.name) }
         options[.brand] = brands
             .map { FilterOption(id: $0.key, name: brandName($0.key) ?? $0.key, count: $0.value) }
+            .sorted { ($0.count, $1.name) > ($1.count, $0.name) }
+        options[.country] = countries
+            .map { FilterOption(id: $0.key, name: BrandCountry.name($0.key), count: $0.value) }
             .sorted { ($0.count, $1.name) > ($1.count, $0.name) }
         options[.price] = PriceBand.all
             .compactMap { band in prices[band.name].map { FilterOption(id: band.name, name: PriceBand.title(band.name), count: $0) } }
@@ -758,6 +830,7 @@ struct FilterSheet: View {
         case .category: return draft.categories.count
         case .aisle: return draft.aisles.count
         case .brand: return draft.brands.count
+        case .country: return draft.countries.count
         case .price: return draft.priceBands.count
         case .color: return draft.colors.count
         case .size: return draft.sizes.count
@@ -806,6 +879,8 @@ struct FilterSheet: View {
                 Group {
                     if let look = badge?.tile {
                         BadgeTypeTile(color: look.color, symbol: look.symbol, kicker: look.kicker, word: look.word)
+                    } else if group == .country, let flag = BrandCountry.flag(option.id) {
+                        FlagTile(flag: flag)
                     } else if option.image == nil, let swatch {
                         RoundedRectangle(cornerRadius: 6).fill(swatch).aspectRatio(1, contentMode: .fit)
                     } else {
@@ -849,6 +924,7 @@ struct FilterSheet: View {
         case .category: return draft.categories.contains(o.id)
         case .aisle: return draft.aisles.contains(o.id)
         case .brand: return draft.brands.contains(o.id)
+        case .country: return draft.countries.contains(o.id)
         case .price: return draft.priceBands.contains(o.id)
         case .color: return draft.colors.contains(o.id)
         case .size: return draft.sizes.contains(o.id)
@@ -872,6 +948,7 @@ struct FilterSheet: View {
         case .category: flip(&draft.categories, o.id)
         case .aisle: flip(&draft.aisles, o.id)
         case .brand: flip(&draft.brands, o.id)
+        case .country: flip(&draft.countries, o.id)
         case .price: flip(&draft.priceBands, o.id)
         case .color: flip(&draft.colors, o.id)
         case .size: flip(&draft.sizes, o.id)
@@ -1251,6 +1328,7 @@ struct FilterBar: View {
         for id in filters.brands.sorted() {
             out.append((catalog.brand(id)?.name ?? id, { filters.brands.remove(id) }))
         }
+        for code in filters.countries.sorted() { out.append((BrandCountry.name(code), { filters.countries.remove(code) })) }
         for band in filters.priceBands.sorted() { out.append((PriceBand.title(band), { filters.priceBands.remove(band) })) }
         for f in AttrFilter.fields {
             for v in (filters.attrs[f] ?? []).sorted() {

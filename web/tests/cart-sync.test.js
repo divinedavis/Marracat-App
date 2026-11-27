@@ -20,8 +20,7 @@ async function server(user) {
   const db = new Database(":memory:");
   let t = 1000;
   cartRoutes(app, db, { viewer: async (req) => (req.get("X-User") ? { id: req.get("X-User") } : null), now: () => ++t });
-  const s = app.listen(0);
-  await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const base = `http://127.0.0.1:${s.address().port}/api/cart`;
   const call = (method, body, who = user) => fetch(base, { method, headers: { "Content-Type": "application/json", ...(who ? { "X-User": who } : {}) }, body: body && JSON.stringify(body) });
   return { call, close: () => s.close() };

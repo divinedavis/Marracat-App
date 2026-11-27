@@ -1315,7 +1315,7 @@ def main():
         # A brand with nothing to sell is not a shelf: six stores are locked or
         # unpaid (401/402) and would otherwise show up empty. They stay in
         # brands.json, so they come back the day their store does.
-        "brands": [{**{k: b[k] for k in ("id", "name", "domain", "category", "tagline", "shopify", "image", "currency", "ucp", "checkout", "bigcartel", "swell", "ships_from", "instagram") if k in b},
+        "brands": [{**{k: b[k] for k in ("id", "name", "domain", "category", "tagline", "shopify", "image", "currency", "ucp", "checkout", "bigcartel", "swell", "ships_from", "country", "instagram") if k in b},
                     "platform": b.get("platform", "shopify")}
                    for b in brands if b["id"] in {p["brand"] for p in products}],
         "products": products,
@@ -1341,7 +1341,7 @@ def main():
                 # Its brand entry too: the brand list was made before the
                 # rescue, and products whose brand isn't listed break the app
                 # and the site (79 brands on 2026-10-05).
-                catalog["brands"].append({**{k: b[k] for k in ("id", "name", "domain", "category", "tagline", "shopify", "image", "currency", "ucp", "checkout", "bigcartel", "swell", "ships_from", "instagram") if k in b},
+                catalog["brands"].append({**{k: b[k] for k in ("id", "name", "domain", "category", "tagline", "shopify", "image", "currency", "ucp", "checkout", "bigcartel", "swell", "ships_from", "country", "instagram") if k in b},
                                           "platform": b.get("platform", "shopify")})
                 print(f"  kept {len(had[b['id']])} products for {b['id']}: {b['domain']} did not answer this run",
                       file=sys.stderr)
@@ -1370,12 +1370,14 @@ def main():
         existing["brands"].sort(key=lambda b: b["name"].lower())
         # Where a brand ships from is the registry's, not the store's, so the
         # brands this run didn't rebuild still follow brands.json for it.
-        origin = {b["id"]: b.get("ships_from") for b in json.loads(BRANDS.read_text())}
+        # The country it is based in (brand_country.py) is the registry's as well.
+        registry = {b["id"]: b for b in json.loads(BRANDS.read_text())}
         for b in existing["brands"]:
-            if origin.get(b["id"]):
-                b["ships_from"] = origin[b["id"]]
-            else:
-                b.pop("ships_from", None)
+            for field in ("ships_from", "country"):
+                if registry.get(b["id"], {}).get(field):
+                    b[field] = registry[b["id"]][field]
+                else:
+                    b.pop(field, None)
         existing["generated_at"] = catalog["generated_at"]
         used = {f"{p['category']}:{sub}" for p in existing["products"] for sub in p["subs"]}
         existing["subcategories"] = [s for s in flat_subcategories() if s["id"] in used]

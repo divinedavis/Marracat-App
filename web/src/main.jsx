@@ -49,6 +49,7 @@ import {
   imageURL,
   safeURL,
   filterProducts,
+  countryChoices,
   relaxedSearch,
   searchWithGuesses,
   personalPicks,
@@ -672,6 +673,9 @@ function App() {
     [sort, setSort] = useState("featured"),
     [brandFilter, setBrandFilter] = useState(""),
     [typeFilter, setTypeFilter] = useState(""),
+    // The country brands are based in ("NG"), or "" (owner, 2026-11-26).
+    [countryFilter, setCountryFilter] = useState(""),
+    [allCountries, setAllCountries] = useState(false),
     [inStock, setInStock] = useState(false),
     [cleanOnly, setCleanOnly] = useState(false),
     [metalOnly, setMetalOnly] = useState(false),
@@ -766,6 +770,8 @@ function App() {
       setAllTypes(false);
       setBrandFilter("");
       setTypeFilter("");
+      setCountryFilter("");
+      setAllCountries(false);
       setCleanOnly(false);
       setMetalOnly(false);
       setScentOnly(false);
@@ -1139,6 +1145,7 @@ function App() {
     category,
     aisle,
     brand: selectedBrand || brandFilter,
+    country: selectedBrand ? "" : countryFilter,
     type: typeFilter,
     sale: params.get("sale") === "1",
     under: params.get("under") === "25",
@@ -1182,7 +1189,7 @@ function App() {
     // The colour chips count the page without its own colour (server/query.js does the same).
     const colorBase = options.color ? without({ ...options, color: "" }) : found.result;
     return { result: shown, relaxedQuery: relaxed ? relaxed.q : null, guesses: found.guesses, typeCounts: counts, colors: colorCounts(colorBase) };
-  }, [products, brands, route, brandFilter, typeFilter, inStock, cleanOnly, metalOnly, scentOnly, saferOnly, foodOnly, babyOnly, fiberOnly, fabricOnly, labOnly, petOnly, materialOnly, homeOnly, sort]);
+  }, [products, brands, route, brandFilter, countryFilter, typeFilter, inStock, cleanOnly, metalOnly, scentOnly, saferOnly, foodOnly, babyOnly, fiberOnly, fabricOnly, labOnly, petOnly, materialOnly, homeOnly, sort]);
   // Until the full catalog lands, a filtered page draws from the server
   // (src/fast-query.js), then from the full list exactly as before.
   const server = useServerQuery(!!catalog?.partial && path === "/shop", {
@@ -1590,11 +1597,12 @@ function App() {
   const pillAisles = !selectedBrand && !search ? aisles || [] : [];
   const moreAisles = splitAisles(pillAisles, aisle).rest;
   const activeFilters =
-    (brandFilter && !selectedBrand ? 1 : 0) + (typeFilter ? 1 : 0) + (inStock ? 1 : 0) +
+    (brandFilter && !selectedBrand ? 1 : 0) + (countryFilter && !selectedBrand ? 1 : 0) + (typeFilter ? 1 : 0) + (inStock ? 1 : 0) +
     badgeFilters.filter(([, on]) => on).length +
     Object.values(attrActive).filter(Boolean).length + (colorActive ? 1 : 0);
   const clearFilters = () => {
     if (!selectedBrand) setBrandFilter("");
+    setCountryFilter("");
     setTypeFilter("");
     setInStock(false);
     for (const [, , set] of badgeFilters) set(false);
@@ -1618,6 +1626,10 @@ function App() {
       .map((b) => ({ id: b.id, name: b.name, count: counts.get(b.id) }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [products, brands, category, server]);
+  // The Country filter's choices: the countries those brands are based in,
+  // most products first (owner, 2026-11-26: "Let's put a filter for the
+  // country the company is founded").
+  const countryOptions = useMemo(() => countryChoices(brands, brandOptions), [brands, brandOptions]);
   // The All brands page's search: forgiving about typos, spacing and accents,
   // closest names first, then brands whose tagline or department matches.
   // Products per brand, counted once per catalog. Each brand card used to
@@ -2236,6 +2248,33 @@ function App() {
                         <BrandPicker brands={brandOptions} value={brandFilter} onChange={setBrandFilter} />
                       </div>
                     )}
+                    {!selectedBrand && countryOptions.length > 1 && (
+                      <fieldset className="filter-group" aria-label="Filter by the brand's country">
+                        <legend>Country</legend>
+                        {[
+                          { id: "", name: "All" },
+                          ...(allCountries
+                            ? countryOptions
+                            : countryOptions.filter((c, i) => i < TYPES_SHOWN || c.id === countryFilter)),
+                        ].map((c) => (
+                          <label key={c.id || "all"} className="filter-option">
+                            <input
+                              type="radio"
+                              name="brand-country"
+                              checked={countryFilter === c.id}
+                              onChange={() => setCountryFilter(c.id)}
+                            />
+                            <span>{c.name}</span>
+                            {c.count != null && <small>{c.count.toLocaleString()}</small>}
+                          </label>
+                        ))}
+                        {countryOptions.length > TYPES_SHOWN && (
+                          <button type="button" className="filter-more" aria-expanded={allCountries} onClick={() => setAllCountries(!allCountries)}>
+                            {allCountries ? "Show fewer countries" : `Show all ${countryOptions.length} countries`}
+                          </button>
+                        )}
+                      </fieldset>
+                    )}
                     <div className="filter-group">
                       <h3>Availability</h3>
                       <label className="filter-option stock-filter">
@@ -2329,7 +2368,7 @@ function App() {
                     <SponsoredRow placement={search ? "search" : "category"} items={sponsoredSearch} productMap={productMap}
                       renderProduct={(p) => <ProductCard key={p.id} p={p} />} />
                     <ProductFeed
-                      key={`${route}:${brandFilter}:${typeFilter}:${inStock}:${cleanOnly}:${metalOnly}:${scentOnly}:${saferOnly}:${foodOnly}:${babyOnly}:${fiberOnly}:${fabricOnly}:${labOnly}:${petOnly}:${materialOnly}:${homeOnly}:${sort}`}
+                      key={`${route}:${brandFilter}:${countryFilter}:${typeFilter}:${inStock}:${cleanOnly}:${metalOnly}:${scentOnly}:${saferOnly}:${foodOnly}:${babyOnly}:${fiberOnly}:${fabricOnly}:${labOnly}:${petOnly}:${materialOnly}:${homeOnly}:${sort}`}
                       products={
                         params.get("sort") === "new" && sort === "featured"
                           ? [...result].sort((a, b) =>

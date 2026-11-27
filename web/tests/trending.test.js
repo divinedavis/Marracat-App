@@ -131,8 +131,7 @@ test("falls back to Popular this week, then to nothing", () => {
 async function serve(db, opts) {
   const app = express();
   trendingRoutes(app, db, { env, products: () => products, ...opts });
-  const server = app.listen(0);
-  await new Promise((r) => server.once("listening", r));
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   return { url: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
 }
 

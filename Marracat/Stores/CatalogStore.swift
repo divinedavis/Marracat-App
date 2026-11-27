@@ -288,6 +288,7 @@ final class CatalogStore {
     private func install(_ ready: Indexed) {
         catalog = ready.catalog
         brandsByID = ready.brands
+        BrandCountry.update(from: ready.brands.values)
         FX.update(from: ready.brands.values)
         categoriesByID = ready.categories
         productIndex = ready.products

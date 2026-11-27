@@ -28,7 +28,7 @@ async function claimServer() {
     env: { PUBLIC_URL: "https://marracat.com" }, mailer: async (m) => mails.push(m),
     viewer: async () => who, brandLookup: (id) => ({ b1: { id: "b1", name: "Diarra Blu", domain: "diarrablu.com" }, b2: { id: "b2", name: "Two", domain: "two.com" } })[id],
   });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/brand-claims`;
   const as = (id) => { who = id ? { id, email: `${id}@example.com` } : null; };
   const ask = (brand, email) => fetch(`${base}/email`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brand, email }) });

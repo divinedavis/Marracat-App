@@ -157,7 +157,7 @@ test("/api/passkeys: sign-in options for anyone; adding, listing and removing on
   let user = null;
   const app = express();
   passkeyRoutes(app, db, { viewer: async () => user, rp: RP });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/passkeys`;
   const call = async (path, method = "POST", body) => fetch(base + path, { method, headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 (Macintosh; Mac OS X) Safari/605" }, body: body && JSON.stringify(body) });
   try {

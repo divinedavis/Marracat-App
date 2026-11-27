@@ -4,4 +4,3 @@
 # the last 5 ships comes in; one that then passes first time 5 ships running
 # goes back. Hand edits are fine. One Class/testName per line.
 # Seeded from ship logs: each failed a ship and later passed unchanged.
-LaundryPicksUITests/testLikingADetergentBringsMoreForTheLaundryAndNothingUntouched

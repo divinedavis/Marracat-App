@@ -59,6 +59,10 @@ test("query options are bounded and malformed ones refused", () => {
   assert.equal(queryOptions({ category: "a b" }), null);
   assert.equal(queryOptions({ type: "clothing" }), null, "a type is department:leaf");
   assert.equal(queryOptions({ sort: "drop table" }), null);
+  assert.equal(queryOptions({ country: "NG" }).country, "NG");
+  assert.equal(queryOptions({}).country, "");
+  assert.equal(queryOptions({ country: "Nigeria" }), null, "a country is a two-letter code");
+  assert.equal(queryOptions({ country: "ng" }), null);
   assert.equal(queryOptions({ q: "x".repeat(5000) }).q.length, 200);
   assert.equal(queryOptions({ q: ["a", "b"] }).q, "", "repeated params are ignored, not joined");
   assert.equal(queryOptions({ clean: "1", stock: "yes" }).clean, true);
@@ -74,7 +78,7 @@ test("query options are bounded and malformed ones refused", () => {
 test("GET /api/query pages through the result and sends only card fields", async () => {
   const app = express();
   queryRoutes(app, querySource);
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/query?`;
   try {
     const first = await (await fetch(base + queryString({ q: "", sort: "featured" }))).json();
@@ -107,7 +111,7 @@ test("a newer catalog replaces cached answers", async () => {
   const app = express();
   let source = { generated_at: "a", products: products.slice(0, 10), brands };
   queryRoutes(app, () => source);
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const url = `http://127.0.0.1:${server.address().port}/api/query?limit=120`;
   try {
     assert.equal((await (await fetch(url)).json()).total, collapseGroups(products.slice(0, 10)).length);
@@ -216,7 +220,7 @@ test("the search text and index are made when the server starts, not by the firs
 test("/api/query answers the same before and after its index is ready", async () => {
   const app = express();
   queryRoutes(app, querySource);
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const get = async (q) => (await fetch(`http://127.0.0.1:${server.address().port}/api/query?limit=120&q=${encodeURIComponent(q)}`)).json();
   const ids = (q) => collapseGroups(runQuery(products, brands, { ...queryOptions({ q }) }).shown).slice(0, 120).map((p) => p.id);
   try {

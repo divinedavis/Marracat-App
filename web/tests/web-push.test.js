@@ -118,7 +118,7 @@ test("/api/push: signed-in only, validated, one row per browser, a welcome on fi
   webPushRoutes(app, db, { sender, viewer: async () => user, maxPerUser: 2 });
   const off = express();
   webPushRoutes(off, new Database(":memory:"), { sender: null, viewer: async () => ({ id: "u1" }) });
-  const server = app.listen(0), offServer = off.listen(0);
+  const server = app.listen(0, "127.0.0.1"), offServer = off.listen(0, "127.0.0.1"); await Promise.all([server, offServer].map((s) => new Promise((r) => s.once("listening", r))));
   const base = `http://127.0.0.1:${server.address().port}/api/push`;
   const call = (path, method, body) => fetch(base + path, { method, headers: { "Content-Type": "application/json" }, body: body && JSON.stringify(body) });
   try {

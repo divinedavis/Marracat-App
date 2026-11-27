@@ -79,7 +79,7 @@ test("boost events from one IP with many made-up ids count once", async () => {
   const app = express();
   app.set("trust proxy", "loopback");
   boostRoutes(app, d, { env: {}, now: () => NOW });
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const send = (id, ip) => fetch(`http://127.0.0.1:${s.address().port}/api/boosts/events`, { method: "POST",
     headers: { "Content-Type": "application/json", "X-Marracat-Device": id, "X-Forwarded-For": ip },
     body: JSON.stringify({ events: [{ target: "brand:b1", kind: "view" }] }) });

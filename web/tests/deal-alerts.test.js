@@ -123,7 +123,7 @@ test("drop watches are set, changed and removed per account", async () => {
   const app = express();
   const lookup = { brandRecord: (id) => (id === "tel" ? { id: "tel", name: "Telfar" } : null), productRecord: () => null, allProducts: () => [] };
   dealAlertRoutes(app, db, { env: {}, apns: null, mail: null, lookup, schedule: false });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/alerts`;
   const call = (method, path, body, auth = true) => fetch(base + path, { method,
     headers: { "content-type": "application/json", ...(auth ? { authorization: `Bearer ${token}` } : {}) }, body: body && JSON.stringify(body) });
@@ -182,7 +182,7 @@ test("the unsubscribe link works signed out, refuses a forged one, and stops ale
   const lookup = { productRecord: () => ({ id: "p1", brand: "b", title: "Dress", price: 40, available: true, url: "https://x.bigcartel.com/product/d" }),
     brandRecord: () => ({ name: "Brand", platform: "bigcartel" }), allProducts: () => [] };
   dealAlertRoutes(app, db, { env: { AUTH_SECRET: SECRET }, apns: null, mail: null, lookup, schedule: false });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const origin = `http://127.0.0.1:${server.address().port}`;
   try {
     const path = new URL(unsubscribeURL("u1", SECRET)).pathname + new URL(unsubscribeURL("u1", SECRET)).search;
@@ -326,7 +326,7 @@ test("the digest setting needs a boolean, keeps the zone, and turning it off sen
   const pushes = [];
   const apns = { send: async (_d, p) => (pushes.push(p), { status: 200 }) };
   dealAlertRoutes(app, db, { env: {}, apns, mail: null, lookup: { brandRecord: () => null, productRecord: () => null, allProducts: () => [] }, schedule: false });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/alerts`;
   const call = (method, path, body) => fetch(base + path, { method, headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: body && JSON.stringify(body) });
   try {

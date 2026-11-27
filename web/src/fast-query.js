@@ -13,7 +13,7 @@ const FLAGS = ["sale", "under", "stock", "clean", "metal", "scent", "safer", "fo
 /// The /api/query string for the storefront's filter options.
 export function queryString(options, offset = 0) {
   const s = new URLSearchParams();
-  for (const k of ["q", "category", "aisle", "brand", "type", ...ATTR_FIELDS, "color"]) if (options[k]) s.set(k, options[k]);
+  for (const k of ["q", "category", "aisle", "brand", "country", "type", ...ATTR_FIELDS, "color"]) if (options[k]) s.set(k, options[k]);
   for (const f of FLAGS) if (options[f]) s.set(f, "1");
   if (options.sort && options.sort !== "featured") s.set("sort", options.sort);
   if (offset) s.set("offset", String(offset));

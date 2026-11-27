@@ -120,7 +120,7 @@ test("checkout/build needs a session or the website's own fetch, and is capped p
   let user = null, builds = 0;
   checkoutRoutes(app, { viewer: async () => user, env: { PUBLIC_URL: "https://marracat.com" },
     lookup: (id) => (id === "b1" ? { id: "b1" } : null), build: async () => ({ id: "c" + ++builds }) });
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const buyer = { firstName: "A", lastName: "B", street: "1 Main St", city: "X", region: "NY", postalCode: "10001", email: "a@b.co", phone: "+12125551212" };
   const post = (headers = {}) => fetch(`http://127.0.0.1:${s.address().port}/api/checkout/build`, { method: "POST",
     headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify({ brand: "b1", lines: [{ variant: "1", quantity: 1 }], buyer }) });

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { filterProducts, relaxedSearch, checkoutURL, usesMarracatCart, safeURL, money, cartTotals, optionNoun } from "../src/catalog.js";
+import { filterProducts, countryChoices, countryName, relaxedSearch, checkoutURL, usesMarracatCart, safeURL, money, cartTotals, optionNoun } from "../src/catalog.js";
 const catalog = JSON.parse(
   readFileSync(
     new URL("../../Marracat/Resources/catalog.json", import.meta.url),
@@ -250,4 +250,33 @@ test("the product page names options as the store does, else 'an option'", () =>
   assert.equal(optionNoun(["Color", "Size"]), "color / size");
   assert.equal(optionNoun(undefined), "an option");
   assert.equal(optionNoun([" "]), "an option");
+});
+test("the Country filter keeps the brands based in one country", () => {
+  // Owner, 2026-11-26: "Let's put a filter for the country the company is founded".
+  const products = [
+    { id: "a", brand: "lagos-one", title: "Agbada", category: "clothing", price: 90, available: true },
+    { id: "k", brand: "lagos-two", title: "Kaftan", category: "clothing", price: 50, available: true },
+    { id: "t", brand: "london-co", title: "Trench", category: "clothing", price: 30, available: true },
+    { id: "m", brand: "unknown-co", title: "Mystery", category: "clothing", price: 60, available: true },
+  ];
+  const brands = [
+    { id: "lagos-one", name: "Lagos One", country: "NG" },
+    { id: "lagos-two", name: "Lagos Two", country: "NG" },
+    { id: "london-co", name: "London Co", country: "GB" },
+    { id: "unknown-co", name: "Unknown Co" },
+    { id: "odd-co", name: "Odd Co", country: "africa" },
+  ];
+  const ids = (options) => filterProducts(products, brands, options).map((p) => p.id).sort();
+  assert.deepEqual(ids({ country: "NG" }), ["a", "k"]);
+  assert.deepEqual(ids({ country: "GB" }), ["t"]);
+  assert.deepEqual(ids({ country: "NG", brand: "lagos-two" }), ["k"]);
+  assert.deepEqual(ids({ country: "US" }), [], "a brand with no country on record is in no country");
+  assert.equal(ids({}).length, 4, "off by default");
+  // The filter's choices, most products first, named in full.
+  const counts = [{ id: "lagos-one", count: 1 }, { id: "lagos-two", count: 1 }, { id: "london-co", count: 1 }, { id: "unknown-co", count: 1 }, { id: "odd-co", count: 5 }];
+  assert.deepEqual(countryChoices(brands, counts), [
+    { id: "NG", name: "Nigeria", count: 2 },
+    { id: "GB", name: "United Kingdom", count: 1 },
+  ]);
+  assert.equal(countryName("US"), "United States");
 });

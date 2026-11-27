@@ -478,6 +478,42 @@ export function interleaveBrands(ranked, seed = daySeed(), { fromManyBrands = fa
   return out;
 }
 
+/// The country each brand is based in ("NG", "GB"), by brand id; the
+/// catalog's `country` (catalog/brand_country.py). One table per brand list.
+const countryTables = new WeakMap();
+export function brandCountries(brands) {
+  let table = countryTables.get(brands);
+  if (!table) {
+    table = new Map();
+    for (const b of brands) if (/^[A-Z]{2}$/.test(b.country || "")) table.set(b.id, b.country);
+    countryTables.set(brands, table);
+  }
+  return table;
+}
+
+/// "Nigeria", "United Kingdom": the country's name for a two-letter code.
+const regionNames = typeof Intl !== "undefined" && Intl.DisplayNames ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
+export function countryName(code) {
+  try {
+    return regionNames?.of(code) || code;
+  } catch {
+    return code;
+  }
+}
+
+/// The Country filter's choices: every country with products among the
+/// brand counts given ({ id, count } per brand), most products first.
+export function countryChoices(brands, brandCounts) {
+  const table = brandCountries(brands), counts = new Map();
+  for (const { id, count } of brandCounts) {
+    const c = table.get(id);
+    if (c) counts.set(c, (counts.get(c) || 0) + count);
+  }
+  return [...counts]
+    .map(([id, count]) => ({ id, name: countryName(id), count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
 export function filterProducts(
   products,
   brands,
@@ -486,6 +522,8 @@ export function filterProducts(
     category = "",
     aisle = "",
     brand = "",
+    // The country the brand is based in, as a two-letter code, or "".
+    country = "",
     type = "",
     sale = false,
     under = false,
@@ -536,11 +574,13 @@ export function filterProducts(
   // when this is the list it was built for.
   const narrow = indexFits(index, products, brands) ? index : indexFits(pageIndex, products, brands) ? pageIndex : null;
   const pool = (score && narrow && searchCandidates(narrow, score.wordings)) || products;
+  const countries = country ? brandCountries(brands) : null;
   const result = pool.filter(
     (p) =>
       (!category || p.category === category) &&
       (!aisle || (p.subs || []).includes(aisle)) &&
       (!brand || p.brand === brand) &&
+      (!country || countries.get(p.brand) === country) &&
       // A product type is an aisle id, "department:leaf" (leaves repeat across departments).
       (!type || (p.category === type.split(":")[0] && (p.subs || []).includes(type.split(":")[1]))) &&
       (!sale || p.compare_at > p.price) &&

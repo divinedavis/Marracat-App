@@ -20,7 +20,7 @@ test("the website reads the orders the app saved, and adds its own", async () =>
   applyOperations(db, "u1", [{ id: "op1", kind: "checkout", checkout: { id: "A1", brandID: "b1", date: 1, itemCount: 1, subtotal: 9, productIDs: ["p"] } }]);
   const app = express();
   accountWebRoutes(app, db, { viewer: async (req) => (req.get("X-User") ? { id: req.get("X-User") } : null) });
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const base = `http://127.0.0.1:${s.address().port}/api/account`;
   try {
     assert.equal((await fetch(base + "/profile")).status, 401);

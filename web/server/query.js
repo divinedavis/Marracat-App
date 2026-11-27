@@ -25,17 +25,19 @@ const BADGES = ["clean", "metal", "scent", "safer", "food", "baby", "fiber", "fa
 const SORTS = new Set(["featured", "low", "high", "new"]);
 const ID = /^[a-z0-9][a-z0-9_-]{0,79}$/i;
 const TYPE = /^[a-z0-9_-]{1,40}:[a-z0-9_-]{1,40}$/i;
+// The Country filter: an ISO 3166 two-letter code, as the catalog writes it.
+const COUNTRY = /^[A-Z]{2}$/;
 
 /// The query options from a request's query string, or null when one is
 /// malformed. Same names the storefront builds in main.jsx.
 export function queryOptions(query) {
   const one = (k) => (typeof query[k] === "string" ? query[k] : "");
   const q = one("q").trim().slice(0, 200);
-  const category = one("category"), aisle = one("aisle"), brand = one("brand"), type = one("type");
-  for (const [v, re] of [[category, ID], [aisle, ID], [brand, ID], [type, TYPE]]) if (v && !re.test(v)) return null;
+  const category = one("category"), aisle = one("aisle"), brand = one("brand"), type = one("type"), country = one("country");
+  for (const [v, re] of [[category, ID], [aisle, ID], [brand, ID], [type, TYPE], [country, COUNTRY]]) if (v && !re.test(v)) return null;
   const sort = one("sort") || "featured";
   if (!SORTS.has(sort)) return null;
-  const options = { q, category, aisle, brand, type, sort };
+  const options = { q, category, aisle, brand, country, type, sort };
   for (const f of FLAGS) options[f] = one(f) === "1";
   // Shopper filters: an unknown value is a bad query, not an empty filter.
   const attrs = attrOptions(query);

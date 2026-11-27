@@ -71,7 +71,7 @@ test("GET /api/account/orders/updates: only the signed-in account's updates", as
 
   const app = express();
   accountWebRoutes(app, db, { relay, viewer: async (req) => (req.get("X-User") ? { id: req.get("X-User") } : null) });
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const base = `http://127.0.0.1:${s.address().port}/api/account/orders/updates`;
   try {
     assert.equal((await fetch(base)).status, 401);

@@ -41,7 +41,7 @@ function setup() {
   return { db, app, stripeCalls, fetcher, tick: (ms) => (clock += ms), now: () => clock };
 }
 async function serve(app) {
-  const s = app.listen(0); await new Promise((r) => s.once("listening", r));
+  const s = app.listen(0, "127.0.0.1"); await new Promise((r) => s.once("listening", r));
   const base = `http://127.0.0.1:${s.address().port}/api/ads`;
   const call = async (method, path, body, user, device = "dev1") => {
     const r = await fetch(base + path, { method, headers: { "Content-Type": "application/json", "X-Marracat-Device": device, ...(user ? { "X-User": user } : {}) }, body: body && JSON.stringify(body) });

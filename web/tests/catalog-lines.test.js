@@ -48,7 +48,7 @@ test("lines come out whole however the bytes were cut, accents and all", () => {
 test("/api/catalog?lines=1 is the same catalog as /api/catalog, and answers 304 to what it sent", async () => {
   const app = express();
   catalogRoutes(app);
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/catalog?v=5`;
   try {
     const whole = await (await fetch(base)).json();

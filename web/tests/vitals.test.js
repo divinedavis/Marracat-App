@@ -45,7 +45,7 @@ test("POST /api/vitals stores a row from a beacon and answers 204 to anything", 
   const db = new Database(":memory:");
   const app = express();
   vitalsRoutes(app, db);
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const url = `http://127.0.0.1:${server.address().port}/api/vitals`;
   try {
     // sendBeacon posts a Blob typed application/json.

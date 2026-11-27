@@ -1,71 +1,71 @@
 {
   "PerformanceTests/testFirstTabSwitchAfterLaunch() :: First tab switch longest stall": {
     "history": [
-      207.3,
       210.5,
       216.8,
       218.1,
-      203.7
+      203.7,
+      198.7
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home fling hitch ratio": {
     "history": [
-      71.8,
       69.18,
       42.31,
       29.04,
-      25.26
+      25.26,
+      26.8
     ],
     "unit": "ms/s"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Home longest main-thread stall": {
     "history": [
-      199.8,
       193.9,
       147.2,
       120.9,
-      125.7
+      125.7,
+      117.4
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeFlingAfterLaunch() :: Launch to interactive Home": {
     "history": [
-      1854,
       2047,
       2037,
       2059,
-      2049
+      2049,
+      2044
     ],
     "unit": "ms"
   },
   "PerformanceTests/testHomeScroll() :: Absolute Memory Physical (marracat)": {
     "history": [
-      539904.712,
       537152.2,
       590334.736,
       545835.768,
-      537856.736
+      537856.736,
+      584338.192
     ],
     "unit": "kB"
   },
   "PerformanceTests/testHomeScroll() :: Duration (Scroll_Deceleration)": {
     "history": [
-      2.4171,
       2.4335,
       2.417,
       2.4174,
+      2.4172,
       2.4172
     ],
     "unit": "s"
   },
   "PerformanceTests/testHomeScroll() :: Memory Peak Physical (marracat)": {
     "history": [
-      540347.08,
       537594.568,
       590596.88,
       546032.376,
-      538053.344
+      538053.344,
+      584764.2
     ],
     "unit": "kB"
   },
@@ -73,8 +73,8 @@
     "history": [
       0,
       0,
-      0,
       16.384,
+      0,
       0
     ],
     "unit": "kB"
@@ -83,17 +83,18 @@
     "history": [
       2.0978,
       2.0522,
-      2.0237
+      2.0237,
+      2.0395
     ],
     "unit": "s"
   },
   "PerformanceTests/testLaunchToHomeProducts() :: Clock Monotonic Time": {
     "history": [
-      5.106,
       5.3668,
       5.3029,
       5.2647,
-      5.2169
+      5.2169,
+      5.2472
     ],
     "unit": "s"
   }

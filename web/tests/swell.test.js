@@ -65,7 +65,7 @@ test("the cart is built in one Swell session and tagged as Marracat's", async ()
 });
 
 async function get(app, path) {
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   try {
     return await fetch(`http://127.0.0.1:${server.address().port}${path}`, { redirect: "manual" });
   } finally {

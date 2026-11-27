@@ -135,7 +135,7 @@ test("the PUT route ignores a forwardTo the app sends", async () => {
   db.prepare("INSERT INTO mobile_accounts VALUES('google:1')").run();
   const app = express();
   relayRoutes(app, db, relay, { env: { RELAY_USERS: "*" } });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const res = await fetch(`http://127.0.0.1:${server.address().port}/api/mobile/relay`, {
     method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ forwardTo: "victim@elsewhere.com" }) });
@@ -513,7 +513,7 @@ test("the tracking webhooks refuse unsigned pushes and hand signed ones to the o
   const app = express();
   relayRoutes(app, db, relay, { env: { EASYPOST_WEBHOOK_SECRET: "s3cret", TRACK17_API_KEY: "k17" },
     easypost: [async (p) => heard.easypost.push(p)], track17: [async (p) => heard.track17.push(p)] });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   const base = `http://127.0.0.1:${server.address().port}/api/relay`;
   try {
     const ep = JSON.stringify({ description: "tracker.updated", result: { id: "trk_9", status: "in_transit" } });

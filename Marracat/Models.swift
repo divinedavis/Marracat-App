@@ -56,6 +56,11 @@ struct Brand: Codable, Identifiable, Hashable {
     /// Where the brand ships from, when that's outside the US: africa,
     /// europe, canada, caribbean or elsewhere (catalog/ships_from.py).
     var shipsFrom: String? = nil
+    /// The country the brand is based in, as an ISO 3166 code ("US", "NG",
+    /// "GB"), from research (catalog/brand_country.py); nil when it isn't on
+    /// record. The Country filter reads it (owner, 2026-11-26: "Let's put a
+    /// filter for the country the company is founded").
+    var country: String? = nil
     /// The account the brand's own website links to (catalog/instagram_handles.py);
     /// nil when the site links none, and then the brand page shows no button.
     var instagram: String? = nil

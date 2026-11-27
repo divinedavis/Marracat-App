@@ -13,7 +13,7 @@ function serve(fetcher, clock = { t: 1_000_000 }) {
 }
 
 async function get(app) {
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   try {
     const { port } = server.address();
     const r = await fetch(`http://127.0.0.1:${port}/api/ios-app`);
@@ -75,7 +75,7 @@ test("the override shows the banner before Apple's lookup catches up", async () 
     fetcher: async () => ({ ok: true, json: async () => removed }),
     env: { IOS_APP_FORCE_LIVE: "1" },
   });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   try {
     const { port } = server.address();
     const body = await (await fetch(`http://127.0.0.1:${port}/api/ios-app`)).json();
@@ -97,7 +97,7 @@ test("the lookup identifies itself as a browser", async () => {
       return { ok: true, json: async () => listing };
     },
   });
-  const server = app.listen(0);
+  const server = app.listen(0, "127.0.0.1"); await new Promise((r) => server.once("listening", r));
   try {
     const { port } = server.address();
     await fetch(`http://127.0.0.1:${port}/api/ios-app`);
