@@ -236,9 +236,10 @@ enum SearchWords {
     /// search: 10+ matches with one department holding 2 in 5 of them, and
     /// no brand leading. Then a department whose products merely mention
     /// things (craft kits and supplies, food and tea, book and album titles,
-    /// cards, stationery, toys) is off topic when it holds under 1 in 20 of
-    /// a one-word search's matches, or under 1 in 8 of a longer one's
-    /// ("bag charm fruit"), and its products drop by offDepartmentPenalty,
+    /// cards, stationery, toys) is off topic when it holds 1 in 20 or fewer
+    /// of a one-word search's matches, or 1 in 8 or fewer of a longer one's
+    /// ("bag charm fruit": 2 craft kits of 16 matches on 2026-11-28, which
+    /// "under 1 in 8" let lead), and its products drop by offDepartmentPenalty,
     /// below everything on topic. A broad word ("pink") moves nothing, and a
     /// search naming that thing ("felting kit", "tea") makes it the main
     /// department. `counts`: matches per department; `words`: the search's.
@@ -246,7 +247,7 @@ enum SearchWords {
     static func offDepartments(_ counts: [String: Int], total: Int, words: Int) -> Set<String> {
         guard total >= 10, let top = counts.values.max(), top * 5 >= total * 2 else { return [] }
         let share = words > 1 ? 8 : 20
-        return Set(counts.filter { mentioningDepartments.contains($0.key) && $0.value * share < total }.keys)
+        return Set(counts.filter { mentioningDepartments.contains($0.key) && $0.value * share <= total }.keys)
     }
     static let offDepartmentPenalty = 15
 

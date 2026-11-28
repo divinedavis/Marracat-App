@@ -167,7 +167,7 @@ enum MeaningPicks {
     /// 2nd to 4th closest, minus what they've seen or pushed away. Shown items
     /// that get opened pull the taste toward that style like any other.
     @MainActor
-    static func exploration(catalog: CatalogStore, hidden: Set<String>, limit: Int = 12, allowed: Set<String> = [], now: Date = .now) async -> (style: ShopStyle, products: [Product])? {
+    static func exploration(catalog: CatalogStore, hidden: Set<String>, limit: Int = 12, allowed: Set<String> = [], round: Int = 0, now: Date = .now) async -> (style: ShopStyle, products: [Product])? {
         guard TasteProfile.shared.hasHistory else { return nil }
         let notMe = Set(TasteProfile.shared.notMeStyles)
         let styles = await ShopStyle.ordered().filter { !notMe.contains($0.id) }
@@ -186,8 +186,10 @@ enum MeaningPicks {
             if products.count >= 4 { neighbours.append((style, products)) }
         }
         guard !neighbours.isEmpty else { return nil }
-        let (style, products) = neighbours[day % neighbours.count]
-        return (style, Array(products.prefix(limit)))
+        // Each pull to refresh on Home moves to the next style and further
+        // down its products.
+        let (style, products) = neighbours[(day + round) % neighbours.count]
+        return (style, Array(products.rotated(by: round * limit).prefix(limit)))
     }
 
     /// The same, with the vector math off the main thread: Home's launch
@@ -355,7 +357,18 @@ struct ShopStyle: Identifiable, Hashable {
 struct ShopByStyleRow: View {
     @Environment(CatalogStore.self) private var catalog
     @Environment(ShopperStore.self) private var shopper
+    /// Home's pull-to-refresh round: each pull leads with the next board and
+    /// shows the next six photos on every board (owner, 2026-11-28: "the
+    /// refresh should refresh all products on the home page").
+    var round = 0
     @State private var boards: [(style: ShopStyle, products: [Product])] = []
+    private var shown: [(style: ShopStyle, products: [Product])] { Self.arrange(boards, round: round) }
+
+    /// The boards as refresh `round` shows them: led by the next board, each
+    /// showing its next six photos.
+    static func arrange<P>(_ boards: [(style: ShopStyle, products: [P])], round: Int) -> [(style: ShopStyle, products: [P])] {
+        boards.rotated(by: round).map { (style: $0.style, products: $0.products.rotated(by: round * 6)) }
+    }
     /// The boards are still being worked out and the on-device AI is on this
     /// phone, so they're coming: the row's place is held at its full height.
     /// It used to grow from nothing to ~180 pt as they arrived, moving
@@ -375,7 +388,7 @@ struct ShopByStyleRow: View {
                     Text(Self.title).brandFont(.title3.bold()).padding(.horizontal, 12)
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 12) {
-                            ForEach(boards, id: \.style.id) { b in
+                            ForEach(shown, id: \.style.id) { b in
                                 NavigationLink(value: Route.style(b.style.id)) { StyleCollage(style: b.style, products: b.products) }
                                     .buttonStyle(.plain)
                                     .accessibilityIdentifier("styleBoard")

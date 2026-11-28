@@ -54,6 +54,9 @@ final class SearchTuneTests: XCTestCase {
         XCTAssertEqual(SearchWords.offDepartments(["clothing": 30, "home": 30, "garden": 30, "crafts": 2], total: 92, words: 1), [],
                        "a broad word moves nothing")
         XCTAssertEqual(SearchWords.offDepartments(["bags": 900, "jewelry": 3], total: 903, words: 2), [], "jewelry is a real kind")
+        // Exactly 1 in 8 is off topic too: 2 felting kits among 16 "bag charm fruit" matches (2026-11-28).
+        XCTAssertEqual(SearchWords.offDepartments(["bags": 10, "accessories": 4, "crafts": 2], total: 16, words: 3), ["crafts"])
+        XCTAssertEqual(SearchWords.offDepartments(["bags": 10, "accessories": 3, "crafts": 3], total: 16, words: 3), [], "3 in 16 is a real share")
     }
 
     /// The real catalog: what the returning shopper of 2026-11-03 searched.

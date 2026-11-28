@@ -192,16 +192,20 @@ for attempt in {1..10}; do
   sleep 1
 done
 [[ "$site_ready" == 1 ]]
-[[ $(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/auth/session) == 'null' ]]
+# The checks below retry briefly: right after the reload one request can
+# still land on a closing old worker ("curl: (55) Failed sending HTTP
+# request" rolled back a good release on 2026-11-28).
+CHECK=(--retry 5 --retry-delay 1 --retry-all-errors)
+[[ $(curl -fsS "${CHECK[@]}" --resolve marracat.com:443:127.0.0.1 https://marracat.com/auth/session) == 'null' ]]
 # Content, not just status codes: the homepage mounts the app and its bundle
 # loads, and the API serves the catalog this release shipped.
-page=$(curl -fsS --resolve marracat.com:443:127.0.0.1 https://marracat.com/)
+page=$(curl -fsS "${CHECK[@]}" --resolve marracat.com:443:127.0.0.1 https://marracat.com/)
 grep -q '<div id="root">' <<<"$page"
 bundle=$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' <<<"$page" | head -1)
 [[ -n "$bundle" ]]
-curl -fsS --resolve marracat.com:443:127.0.0.1 "https://marracat.com$bundle" -o /dev/null
-curl -fsS --compressed --resolve marracat.com:443:127.0.0.1 https://marracat.com/api/home | grep -qF "\"generated_at\":\"$expect_generated\""
-curl -fsS --compressed --resolve marracat.com:443:127.0.0.1 "https://marracat.com/api/products/$expect_product_id" | grep -qF "\"id\":\"$expect_product_id\""
+curl -fsS "${CHECK[@]}" --resolve marracat.com:443:127.0.0.1 "https://marracat.com$bundle" -o /dev/null
+curl -fsS "${CHECK[@]}" --compressed --resolve marracat.com:443:127.0.0.1 https://marracat.com/api/home | grep -qF "\"generated_at\":\"$expect_generated\""
+curl -fsS "${CHECK[@]}" --compressed --resolve marracat.com:443:127.0.0.1 "https://marracat.com/api/products/$expect_product_id" | grep -qF "\"id\":\"$expect_product_id\""
 trap - ERR
 # Keep 3 snapshots, and the 3 newest releases plus any a snapshot or
 # `current` points at (each release carries a ~200 MB catalog).

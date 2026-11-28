@@ -228,11 +228,11 @@ struct EventTile: View {
                 // the screen and its product is never seen.
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 Spacer(minLength: 0)
-                // The product on white, as the brand shot it, whatever the theme.
-                Color.white
+                // The product lifted off its photo onto the event's colours
+                // (owner, 2026-11-28); a photo that won't lift stays on white.
+                Color.clear
                     .aspectRatio(1, contentMode: .fit)
-                    .overlay { RemoteImage(url: tile.photo.images.first, width: 800).padding(14) }
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay { LiftedProductImage(url: tile.photo.images.first, width: 800, glow: Color(hex: hexes.first ?? "#FFFFFF")) }
                     .padding([.horizontal, .bottom], 12)
                     .layoutPriority(1)
                     .accessibilityHidden(true)

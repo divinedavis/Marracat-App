@@ -226,12 +226,14 @@ struct RemoteImage: View {
         }
         // Re-runs every time the cell reappears, so a failed or cancelled load retries.
         .task(id: resolved) {
-            guard let u = resolved else { failed = true; return }
+            guard let u = resolved else { image = nil; failed = true; return }
             if let hit = ImageLoader.shared.cached(u) {
                 image = hit
                 return
             }
-            image = nil
+            // A new photo for the same place (pull to refresh) keeps the old
+            // one up until it's in: clearing it first flashed the hero white
+            // (owner, 2026-11-28).
             failed = false
             let loaded = await ImageLoader.shared.load(u)
             if Task.isCancelled { return }

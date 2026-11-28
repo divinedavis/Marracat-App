@@ -19,9 +19,15 @@ enum MarkRefresh {
     /// The gap the refresh control holds open while it runs.
     static let heldGap: CGFloat = 60
 
-    /// The M stays at least one full trip along the letter, however quick
-    /// the refresh (Home's takes about 0.6 s).
-    static let minimumShow: TimeInterval = 1.0 / 0.75
+    /// On letting go, the M the pull drew wipes away from the left foot
+    /// before the first trip: the drawn M used to vanish in one frame as the
+    /// segment started (owner, 2026-11-28: "the animation isn't smooth").
+    static let wipe: TimeInterval = 0.35
+    /// The M stays for the wipe and at least one full trip along the letter,
+    /// however quick the refresh.
+    static let minimumShow: TimeInterval = wipe + 1.0 / 0.75
+    /// How long the M takes to fade once the refresh is done.
+    static let fadeOut: TimeInterval = 0.25
     /// UI tests: XCUITest waits for the app to go idle after a drag, which is
     /// after the refresh (the hidden spinner still spins). So the tests pin
     /// the M on, still, as it looks while a refresh runs.
@@ -30,10 +36,24 @@ enum MarkRefresh {
     /// The share of the M a pull of `overscroll` points draws.
     static func drawn(overscroll: CGFloat) -> CGFloat { min(1, max(0, overscroll / fullPull)) }
 
-    /// The travelling segment at time `t` (seconds): one trip along the M
-    /// every 1.33 s, entering from the left foot and leaving at the right.
+    /// Where the M sits: centred in the gap while the pull opens it, then
+    /// held at the centre of the refresh's gap. Following a deeper pull (and
+    /// the gap shrinking back to 60 pt on release) made it jump.
+    static func centre(gap: CGFloat) -> CGFloat { min(gap, heldGap) / 2 }
+
+    /// The lit part of the M at time `t` (seconds) since letting go: first the
+    /// pulled M wiping away (`wipe`), then one trip along the M every 1.33 s,
+    /// entering from the left foot and leaving at the right.
     static func segment(at t: TimeInterval) -> (from: CGFloat, to: CGFloat) {
         let t = max(0, t)
+        if t < wipe {
+            let x = CGFloat(t / wipe)
+            return (x * x * (3 - 2 * x), 1)   // smoothstep: eases in and out
+        }
+        return trip(at: t - wipe)
+    }
+
+    private static func trip(at t: TimeInterval) -> (from: CGFloat, to: CGFloat) {
         let length: CGFloat = 0.35
         let head = CGFloat(t * 0.75 - (t * 0.75).rounded(.down)) * (1 + length)
         return (max(0, head - length), min(1, head))
@@ -97,7 +117,9 @@ private struct MarkRefreshable: ViewModifier {
                     // keeps the gap open until the closure returns.
                     let rest = MarkRefresh.minimumShow - Date().timeIntervalSince(since)
                     if rest > 0 { await Task.detached { try? await Task.sleep(for: .seconds(rest)) }.value }
-                    refreshing = false
+                    // Fades out as the page slides back up, rather than
+                    // vanishing in one frame.
+                    withAnimation(.easeOut(duration: MarkRefresh.fadeOut)) { refreshing = false }
                 }
                 .onAppear { if MarkRefresh.pinnedForUITests { refreshing = true } }
                 .modifier(OverscrollReader(overscroll: $overscroll))
@@ -106,10 +128,11 @@ private struct MarkRefreshable: ViewModifier {
             // iOS 17 can't read the pull, so there the M only shows while the
             // refresh runs.
             let gap = max(overscroll, refreshing ? MarkRefresh.heldGap : 0)
-                        if gap > 8 {
+            if gap > 8 {
                 MarkRefreshIndicator(drawn: MarkRefresh.drawn(overscroll: overscroll), refreshing: refreshing, since: since)
                     .opacity(refreshing ? 1 : min(1, Double(overscroll - 8) / 30))
-                    .offset(y: gap / 2 - MarkRefreshIndicator.size / 2)
+                    .offset(y: MarkRefresh.centre(gap: gap) - MarkRefreshIndicator.size / 2)
+                    .transition(.opacity)
                     .allowsHitTesting(false)
                     .accessibilityElement()
                     .accessibilityLabel(Text(refreshing ? "Refreshing" : "Pull to refresh", comment: "Pull-to-refresh indicator: the Marracat M"))

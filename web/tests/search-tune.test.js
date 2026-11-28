@@ -120,4 +120,7 @@ test("a department a focused search barely touches goes below the rest", () => {
   assert.deepEqual([...offDepartments(new Map([["bags", 17], ["crafts", 2]]), 19, 3)], ["crafts"]);
   assert.equal(offDepartments(new Map([["bags", 17], ["crafts", 2]]), 19, 1).size, 0);
   assert.equal(offDepartments(new Map([["bags", 9]]), 9, 2).size, 0, "fewer than 10 matches: no change");
+  // Exactly 1 in 8 is off topic too: 2 felting kits among 16 "bag charm fruit" matches (2026-11-28).
+  assert.deepEqual([...offDepartments(new Map([["bags", 10], ["accessories", 4], ["crafts", 2]]), 16, 3)], ["crafts"]);
+  assert.equal(offDepartments(new Map([["bags", 10], ["accessories", 3], ["crafts", 3]]), 16, 3).size, 0, "3 in 16 is a real share");
 });

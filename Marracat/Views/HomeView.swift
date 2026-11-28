@@ -104,8 +104,8 @@ struct HomeView: View {
                         // launch of this version).
                         ForEach(0..<expectedPersonalRows, id: \.self) { _ in RowPlaceholder() }
                         quadRow.feedFullWidth()
-                        ShopByStyleRow().feedFullWidth()
-                        ExploreRow()
+                        ShopByStyleRow(round: mix.round).feedFullWidth()
+                        ExploreRow(round: mix.round)
                         BrandCircles(mix: mix).feedFullWidth()
                         if page.deals.count >= 4 {
                             ProductRow(title: String(localized: "Recommended deals for you", comment: "Home row title"), products: page.deals, route: .deals, track: "deals")
@@ -175,11 +175,10 @@ struct HomeView: View {
                 if new == .home { catchUp() }
             }
             .markRefreshable {
-                // Hold the M a beat so the swap reads as a refresh.
-                try? await Task.sleep(for: .seconds(0.5))
-                mix.next()
-                rebuild(why: "pull to refresh")
-                await refreshPicked(force: true)
+                // Not cancelled with the refresh: SwiftUI cancels it about
+                // 0.6 s in, as the page it rebuilt redraws, and the rows
+                // still to come stayed as they were.
+                await Task { @MainActor in await pullToRefresh() }.value
             }
             // A root re-tap scrolls. Returning from a pushed screen is handled
             // by TabRoot without animating the hidden feed at the same time.
@@ -228,6 +227,34 @@ struct HomeView: View {
     /// pushed on it, its tab showing, the app in front.
     private var homeOnScreen: Bool {
         scenePhase == .active && nav.tab == .home && nav.search == nil && (nav.routers[.home]?.path.isEmpty ?? true)
+    }
+
+    /// Pull to refresh: every row on Home comes back with other products
+    /// (owner, 2026-11-28: "the refresh should refresh all products on the
+    /// home page").
+    ///
+    /// The slow parts run first, off the main thread, while the M animates:
+    /// the searches the personal rows are made from, the departments' lean
+    /// toward this shopper's taste, and the next hero and brand-circle photos.
+    /// Then the page is swapped in one go. Rebuilding straight away held the
+    /// main thread for the searches and froze the M mid-trip, and the hero
+    /// went white while its next photo loaded (same day: "the animation isn't
+    /// smooth").
+    private func pullToRefresh() async {
+        var next = mix
+        next.next()
+        let started = Date()
+        let queries = CatalogStore.searchRowQueries(shopper.recentSearches, memory: SearchMemory.load())
+        let urls = HomeImages.urls(catalog, mix: next)
+        async let searches: Void = catalog.warmSearches(queries)
+        async let lean = MeaningPicks.categoryAffinityInBackground(catalog: catalog)
+        async let photos: Void = ImageLoader.shared.warm(urls, limit: .seconds(1.2))
+        let (_, affinity, _) = await (searches, lean, photos)
+        LaunchTiming.log.notice("home: refresh warmed in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public) ms")
+        mix = next
+        rebuild(affinity: catalog.isComplete ? affinity : nil, why: "pull to refresh")
+        buildNewSince(force: true)
+        await refreshPicked(force: true)
     }
 
     /// The on-device taste row, with 3-4 slots kept for departments other
@@ -426,7 +453,7 @@ struct HomeView: View {
                                   purchased: shopper.checkouts.flatMap(\.productIDs), mix: mix,
                                   memory: SearchMemory.load()) : []
         let keepShopping = Array(shopper.recentlyViewed.compactMap(catalog.product)
-            .filter { $0.available && !shopper.hidden.contains($0.id) }.distinctLooking().prefix(12))
+            .filter { $0.available && !shopper.hidden.contains($0.id) }.distinctLooking().prefix(12)).rotated(by: mix.round * 3)
         // Aisles due by when this shopper usually shops them, then the
         // products bought before that are running out.
         let rhythmic = shopper.personalizationEnabled

@@ -299,8 +299,9 @@ export const BRAND_LEAD_BONUS = 20;
 /// matches with one department holding 2 in 5 of them, and no brand leading.
 /// Then a department whose products merely mention things (craft kits and
 /// supplies, food and tea, book and album titles, cards, stationery, toys) is
-/// off topic when it holds under 1 in 20 of a one-word search's matches, or
-/// under 1 in 8 of a longer one's ("bag charm fruit"), and its products drop
+/// off topic when it holds 1 in 20 or fewer of a one-word search's matches, or
+/// 1 in 8 or fewer of a longer one's ("bag charm fruit": 2 craft kits of 16
+/// on 2026-11-28, which "under 1 in 8" let lead), and its products drop
 /// by OFF_DEPARTMENT_PENALTY, below everything on topic. A broad word ("pink")
 /// moves nothing, and a search naming that thing ("felting kit", "tea") makes
 /// it the main department. `counts`: Map of matches per department; `words`:
@@ -311,7 +312,7 @@ export function offDepartments(counts, total, words) {
   const top = Math.max(0, ...counts.values());
   if (top * 5 < total * 2) return new Set();
   const share = words > 1 ? 8 : 20;
-  return new Set([...counts].filter(([c, n]) => MENTIONING_DEPARTMENTS.has(c) && n * share < total).map(([c]) => c));
+  return new Set([...counts].filter(([c, n]) => MENTIONING_DEPARTMENTS.has(c) && n * share <= total).map(([c]) => c));
 }
 export const OFF_DEPARTMENT_PENALTY = 15;
 

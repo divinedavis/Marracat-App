@@ -240,7 +240,11 @@ struct YourTasteScreen: View {
 struct ExploreRow: View {
     @Environment(CatalogStore.self) private var catalog
     @Environment(ShopperStore.self) private var shopper
+    /// Home's pull-to-refresh round: a new round brings the row again, from
+    /// the next style.
+    var round = 0
     @State private var row: (style: ShopStyle, products: [Product])?
+    @State private var builtRound = 0
 
     var body: some View {
         Group {
@@ -256,9 +260,12 @@ struct ExploreRow: View {
         // Again once the shopper has a history: a first launch has none, and
         // the row fills in while Home is behind what they're browsing.
         // (`revision` is the observed part of the taste; the row is built once.)
-        .task(id: "\(catalog.isComplete)-\(TasteProfile.shared.revision / 4)") {
-            guard catalog.isComplete, row == nil, shopper.personalizationEnabled else { return }
-            row = await MeaningPicks.exploration(catalog: catalog, hidden: Set(shopper.hidden), allowed: catalog.touchedDepartments(of: shopper))
+        .task(id: "\(catalog.isComplete)-\(TasteProfile.shared.revision / 4)-\(round)") {
+            guard catalog.isComplete, row == nil || builtRound != round, shopper.personalizationEnabled else { return }
+            let next = await MeaningPicks.exploration(catalog: catalog, hidden: Set(shopper.hidden), allowed: catalog.touchedDepartments(of: shopper), round: round)
+            guard !Task.isCancelled else { return }
+            row = next
+            builtRound = round
         }
     }
 }
